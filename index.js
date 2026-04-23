@@ -50,6 +50,31 @@ app.post("/visit", async (req, res) => {
     note
   });
 
+  app.get("/test-data", async (req, res) => {
+  const building = new Building({
+    code: "B1",
+    address: "Calle Falsa 123"
+  });
+
+  await building.save();
+
+  const dept1 = new Department({
+    number: "1A",
+    buildingId: building._id
+  });
+
+  const dept2 = new Department({
+    number: "2B",
+    buildingId: building._id
+  });
+
+  await dept1.save();
+  await dept2.save();
+
+  res.json({ building, dept1, dept2 });
+});
+  
+
   await visit.save();
 
   res.send("Visita guardada");
