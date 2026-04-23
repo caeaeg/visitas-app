@@ -19,3 +19,24 @@ app.get("/", (req, res) => {
 app.listen(3000, () => {
   console.log("Servidor listo en puerto 3000");
 });
+app.get("/next/:buildingId", async (req, res) => {
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+  const visits = await Visit.find({
+    date: { $gte: sixMonthsAgo }
+  });
+
+  const visitedDeptIds = visits.map(v => v.departmentId.toString());
+
+  const dept = await Department.findOne({
+    buildingId: req.params.buildingId,
+    _id: { $nin: visitedDeptIds }
+  });
+
+  if (!dept) {
+    return res.send("No hay departamentos disponibles");
+  }
+
+  res.json(dept);
+});
