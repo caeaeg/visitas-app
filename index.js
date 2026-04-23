@@ -40,3 +40,18 @@ app.get("/next/:buildingId", async (req, res) => {
 
   res.json(dept);
 });
+
+app.post("/visit", async (req, res) => {
+  const { departmentId, status, note } = req.body;
+
+  const visit = new Visit({
+    departmentId,
+    status,
+    note
+  });
+
+  await visit.save();
+
+  res.send("Visita guardada");
+});
+
