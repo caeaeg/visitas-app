@@ -1,12 +1,19 @@
 const mongoose = require("mongoose");
 
-const buildingSchema = new mongoose.Schema({
+const BuildingSchema = new mongoose.Schema({
   code: String,
   address: String,
   floors: Number,
   unitsPerFloor: Number,
   hasGroundFloor: Boolean,
-  hasDoorman: Boolean
+  hasDoorman: Boolean,
+
+  // 🔽 nuevos campos
+  territory: String,
+  name: String,
+  description: String
 });
 
-module.exports = mongoose.model("Building", buildingSchema);
+module.exports = mongoose.model("Building", BuildingSchema);
+
+
