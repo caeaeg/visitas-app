@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin - Historial</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: Arial;
+      padding: 15px;
+      background: #fafafa;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 16px;
+    }
+
+    .card {
+      background: white;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>📊 Panel Administrador</h2>
+
+<input id="dir" placeholder="Dirección del edificio">
+<button onclick="cargar()">Ver historial</button>
+
+<div id="resultado"></div>
+
+<script>
+async function cargar() {
+  const input = document.getElementById("dir").value;
+
+  const b = await fetch(`/building/${encodeURIComponent(input)}`);
+  const building = await b.json();
+
+  if (!building._id) {
+    alert("No existe el edificio");
+    return;
+  }
+
+  const res = await fetch(`/history/${building._id}`);
+  const data = await res.json();
+
+  const cont = document.getElementById("resultado");
+  cont.innerHTML = "";
+
+  data.forEach(d => {
+    cont.innerHTML += `
+      <div class="card">
+        <b>${d.number}</b><br>
+        Estado: ${d.lastStatus || "Nunca visitado"}<br>
+        Fecha: ${d.lastDate ? new Date(d.lastDate).toLocaleDateString() : "-"}<br>
+        Nota: ${d.note || "-"}
+      </div>
+    `;
+  });
+}
+</script>
+
+</body>
+</html>
+
