@@ -83,19 +83,26 @@ async function buscar() {
     return;
   }
 
-  const res = await fetch(`/next/${building._id}`);
-  const data = await res.json();
+ const res = await fetch(`/next/${building._id}`);
+const data = await res.json();
 
-  if (!data.number) {
-    document.getElementById("resultado").innerText =
-      "No hay departamentos disponibles";
-    return;
-  }
-
-  currentDept = data;
-
+if (data.message === "NO_AVAILABLE") {
   document.getElementById("resultado").innerText =
-    "Depto: " + data.number;
+    "No hay departamentos sin atender";
+  return;
+}
+
+currentDept = data.dept;
+
+document.getElementById("resultado").innerText =
+  "Depto: " + data.dept.number;
+
+// 👇 historial si existe
+if (data.lastVisit && data.lastVisit.status === "NO_EN_CASA") {
+  document.getElementById("estado").innerText =
+    `Visitado el ${new Date(data.lastVisit.date).toLocaleDateString()} - No atendió. Nota: ${data.lastVisit.note || "Sin nota"}`;
+} else {
+  document.getElementById("estado").innerText = "";
 }
 
 async function marcar(status) {
