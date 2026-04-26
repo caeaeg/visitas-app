@@ -19,24 +19,41 @@ mongoose.connect(process.env.MONGO_URI)
 app.listen(3000, () => {
   console.log("Servidor listo en puerto 3000");
 });
+
 app.get("/next/:buildingId", async (req, res) => {
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
+  // SOLO bloquea los que fueron ATENDIDOS
   const visits = await Visit.find({
+    status: "ATENDIO",
     date: { $gte: sixMonthsAgo }
   });
 
-  const visitedDeptIds = visits.map(v => v.departmentId.toString());
+  const blockedIds = visits.map(v => v.departmentId.toString());
 
-  const dept = await Department.findOne({
+  const departments = await Department.find({
     buildingId: req.params.buildingId,
-    _id: { $nin: visitedDeptIds }
+    _id: { $nin: blockedIds }
   });
 
-  if (!dept) {
-    return res.send("No hay departamentos disponibles");
+  if (departments.length === 0) {
+    return res.json({ message: "NO_AVAILABLE" });
   }
+
+  // elegir aleatorio
+  const dept = departments[Math.floor(Math.random() * departments.length)];
+
+  // buscar última visita de ese depto
+  const lastVisit = await Visit.findOne({
+    departmentId: dept._id
+  }).sort({ date: -1 });
+
+  res.json({
+    dept,
+    lastVisit
+  });
+});
 
   res.json(dept);
 });
