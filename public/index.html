@@ -60,6 +60,7 @@
 
 <input id="buildingId" placeholder="Código o dirección">
 <button class="buscar" onclick="buscar()">Buscar</button>
+<button onclick="buscar()">➡ Siguiente</button>
 
 <h3 id="resultado"></h3>
 <p id="estado"></p>
@@ -75,7 +76,12 @@ let currentDept = null;
 async function buscar() {
   const input = document.getElementById("buildingId").value;
 
-  const b = await fetch(`/building/${input}`);
+  if (!input) {
+    alert("Ingresá una dirección");
+    return;
+  }
+
+  const b = await fetch(`/building/${encodeURIComponent(input)}`);
   const building = await b.json();
 
   if (!building._id) {
@@ -93,8 +99,8 @@ async function buscar() {
 
   if (data.message === "NO_AVAILABLE") {
     document.getElementById("resultado").innerText =
-      "No hay departamentos sin atender";
-
+      "No hay departamentos pendientes (todos atendidos en los últimos 6 meses)";
+    
     document.getElementById("estado").innerText = "";
     return;
   }
@@ -104,7 +110,6 @@ async function buscar() {
   document.getElementById("resultado").innerText =
     "Depto: " + data.dept.number;
 
-  // historial si NO atendió
   if (data.lastVisit && data.lastVisit.status === "NO_EN_CASA") {
     document.getElementById("estado").innerText =
       `Visitado el ${new Date(data.lastVisit.date).toLocaleDateString()} - No atendió. Nota: ${data.lastVisit.note || "Sin nota"}`;
@@ -136,6 +141,11 @@ async function crearEdificio() {
   });
 
   const data = await res.json();
+
+  if (data.error) {
+    alert("Datos inválidos");
+    return;
+  }
 
   if (data.message === "EXISTS") {
     document.getElementById("estado").innerText =
