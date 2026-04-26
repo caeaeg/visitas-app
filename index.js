@@ -98,4 +98,11 @@ app.get("/building/:query", async (req, res) => {
 
   res.json(building);
 });
+app.post("/building", async (req, res) => {
+  const { code, address } = req.body;
 
+  const building = new Building({ code, address });
+  await building.save();
+
+  res.json(building);
+});
