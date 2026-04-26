@@ -7,12 +7,11 @@
 
 <h2>Buscar edificio</h2>
 
-<input id="buildingId" placeholder="ID del edificio">
+<input id="buildingId" placeholder="Código o dirección">
 <button onclick="buscar()">Buscar</button>
 
 <h3 id="resultado"></h3>
-
-  <p id="estado"></p>
+<p id="estado"></p>
 
 <button onclick="marcar('ATENDIO')">ATENDIÓ</button>
 <button onclick="marcar('NO_EN_CASA')">NO EN CASA</button>
@@ -37,6 +36,7 @@ async function buscar() {
   document.getElementById("resultado").innerText =
     "Departamento: " + data.number;
 }
+
 async function marcar(status) {
   if (!currentDept) return alert("Primero buscá un departamento");
 
@@ -54,9 +54,13 @@ async function marcar(status) {
     })
   });
 
+  // 👇 ESTA ES LA MEJORA CLAVE
+  document.getElementById("estado").innerText =
+    "Última acción: " + status;
+
   alert("Guardado");
 
-  buscar(); // trae otro automáticamente
+  buscar(); // trae el siguiente depto automáticamente
 }
 </script>
 
