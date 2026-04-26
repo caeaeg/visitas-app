@@ -98,11 +98,38 @@ app.get("/building/:query", async (req, res) => {
 
   res.json(building);
 });
-app.post("/building", async (req, res) => {
-  const { code, address } = req.body;
 
-  const building = new Building({ code, address });
+app.post("/building", async (req, res) => {
+  const { address, floors, unitsPerFloor, hasGroundFloor, hasDoorman } = req.body;
+
+  const building = new Building({
+    code: address,
+    address,
+    floors,
+    unitsPerFloor,
+    hasGroundFloor,
+    hasDoorman
+  });
+
   await building.save();
+
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  let startFloor = hasGroundFloor ? 0 : 1;
+
+  for (let f = startFloor; f <= floors; f++) {
+    for (let i = 0; i < unitsPerFloor; i++) {
+      const number =
+        (f === 0 ? "PB" : f.toString()) + letters[i];
+
+      const dept = new Department({
+        number,
+        buildingId: building._id
+      });
+
+      await dept.save();
+    }
+  }
 
   res.json(building);
 });
