@@ -17,7 +17,8 @@ app.listen(3000, () => {
   console.log("Servidor listo en puerto 3000");
 });
 
-// 🔹 NEXT
+
+// 🔹 NEXT (lógica principal)
 app.get("/next/:buildingId", async (req, res) => {
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -50,9 +51,10 @@ app.get("/next/:buildingId", async (req, res) => {
   });
 });
 
-// 🔹 BUSCAR BUILDING (🔥 ESTE FALTABA)
+
+// 🔹 BUSCAR BUILDING (sin importar mayúsculas)
 app.get("/building/:query", async (req, res) => {
-  const query = req.params.query;
+  const query = req.params.query.trim().toLowerCase();
 
   const building = await Building.findOne({
     $or: [
@@ -68,12 +70,29 @@ app.get("/building/:query", async (req, res) => {
   res.json(building);
 });
 
-// 🔹 CREAR BUILDING (CON ANTIDUPLICADO)
-app.post("/building", async (req, res) => {
-  const { address, floors, unitsPerFloor, hasGroundFloor, hasDoorman } = req.body;
 
+// 🔹 CREAR BUILDING (con validación + anti-duplicado)
+app.post("/building", async (req, res) => {
+  let { address, floors, unitsPerFloor, hasGroundFloor, hasDoorman } = req.body;
+
+  // 🔒 validaciones básicas
+  if (!address || !floors || !unitsPerFloor) {
+    return res.status(400).json({ error: "DATOS_INCOMPLETOS" });
+  }
+
+  floors = Number(floors);
+  unitsPerFloor = Number(unitsPerFloor);
+
+  if (floors <= 0 || unitsPerFloor <= 0) {
+    return res.status(400).json({ error: "DATOS_INVALIDOS" });
+  }
+
+  // 🔤 normalizar dirección
+  const normalizedAddress = address.trim().toLowerCase();
+
+  // 🔍 evitar duplicados
   const existing = await Building.findOne({
-    address: new RegExp("^" + address + "$", "i")
+    address: normalizedAddress
   });
 
   if (existing) {
@@ -84,8 +103,8 @@ app.post("/building", async (req, res) => {
   }
 
   const building = new Building({
-    code: address,
-    address,
+    code: normalizedAddress,
+    address: normalizedAddress,
     floors,
     unitsPerFloor,
     hasGroundFloor,
@@ -100,6 +119,9 @@ app.post("/building", async (req, res) => {
 
   for (let f = startFloor; f <= floors; f++) {
     for (let i = 0; i < unitsPerFloor; i++) {
+
+      if (i >= letters.length) continue; // límite seguridad
+
       const number =
         (f === 0 ? "PB" : f.toString()) + letters[i];
 
@@ -118,9 +140,14 @@ app.post("/building", async (req, res) => {
   });
 });
 
+
 // 🔹 GUARDAR VISITA
 app.post("/visit", async (req, res) => {
   const { departmentId, status, note } = req.body;
+
+  if (!departmentId || !status) {
+    return res.status(400).send("Datos incompletos");
+  }
 
   const visit = new Visit({
     departmentId,
@@ -133,3 +160,8 @@ app.post("/visit", async (req, res) => {
   res.send("Visita guardada");
 });
 
+
+// 🔹 TEST RÁPIDO (opcional)
+app.get("/ping", (req, res) => {
+  res.send("pong");
+});
