@@ -105,6 +105,30 @@ if (data.lastVisit && data.lastVisit.status === "NO_EN_CASA") {
   document.getElementById("estado").innerText = "";
 }
 
+async function crearEdificio(direccion) {
+  const floors = prompt("¿Cuántos pisos?");
+  const units = prompt("¿Departamentos por piso?");
+  const pb = confirm("¿Tiene planta baja?");
+  const portero = confirm("¿Tiene portero?");
+
+  const res = await fetch("/building", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      address: direccion,
+      floors: Number(floors),
+      unitsPerFloor: Number(units),
+      hasGroundFloor: pb,
+      hasDoorman: portero
+    })
+  });
+
+  alert("Edificio creado");
+
+  buscar();
+}
 async function marcar(status) {
   if (!currentDept) {
     alert("Primero buscá un departamento");
