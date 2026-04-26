@@ -17,7 +17,7 @@ app.listen(3000, () => {
   console.log("Servidor listo en puerto 3000");
 });
 
-// 🔹 NEXT (corregido)
+// 🔹 NEXT
 app.get("/next/:buildingId", async (req, res) => {
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -50,51 +50,28 @@ app.get("/next/:buildingId", async (req, res) => {
   });
 });
 
-// 🔹 TEST DATA
-app.get("/test-data", async (req, res) => {
-  const building = new Building({
-    code: "B1",
-    address: "Calle Falsa 123"
+// 🔹 BUSCAR BUILDING (🔥 ESTE FALTABA)
+app.get("/building/:query", async (req, res) => {
+  const query = req.params.query;
+
+  const building = await Building.findOne({
+    $or: [
+      { code: new RegExp("^" + query + "$", "i") },
+      { address: new RegExp(query, "i") }
+    ]
   });
 
-  await building.save();
+  if (!building) {
+    return res.json({ error: "NOT_FOUND" });
+  }
 
-  const dept1 = new Department({
-    number: "1A",
-    buildingId: building._id
-  });
-
-  const dept2 = new Department({
-    number: "2B",
-    buildingId: building._id
-  });
-
-  await dept1.save();
-  await dept2.save();
-
-  res.json({ building, dept1, dept2 });
+  res.json(building);
 });
 
-// 🔹 GUARDAR VISITA
-app.post("/visit", async (req, res) => {
-  const { departmentId, status, note } = req.body;
-
-  const visit = new Visit({
-    departmentId,
-    status,
-    note
-  });
-
-  await visit.save();
-
-  res.send("Visita guardada");
-});
-
-// 🔹 BUSCAR BUILDING
+// 🔹 CREAR BUILDING (CON ANTIDUPLICADO)
 app.post("/building", async (req, res) => {
   const { address, floors, unitsPerFloor, hasGroundFloor, hasDoorman } = req.body;
 
-  // 🔍 buscar si ya existe (por dirección)
   const existing = await Building.findOne({
     address: new RegExp("^" + address + "$", "i")
   });
@@ -141,39 +118,18 @@ app.post("/building", async (req, res) => {
   });
 });
 
-// 🔹 CREAR BUILDING + DEPARTAMENTOS
-app.post("/building", async (req, res) => {
-  const { address, floors, unitsPerFloor, hasGroundFloor, hasDoorman } = req.body;
+// 🔹 GUARDAR VISITA
+app.post("/visit", async (req, res) => {
+  const { departmentId, status, note } = req.body;
 
-  const building = new Building({
-    code: address,
-    address,
-    floors,
-    unitsPerFloor,
-    hasGroundFloor,
-    hasDoorman
+  const visit = new Visit({
+    departmentId,
+    status,
+    note
   });
 
-  await building.save();
+  await visit.save();
 
-  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-  let startFloor = hasGroundFloor ? 0 : 1;
-
-  for (let f = startFloor; f <= floors; f++) {
-    for (let i = 0; i < unitsPerFloor; i++) {
-      const number =
-        (f === 0 ? "PB" : f.toString()) + letters[i];
-
-      const dept = new Department({
-        number,
-        buildingId: building._id
-      });
-
-      await dept.save();
-    }
-  }
-
-  res.json(building);
+  res.send("Visita guardada");
 });
 
