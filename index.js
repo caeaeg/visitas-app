@@ -210,5 +210,56 @@ app.get("/history/:buildingId", async (req, res) => {
   });
 });
 
+//importacion de datos - despues se puede borrar
+app.post("/import", async (req, res) => {
+  const data = req.body;
 
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  for (let row of data) {
+    const address = row.direccion?.trim().toLowerCase();
+    const floors = Number(row.floors);
+
+    if (!address || !floors) continue;
+
+    const existing = await Building.findOne({ address });
+    if (existing) continue;
+
+    const unitsPerFloor = Number(row.units) || 2;
+
+    const building = new Building({
+      code: address,
+      address,
+      floors,
+      unitsPerFloor,
+      hasGroundFloor: true,
+      hasDoorman: false,
+      territory: row.territory || "",
+      name: row.name || "",
+      description: row.description || ""
+    });
+
+    await building.save();
+
+    let startFloor = 0;
+
+    for (let f = startFloor; f <= floors; f++) {
+      for (let i = 0; i < unitsPerFloor; i++) {
+        if (i >= letters.length) continue;
+
+        const number =
+          (f === 0 ? "PB" : f.toString()) + letters[i];
+
+        await new Department({
+          number,
+          buildingId: building._id
+        }).save();
+      }
+    }
+  }
+
+  res.send("Importación OK");
+});
+
+// hasta aca
 
