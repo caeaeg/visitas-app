@@ -79,32 +79,41 @@ async function buscar() {
   const building = await b.json();
 
   if (!building._id) {
-    document.getElementById("resultado").innerText = "No encontrado";
+    document.getElementById("resultado").innerText =
+      "Edificio no encontrado";
+
+    document.getElementById("estado").innerHTML =
+      `<button onclick="crearEdificio('${input}')">
+        ➕ Agregar edificio
+      </button>`;
+
     return;
   }
 
- const res = await fetch(`/next/${building._id}`);
-const data = await res.json();
+  const res = await fetch(`/next/${building._id}`);
+  const data = await res.json();
 
-if (data.message === "NO_AVAILABLE") {
+  if (data.message === "NO_AVAILABLE") {
+    document.getElementById("resultado").innerText =
+      "No hay departamentos sin atender";
+    return;
+  }
+
+  currentDept = data.dept;
+
   document.getElementById("resultado").innerText =
-    "No hay departamentos sin atender";
-  return;
+    "Depto: " + data.dept.number;
+
+  // historial
+  if (data.lastVisit && data.lastVisit.status === "NO_EN_CASA") {
+    document.getElementById("estado").innerText =
+      `Visitado el ${new Date(data.lastVisit.date).toLocaleDateString()} - No atendió. Nota: ${data.lastVisit.note || "Sin nota"}`;
+  } else {
+    document.getElementById("estado").innerText = "";
+  }
 }
 
-currentDept = data.dept;
-
-document.getElementById("resultado").innerText =
-  "Depto: " + data.dept.number;
-
-// 👇 historial si existe
-if (data.lastVisit && data.lastVisit.status === "NO_EN_CASA") {
-  document.getElementById("estado").innerText =
-    `Visitado el ${new Date(data.lastVisit.date).toLocaleDateString()} - No atendió. Nota: ${data.lastVisit.note || "Sin nota"}`;
-} else {
-  document.getElementById("estado").innerText = "";
-}
-
+// 👇 AFUERA de buscar()
 async function crearEdificio(direccion) {
   const floors = prompt("¿Cuántos pisos?");
   const units = prompt("¿Departamentos por piso?");
@@ -129,6 +138,7 @@ async function crearEdificio(direccion) {
 
   buscar();
 }
+
 async function marcar(status) {
   if (!currentDept) {
     alert("Primero buscá un departamento");
@@ -157,6 +167,5 @@ async function marcar(status) {
   buscar();
 }
 </script>
-
 </body>
 </html>
