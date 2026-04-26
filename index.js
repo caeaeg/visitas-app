@@ -165,3 +165,28 @@ app.post("/visit", async (req, res) => {
 app.get("/ping", (req, res) => {
   res.send("pong");
 });
+
+// parte de admin
+app.get("/history/:buildingId", async (req, res) => {
+  const departments = await Department.find({
+    buildingId: req.params.buildingId
+  });
+
+  const result = [];
+
+  for (let dept of departments) {
+    const lastVisit = await Visit.findOne({
+      departmentId: dept._id
+    }).sort({ date: -1 });
+
+    result.push({
+      number: dept.number,
+      lastStatus: lastVisit?.status,
+      lastDate: lastVisit?.date,
+      note: lastVisit?.note
+    });
+  }
+
+  res.json(result);
+});
+
