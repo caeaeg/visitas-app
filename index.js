@@ -82,3 +82,20 @@ app.post("/visit", async (req, res) => {
   res.send("Visita guardada");
 });
 
+app.get("/building/:query", async (req, res) => {
+  const query = req.params.query;
+
+  const building = await Building.findOne({
+    $or: [
+      { code: query },
+      { address: query }
+    ]
+  });
+
+  if (!building) {
+    return res.send("No encontrado");
+  }
+
+  res.json(building);
+});
+
