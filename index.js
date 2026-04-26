@@ -8,13 +8,13 @@ const mongoose = require("mongoose");
 const app = express();
 app.use(express.json());
 
+app.use(express.static("public"));
+
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("🟢 Conectado a MongoDB"))
   .catch(err => console.log("❌ Error Mongo:", err.message));
 
-app.get("/", (req, res) => {
-  res.send("Servidor funcionando 🚀");
-});
+
 
 app.listen(3000, () => {
   console.log("Servidor listo en puerto 3000");
@@ -66,7 +66,7 @@ app.get("/test-data", async (req, res) => {
   res.json({ building, dept1, dept2 });
 });
 
-app.use(express.static("public"));
+
 // 🔹 endpoint guardar visita
 app.post("/visit", async (req, res) => {
   const { departmentId, status, note } = req.body;
