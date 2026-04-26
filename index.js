@@ -91,21 +91,54 @@ app.post("/visit", async (req, res) => {
 });
 
 // 🔹 BUSCAR BUILDING
-app.get("/building/:query", async (req, res) => {
-  const query = req.params.query;
+app.post("/building", async (req, res) => {
+  const { address, floors, unitsPerFloor, hasGroundFloor, hasDoorman } = req.body;
 
-  const building = await Building.findOne({
-    $or: [
-      { code: new RegExp("^" + query + "$", "i") },
-      { address: new RegExp(query, "i") }
-    ]
+  // 🔍 buscar si ya existe (por dirección)
+  const existing = await Building.findOne({
+    address: new RegExp("^" + address + "$", "i")
   });
 
-  if (!building) {
-    return res.json({ error: "NOT_FOUND" });
+  if (existing) {
+    return res.json({
+      message: "EXISTS",
+      building: existing
+    });
   }
 
-  res.json(building);
+  const building = new Building({
+    code: address,
+    address,
+    floors,
+    unitsPerFloor,
+    hasGroundFloor,
+    hasDoorman
+  });
+
+  await building.save();
+
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  let startFloor = hasGroundFloor ? 0 : 1;
+
+  for (let f = startFloor; f <= floors; f++) {
+    for (let i = 0; i < unitsPerFloor; i++) {
+      const number =
+        (f === 0 ? "PB" : f.toString()) + letters[i];
+
+      const dept = new Department({
+        number,
+        buildingId: building._id
+      });
+
+      await dept.save();
+    }
+  }
+
+  res.json({
+    message: "CREATED",
+    building
+  });
 });
 
 // 🔹 CREAR BUILDING + DEPARTAMENTOS
