@@ -7,24 +7,21 @@ const mongoose = require("mongoose");
 
 const app = express();
 app.use(express.json());
-
 app.use(express.static("public"));
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("🟢 Conectado a MongoDB"))
   .catch(err => console.log("❌ Error Mongo:", err.message));
 
-
-
 app.listen(3000, () => {
   console.log("Servidor listo en puerto 3000");
 });
 
+// 🔹 NEXT (corregido)
 app.get("/next/:buildingId", async (req, res) => {
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-  // SOLO bloquea los que fueron ATENDIDOS
   const visits = await Visit.find({
     status: "ATENDIO",
     date: { $gte: sixMonthsAgo }
@@ -41,10 +38,8 @@ app.get("/next/:buildingId", async (req, res) => {
     return res.json({ message: "NO_AVAILABLE" });
   }
 
-  // elegir aleatorio
   const dept = departments[Math.floor(Math.random() * departments.length)];
 
-  // buscar última visita de ese depto
   const lastVisit = await Visit.findOne({
     departmentId: dept._id
   }).sort({ date: -1 });
@@ -55,10 +50,7 @@ app.get("/next/:buildingId", async (req, res) => {
   });
 });
 
-  res.json(dept);
-});
-
-// 🔹 endpoint test-data (AFUERA)
+// 🔹 TEST DATA
 app.get("/test-data", async (req, res) => {
   const building = new Building({
     code: "B1",
@@ -83,8 +75,7 @@ app.get("/test-data", async (req, res) => {
   res.json({ building, dept1, dept2 });
 });
 
-
-// 🔹 endpoint guardar visita
+// 🔹 GUARDAR VISITA
 app.post("/visit", async (req, res) => {
   const { departmentId, status, note } = req.body;
 
@@ -99,6 +90,7 @@ app.post("/visit", async (req, res) => {
   res.send("Visita guardada");
 });
 
+// 🔹 BUSCAR BUILDING
 app.get("/building/:query", async (req, res) => {
   const query = req.params.query;
 
@@ -116,6 +108,7 @@ app.get("/building/:query", async (req, res) => {
   res.json(building);
 });
 
+// 🔹 CREAR BUILDING + DEPARTAMENTOS
 app.post("/building", async (req, res) => {
   const { address, floors, unitsPerFloor, hasGroundFloor, hasDoorman } = req.body;
 
@@ -150,3 +143,4 @@ app.post("/building", async (req, res) => {
 
   res.json(building);
 });
+
