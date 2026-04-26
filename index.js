@@ -41,16 +41,8 @@ app.get("/next/:buildingId", async (req, res) => {
   res.json(dept);
 });
 
-app.post("/visit", async (req, res) => {
-  const { departmentId, status, note } = req.body;
-
-  const visit = new Visit({
-    departmentId,
-    status,
-    note
-  });
-
-  app.get("/test-data", async (req, res) => {
+// 🔹 endpoint test-data (AFUERA)
+app.get("/test-data", async (req, res) => {
   const building = new Building({
     code: "B1",
     address: "Calle Falsa 123"
@@ -73,7 +65,17 @@ app.post("/visit", async (req, res) => {
 
   res.json({ building, dept1, dept2 });
 });
-  
+
+
+// 🔹 endpoint guardar visita
+app.post("/visit", async (req, res) => {
+  const { departmentId, status, note } = req.body;
+
+  const visit = new Visit({
+    departmentId,
+    status,
+    note
+  });
 
   await visit.save();
 
