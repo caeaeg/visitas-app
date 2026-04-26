@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Visitas</title>
+</head>
+<body>
+
+<h2>Buscar edificio</h2>
+
+<input id="buildingId" placeholder="ID del edificio">
+<button onclick="buscar()">Buscar</button>
+
+<h3 id="resultado"></h3>
+
+<button onclick="marcar('ATENDIO')">ATENDIÓ</button>
+<button onclick="marcar('NO_EN_CASA')">NO EN CASA</button>
+
+<br><br>
+<textarea id="nota" placeholder="Nota..."></textarea>
+
+<script>
+let currentDept = null;
+
+async function buscar() {
+  const id = document.getElementById("buildingId").value;
+
+  const res = await fetch(`/next/${id}`);
+  const data = await res.json();
+
+  currentDept = data;
+
+  document.getElementById("resultado").innerText =
+    "Departamento: " + data.number;
+}
+
+async function marcar(status) {
+  if (!currentDept) return alert("Primero buscá un departamento");
+
+  const note = document.getElementById("nota").value;
+
+  await fetch("/visit", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      departmentId: currentDept._id,
+      status,
+      note
+    })
+  });
+
+  alert("Guardado");
+
+  buscar(); // trae otro automáticamente
+}
+</script>
+
+</body>
+</html>
