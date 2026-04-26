@@ -83,9 +83,7 @@ async function buscar() {
       "Edificio no encontrado";
 
     document.getElementById("estado").innerHTML =
-      `<button onclick="crearEdificio('${input}')">
-        ➕ Agregar edificio
-      </button>`;
+      `<button onclick="crearEdificio()">➕ Agregar edificio</button>`;
 
     return;
   }
@@ -96,6 +94,8 @@ async function buscar() {
   if (data.message === "NO_AVAILABLE") {
     document.getElementById("resultado").innerText =
       "No hay departamentos sin atender";
+
+    document.getElementById("estado").innerText = "";
     return;
   }
 
@@ -104,7 +104,7 @@ async function buscar() {
   document.getElementById("resultado").innerText =
     "Depto: " + data.dept.number;
 
-  // historial
+  // historial si NO atendió
   if (data.lastVisit && data.lastVisit.status === "NO_EN_CASA") {
     document.getElementById("estado").innerText =
       `Visitado el ${new Date(data.lastVisit.date).toLocaleDateString()} - No atendió. Nota: ${data.lastVisit.note || "Sin nota"}`;
@@ -113,8 +113,9 @@ async function buscar() {
   }
 }
 
-// 👇 AFUERA de buscar()
-async function crearEdificio(direccion) {
+async function crearEdificio() {
+  const direccion = document.getElementById("buildingId").value;
+
   const floors = prompt("¿Cuántos pisos?");
   const units = prompt("¿Departamentos por piso?");
   const pb = confirm("¿Tiene planta baja?");
@@ -137,9 +138,11 @@ async function crearEdificio(direccion) {
   const data = await res.json();
 
   if (data.message === "EXISTS") {
-    alert("El edificio ya estaba cargado");
+    document.getElementById("estado").innerText =
+      "⚠️ El edificio ya estaba cargado";
   } else {
-    alert("Edificio creado");
+    document.getElementById("estado").innerText =
+      "✔ Edificio creado";
   }
 
   buscar();
@@ -166,12 +169,13 @@ async function marcar(status) {
   });
 
   document.getElementById("estado").innerText =
-    "Última acción: " + status;
+    "✔ Guardado: " + status;
 
   document.getElementById("nota").value = "";
 
   buscar();
 }
 </script>
+
 </body>
 </html>
