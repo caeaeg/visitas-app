@@ -66,7 +66,7 @@ app.get("/test-data", async (req, res) => {
   res.json({ building, dept1, dept2 });
 });
 
-
+app.use(express.static("public"));
 // 🔹 endpoint guardar visita
 app.post("/visit", async (req, res) => {
   const { departmentId, status, note } = req.body;
