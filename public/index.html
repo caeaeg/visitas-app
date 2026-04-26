@@ -134,7 +134,13 @@ async function crearEdificio(direccion) {
     })
   });
 
-  alert("Edificio creado");
+  const data = await res.json();
+
+  if (data.message === "EXISTS") {
+    alert("El edificio ya estaba cargado");
+  } else {
+    alert("Edificio creado");
+  }
 
   buscar();
 }
