@@ -87,13 +87,13 @@ app.get("/building/:query", async (req, res) => {
 
   const building = await Building.findOne({
     $or: [
-      { code: query },
-      { address: query }
+      { code: new RegExp("^" + query + "$", "i") },
+      { address: new RegExp(query, "i") }
     ]
   });
 
   if (!building) {
-    return res.send("No encontrado");
+    return res.json({ error: "NOT_FOUND" });
   }
 
   res.json(building);
