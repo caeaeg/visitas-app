@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin - Historial</title>
+  <title>Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -26,34 +26,52 @@
       box-shadow: 0 0 6px rgba(0,0,0,0.1);
     }
 
-    .ok {
-      border-left: 5px solid #4CAF50;
-    }
-
-    .no {
-      border-left: 5px solid #f44336;
-    }
-
-    .never {
-      border-left: 5px solid #999;
-    }
-
-    .resumen {
-      background: #e3f2fd;
+    .hidden {
+      display: none;
     }
   </style>
 </head>
 
 <body>
 
-<h2>📊 Panel Administrador</h2>
+<!-- 🔐 LOGIN -->
+<div id="login">
+  <h2>🔒 Acceso Administrador</h2>
+  <input id="clave" type="password" placeholder="Clave numérica">
+  <button onclick="verificar()">Entrar</button>
+  <button onclick="volver()">⬅ Volver</button>
+</div>
 
-<input id="dir" placeholder="Dirección del edificio">
-<button onclick="cargar()">Ver historial</button>
+<!-- 📊 PANEL -->
+<div id="panel" class="hidden">
+  <h2>📊 Panel Administrador</h2>
 
-<div id="resultado"></div>
+  <input id="dir" placeholder="Dirección del edificio">
+  <button onclick="cargar()">Ver historial</button>
+  <button onclick="volver()">⬅ Volver</button>
+
+  <div id="resultado"></div>
+</div>
 
 <script>
+const CLAVE = "2414"; // 🔑 CAMBIAR ESTO
+
+function verificar() {
+  const input = document.getElementById("clave").value;
+
+  if (input === CLAVE) {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("panel").style.display = "block";
+  } else {
+    alert("Clave incorrecta");
+  }
+}
+
+function volver() {
+  window.location.href = "/";
+}
+
+// 🔽 TU FUNCIÓN DE HISTORIAL
 async function cargar() {
   const input = document.getElementById("dir").value;
 
@@ -76,37 +94,22 @@ async function cargar() {
   const cont = document.getElementById("resultado");
   cont.innerHTML = "";
 
-  // 🔥 RESUMEN
   cont.innerHTML += `
-    <div class="card resumen">
-      <b>📊 Resumen</b><br><br>
+    <div class="card">
+      <b>Resumen</b><br>
       Total: ${data.total}<br>
-      ✔ Atendieron: ${data.atendidos}<br>
-      ✖ No atendieron: ${data.noAtendieron}<br>
-      ⭕ Nunca visitados: ${data.nunca}<br>
-      <br>
-      <b>Progreso: ${data.progreso}%</b>
+      Atendieron: ${data.atendidos}<br>
+      No atendieron: ${data.noAtendieron}<br>
+      Nunca: ${data.nunca}<br>
+      Progreso: ${data.progreso}%
     </div>
   `;
 
-  // 🔽 DETALLE
   data.detalle.forEach(d => {
-
-    let clase = "never";
-    let estado = "Nunca visitado";
-
-    if (d.lastStatus === "ATENDIO") {
-      clase = "ok";
-      estado = "Atendió";
-    } else if (d.lastStatus === "NO_EN_CASA") {
-      clase = "no";
-      estado = "No atendió";
-    }
-
     cont.innerHTML += `
-      <div class="card ${clase}">
+      <div class="card">
         <b>${d.number}</b><br>
-        Estado: ${estado}<br>
+        Estado: ${d.lastStatus || "Nunca"}<br>
         Fecha: ${d.lastDate ? new Date(d.lastDate).toLocaleDateString() : "-"}<br>
         Nota: ${d.note || "-"}
       </div>
