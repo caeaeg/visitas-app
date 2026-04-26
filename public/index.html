@@ -2,21 +2,71 @@
 <html>
 <head>
   <title>Visitas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: Arial;
+      padding: 15px;
+      background: #f5f5f5;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      margin: 5px 0;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+    }
+
+    .ok {
+      background-color: #4CAF50;
+      color: white;
+    }
+
+    .no {
+      background-color: #f44336;
+      color: white;
+    }
+
+    .buscar {
+      background-color: #2196F3;
+      color: white;
+    }
+
+    #resultado {
+      font-size: 22px;
+      margin-top: 20px;
+    }
+
+    #estado {
+      margin-top: 10px;
+      color: gray;
+    }
+  </style>
 </head>
+
 <body>
 
-<h2>Buscar edificio</h2>
+<h2>📍 Visitas</h2>
 
 <input id="buildingId" placeholder="Código o dirección">
-<button onclick="buscar()">Buscar</button>
+<button class="buscar" onclick="buscar()">Buscar</button>
 
 <h3 id="resultado"></h3>
 <p id="estado"></p>
 
-<button onclick="marcar('ATENDIO')">ATENDIÓ</button>
-<button onclick="marcar('NO_EN_CASA')">NO EN CASA</button>
+<button class="ok" onclick="marcar('ATENDIO')">✔ ATENDIÓ</button>
+<button class="no" onclick="marcar('NO_EN_CASA')">✖ NO EN CASA</button>
 
-<br><br>
 <textarea id="nota" placeholder="Nota..."></textarea>
 
 <script>
@@ -28,17 +78,31 @@ async function buscar() {
   const b = await fetch(`/building/${input}`);
   const building = await b.json();
 
+  if (!building._id) {
+    document.getElementById("resultado").innerText = "No encontrado";
+    return;
+  }
+
   const res = await fetch(`/next/${building._id}`);
   const data = await res.json();
+
+  if (!data.number) {
+    document.getElementById("resultado").innerText =
+      "No hay departamentos disponibles";
+    return;
+  }
 
   currentDept = data;
 
   document.getElementById("resultado").innerText =
-    "Departamento: " + data.number;
+    "Depto: " + data.number;
 }
 
 async function marcar(status) {
-  if (!currentDept) return alert("Primero buscá un departamento");
+  if (!currentDept) {
+    alert("Primero buscá un departamento");
+    return;
+  }
 
   const note = document.getElementById("nota").value;
 
@@ -54,13 +118,12 @@ async function marcar(status) {
     })
   });
 
-  // 👇 ESTA ES LA MEJORA CLAVE
   document.getElementById("estado").innerText =
     "Última acción: " + status;
 
-  alert("Guardado");
+  document.getElementById("nota").value = "";
 
-  buscar(); // trae el siguiente depto automáticamente
+  buscar();
 }
 </script>
 
