@@ -172,6 +172,44 @@ app.get("/history/:buildingId", async (req, res) => {
     buildingId: req.params.buildingId
   });
 
+  let total = departments.length;
+  let atendidos = 0;
+  let noAtendieron = 0;
+  let nunca = 0;
+
+  const detalle = [];
+
+  for (let dept of departments) {
+    const lastVisit = await Visit.findOne({
+      departmentId: dept._id
+    }).sort({ date: -1 });
+
+    if (!lastVisit) {
+      nunca++;
+    } else if (lastVisit.status === "ATENDIO") {
+      atendidos++;
+    } else {
+      noAtendieron++;
+    }
+
+    detalle.push({
+      number: dept.number,
+      lastStatus: lastVisit?.status,
+      lastDate: lastVisit?.date,
+      note: lastVisit?.note
+    });
+  }
+
+  res.json({
+    total,
+    atendidos,
+    noAtendieron,
+    nunca,
+    progreso: total ? Math.round((atendidos / total) * 100) : 0,
+    detalle
+  });
+});
+
   const result = [];
 
   for (let dept of departments) {
