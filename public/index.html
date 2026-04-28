@@ -230,7 +230,19 @@ async function marcar(status) {
 
   const note = document.getElementById("nota").value;
 
-  await fetch("/visit", {
+  const res = await fetch("/visit", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    departmentId: currentDept._id,
+    status,
+    note
+  })
+});
+
+const text = await res.text();
     method: "POST",
     headers: {
       "Content-Type": "application/json"
