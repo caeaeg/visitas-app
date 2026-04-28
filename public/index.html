@@ -241,7 +241,15 @@ async function marcar(status) {
     note
   })
 });
+const visit = await res.json();
 
+lastVisitData = {
+  id: visit._id,
+  department: currentDept.number,
+  status,
+  note,
+  date: visit.date
+};
 const text = await res.text();
     method: "POST",
     headers: {
@@ -313,13 +321,19 @@ async function guardarEdicion() {
 
   const nuevaNota = document.getElementById("modalNota").value;
 
-  // actualizar en memoria
+  await fetch(`/visit/${lastVisitData.id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      note: nuevaNota
+    })
+  });
+
   lastVisitData.note = nuevaNota;
 
-  // ⚠️ actualizar en backend (necesitamos id de visita más adelante)
-  // por ahora solo actualiza visual
-
-  alert("Nota actualizada (modo local)");
+  alert("Nota actualizada correctamente");
 
   cerrarModal();
 }
