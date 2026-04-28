@@ -42,6 +42,11 @@
       color: white;
     }
 
+    .secondary {
+      background-color: #555;
+      color: white;
+    }
+
     #resultado {
       font-size: 22px;
       margin-top: 20px;
@@ -67,18 +72,33 @@
 <button onclick="crearEdificio()">➕ Nuevo edificio</button>
 <button onclick="irAdmin()">🔒 Admin</button>
 
-<h3 id="resultado"></h3>
+<h3 id="resultado">Ingresá una dirección para comenzar</h3>
 <p id="estado"></p>
-
-<button class="ok" onclick="marcar('ATENDIO')">✔ ATENDIÓ</button>
-<button class="no" onclick="marcar('NO_EN_CASA')">✖ NO EN CASA</button>
 
 <textarea id="nota" placeholder="Nota..."></textarea>
 
+<button id="btnOk" class="ok" onclick="marcar('ATENDIO')" style="display:none;">
+✔ ATENDIÓ
+</button>
+
+<button id="btnNo" class="no" onclick="marcar('NO_EN_CASA')" style="display:none;">
+✖ NO EN CASA
+</button>
+
+<button id="btnSiguiente" class="secondary" onclick="siguiente()" style="display:none;">
+➡ Siguiente departamento
+</button>
+
+<button id="btnUltimo" class="secondary" onclick="verUltimo()" style="display:none;">
+🧾 Ver último informe
+</button>
+
 <script>
 let currentDept = null;
+let currentBuildingId = null;
+let currentBuildingData = null;
+let lastVisitData = null;
 
-// 🔹 recordar última búsqueda
 window.onload = () => {
   const last = localStorage.getItem("lastBuilding");
   if (last) {
@@ -86,21 +106,22 @@ window.onload = () => {
   }
 };
 
-// 🔹 ir a admin
 function irAdmin() {
   window.location.href = "/admin.html";
 }
 
-// 🔹 buscar edificio
 async function buscar() {
 
   const input = document.getElementById("buildingId").value.trim();
-
   if (!input) return;
 
-  // limpiar pantalla
   document.getElementById("resultado").innerText = "Buscando...";
   document.getElementById("estado").innerText = "";
+
+  document.getElementById("btnOk").style.display = "none";
+  document.getElementById("btnNo").style.display = "none";
+  document.getElementById("btnSiguiente").style.display = "none";
+  document.getElementById("btnUltimo").style.display = "none";
 
   localStorage.setItem("lastBuilding", input);
 
@@ -120,7 +141,15 @@ async function buscar() {
     return;
   }
 
-  const res = await fetch(`/next/${building._id}`);
+  currentBuildingId = building._id;
+  currentBuildingData = building;
+
+  await cargarDepto();
+}
+
+async function cargarDepto() {
+
+  const res = await fetch(`/next/${currentBuildingId}`);
   const data = await res.json();
 
   if (data.message === "NO_AVAILABLE") {
@@ -136,14 +165,15 @@ async function buscar() {
   document.getElementById("resultado").innerText =
     "Depto: " + data.dept.number;
 
-  // 🔹 info del edificio
+  document.getElementById("btnOk").style.display = "block";
+  document.getElementById("btnNo").style.display = "block";
+
   let info = "";
 
-  if (building.name) info += "🏢 " + building.name + "\n";
-  if (building.territory) info += "📍 Territorio: " + building.territory + "\n";
-  if (building.description) info += "📝 " + building.description;
+  if (currentBuildingData.name) info += "🏢 " + currentBuildingData.name + "\n";
+  if (currentBuildingData.territory) info += "📍 Territorio: " + currentBuildingData.territory + "\n";
+  if (currentBuildingData.description) info += "📝 " + currentBuildingData.description;
 
-  // 🔹 historial
   if (data.lastVisit && data.lastVisit.status === "NO_EN_CASA") {
     info += `\n\n⚠ Visitado el ${new Date(data.lastVisit.date).toLocaleDateString()} - No atendió`;
     if (data.lastVisit.note) {
@@ -154,7 +184,6 @@ async function buscar() {
   document.getElementById("estado").innerText = info;
 }
 
-// 🔹 crear edificio
 async function crearEdificio(direccion = "") {
 
   if (!direccion) {
@@ -192,7 +221,6 @@ async function crearEdificio(direccion = "") {
   buscar();
 }
 
-// 🔹 marcar visita
 async function marcar(status) {
 
   if (!currentDept) {
@@ -214,12 +242,38 @@ async function marcar(status) {
     })
   });
 
+  lastVisitData = {
+    department: currentDept.number,
+    status,
+    note,
+    date: new Date()
+  };
+
   document.getElementById("estado").innerText =
-    "Última acción: " + status;
+    "✔ Guardado. Revisá si querés y avanzá.";
 
+  document.getElementById("btnSiguiente").style.display = "block";
+  document.getElementById("btnUltimo").style.display = "block";
+}
+
+async function siguiente() {
   document.getElementById("nota").value = "";
+  await cargarDepto();
+}
 
-  buscar();
+function verUltimo() {
+
+  if (!lastVisitData) {
+    alert("No hay datos");
+    return;
+  }
+
+  alert(
+`Depto: ${lastVisitData.department}
+Estado: ${lastVisitData.status}
+Fecha: ${lastVisitData.date.toLocaleDateString()}
+Nota: ${lastVisitData.note || "Sin nota"}`
+  );
 }
 </script>
 
