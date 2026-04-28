@@ -254,6 +254,7 @@ async function marcar(status) {
 
   document.getElementById("btnSiguiente").style.display = "block";
   document.getElementById("btnUltimo").style.display = "block";
+abrirModal();
 }
 
 async function siguiente() {
@@ -277,6 +278,36 @@ Nota: ${lastVisitData.note || "Sin nota"}`
 }
 </script>
 
+  <div id="modal" style="
+  display:none;
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.6);
+  justify-content:center;
+  align-items:center;
+">
+
+  <div style="
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    width:90%;
+    max-width:400px;
+  ">
+
+    <h3>🧾 Último informe</h3>
+
+    <p id="modalInfo"></p>
+
+    <textarea id="modalNota" placeholder="Editar nota..."></textarea>
+
+    <button onclick="guardarEdicion()" class="ok">💾 Guardar cambios</button>
+    <button onclick="cerrarModal()" class="secondary">Cerrar</button>
+
+  </div>
+</div>
+  
 </body>
 </html>
 
