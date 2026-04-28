@@ -157,7 +157,7 @@ app.post("/visit", async (req, res) => {
 
   await visit.save();
 
-  res.send("Visita guardada");
+  res.json(visit);
 });
 
 
