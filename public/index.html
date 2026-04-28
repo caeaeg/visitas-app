@@ -50,6 +50,7 @@
     #estado {
       margin-top: 10px;
       color: gray;
+      white-space: pre-line;
     }
   </style>
 </head>
@@ -58,9 +59,13 @@
 
 <h2>📍 Visitas</h2>
 
-<input id="buildingId" placeholder="Código o dirección">
+<input id="buildingId" placeholder="Código o dirección"
+  onkeypress="if(event.key==='Enter') buscar()">
+
 <button class="buscar" onclick="buscar()">Buscar</button>
-<button onclick="buscar()">➡ Siguiente</button>
+
+<button onclick="crearEdificio()">➕ Nuevo edificio</button>
+<button onclick="irAdmin()">🔒 Admin</button>
 
 <h3 id="resultado"></h3>
 <p id="estado"></p>
@@ -70,18 +75,34 @@
 
 <textarea id="nota" placeholder="Nota..."></textarea>
 
-<button onclick="crearEdificio()">➕ Nuevo edificio</button>
-  
 <script>
 let currentDept = null;
 
-async function buscar() {
-  const input = document.getElementById("buildingId").value;
-
-  if (!input) {
-    alert("Ingresá una dirección");
-    return;
+// 🔹 recordar última búsqueda
+window.onload = () => {
+  const last = localStorage.getItem("lastBuilding");
+  if (last) {
+    document.getElementById("buildingId").value = last;
   }
+};
+
+// 🔹 ir a admin
+function irAdmin() {
+  window.location.href = "/admin.html";
+}
+
+// 🔹 buscar edificio
+async function buscar() {
+
+  const input = document.getElementById("buildingId").value.trim();
+
+  if (!input) return;
+
+  // limpiar pantalla
+  document.getElementById("resultado").innerText = "Buscando...";
+  document.getElementById("estado").innerText = "";
+
+  localStorage.setItem("lastBuilding", input);
 
   const b = await fetch(`/building/${encodeURIComponent(input)}`);
   const building = await b.json();
@@ -91,8 +112,11 @@ async function buscar() {
       "Edificio no encontrado";
 
     document.getElementById("estado").innerHTML =
-      `<button onclick="crearEdificio()">➕ Agregar edificio</button>`;
+      `<button onclick="crearEdificio('${input}')">
+        ➕ Agregar edificio
+      </button>`;
 
+    currentDept = null;
     return;
   }
 
@@ -101,9 +125,9 @@ async function buscar() {
 
   if (data.message === "NO_AVAILABLE") {
     document.getElementById("resultado").innerText =
-      "No hay departamentos pendientes (todos atendidos en los últimos 6 meses)";
-    
-    document.getElementById("estado").innerText = "";
+      "No hay departamentos sin atender";
+
+    currentDept = null;
     return;
   }
 
@@ -112,16 +136,31 @@ async function buscar() {
   document.getElementById("resultado").innerText =
     "Depto: " + data.dept.number;
 
+  // 🔹 info del edificio
+  let info = "";
+
+  if (building.name) info += "🏢 " + building.name + "\n";
+  if (building.territory) info += "📍 Territorio: " + building.territory + "\n";
+  if (building.description) info += "📝 " + building.description;
+
+  // 🔹 historial
   if (data.lastVisit && data.lastVisit.status === "NO_EN_CASA") {
-    document.getElementById("estado").innerText =
-      `Visitado el ${new Date(data.lastVisit.date).toLocaleDateString()} - No atendió. Nota: ${data.lastVisit.note || "Sin nota"}`;
-  } else {
-    document.getElementById("estado").innerText = "";
+    info += `\n\n⚠ Visitado el ${new Date(data.lastVisit.date).toLocaleDateString()} - No atendió`;
+    if (data.lastVisit.note) {
+      info += `\nNota: ${data.lastVisit.note}`;
+    }
   }
+
+  document.getElementById("estado").innerText = info;
 }
 
-async function crearEdificio() {
-  const direccion = document.getElementById("buildingId").value;
+// 🔹 crear edificio
+async function crearEdificio(direccion = "") {
+
+  if (!direccion) {
+    direccion = prompt("Dirección del edificio:");
+    if (!direccion) return;
+  }
 
   const floors = prompt("¿Cuántos pisos?");
   const units = prompt("¿Departamentos por piso?");
@@ -144,23 +183,18 @@ async function crearEdificio() {
 
   const data = await res.json();
 
-  if (data.error) {
-    alert("Datos inválidos");
-    return;
-  }
-
   if (data.message === "EXISTS") {
-    document.getElementById("estado").innerText =
-      "⚠️ El edificio ya estaba cargado";
+    alert("El edificio ya estaba cargado");
   } else {
-    document.getElementById("estado").innerText =
-      "✔ Edificio creado";
+    alert("Edificio creado");
   }
 
   buscar();
 }
 
+// 🔹 marcar visita
 async function marcar(status) {
+
   if (!currentDept) {
     alert("Primero buscá un departamento");
     return;
@@ -181,20 +215,16 @@ async function marcar(status) {
   });
 
   document.getElementById("estado").innerText =
-    "✔ Guardado: " + status;
+    "Última acción: " + status;
 
   document.getElementById("nota").value = "";
 
   buscar();
-}
-
-  function irAdmin() {
-  window.location.href = "/admin.html";
 }
 </script>
 
 </body>
 </html>
 
-<button onclick="irAdmin()">🔒 Admin</button>
+
 
