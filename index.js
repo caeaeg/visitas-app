@@ -210,6 +210,16 @@ app.get("/history/:buildingId", async (req, res) => {
   });
 });
 
+app.put("/visit/:id", async (req, res) => {
+  const { note } = req.body;
+
+  await Visit.findByIdAndUpdate(req.params.id, {
+    note
+  });
+
+  res.send("Visita actualizada");
+});
+
 //importacion de datos - despues se puede borrar
 app.post("/import", async (req, res) => {
   const data = req.body;
