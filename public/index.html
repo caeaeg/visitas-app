@@ -223,60 +223,50 @@ async function crearEdificio(direccion = "") {
 
 async function marcar(status) {
 
-  if (!currentDept) {
-    alert("Primero buscá un departamento");
-    return;
-  }
+  try {
 
-  const note = document.getElementById("nota").value;
+    if (!currentDept) {
+      alert("Primero buscá un departamento");
+      return;
+    }
 
-  const res = await fetch("/visit", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    departmentId: currentDept._id,
-    status,
-    note
-  })
-});
-const visit = await res.json();
+    const note = document.getElementById("nota").value;
 
-lastVisitData = {
-  id: visit._id,
-  department: currentDept.number,
-  status,
-  note,
-  date: visit.date
-};
-const text = await res.text();
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      departmentId: currentDept._id,
+    const res = await fetch("/visit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        departmentId: currentDept._id,
+        status,
+        note
+      })
+    });
+
+    const visit = await res.json();
+
+    lastVisitData = {
+      id: visit._id,
+      department: currentDept.number,
       status,
-      note
-    })
-  });
+      note,
+      date: visit.date || new Date()
+    };
 
-  lastVisitData = {
-    department: currentDept.number,
-    status,
-    note,
-    date: new Date()
-  };
+    document.getElementById("estado").innerText =
+      "✔ Guardado. Revisá si querés y avanzá.";
 
-  document.getElementById("estado").innerText =
-    "✔ Guardado. Revisá si querés y avanzá.";
+    document.getElementById("btnSiguiente").style.display = "block";
+    document.getElementById("btnUltimo").style.display = "block";
 
-  document.getElementById("btnSiguiente").style.display = "block";
-  document.getElementById("btnUltimo").style.display = "block";
-abrirModal();
+    abrirModal();
+
+  } catch (error) {
+    console.error("ERROR:", error);
+    alert("Hubo un error, revisá la consola (F12)");
+  }
 }
-
 async function siguiente() {
   document.getElementById("nota").value = "";
   await cargarDepto();
