@@ -220,6 +220,18 @@ app.put("/visit/:id", async (req, res) => {
   res.send("Visita actualizada");
 });
 
+app.get("/debug/buildings", async (req, res) => {
+  const buildings = await Building.find();
+  res.json(buildings);
+});
+
+app.get("/debug/departments/:buildingId", async (req, res) => {
+  const depts = await Department.find({
+    buildingId: req.params.buildingId
+  });
+  res.json(depts);
+});
+
 //importacion de datos - despues se puede borrar
 app.post("/import", async (req, res) => {
   const data = req.body;
