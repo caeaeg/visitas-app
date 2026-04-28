@@ -276,6 +276,42 @@ Fecha: ${lastVisitData.date.toLocaleDateString()}
 Nota: ${lastVisitData.note || "Sin nota"}`
   );
 }
+
+
+  function abrirModal() {
+
+  if (!lastVisitData) return;
+
+  document.getElementById("modal").style.display = "flex";
+
+  document.getElementById("modalInfo").innerText =
+`Depto: ${lastVisitData.department}
+Estado: ${lastVisitData.status}
+Fecha: ${lastVisitData.date.toLocaleDateString()}`;
+
+  document.getElementById("modalNota").value =
+    lastVisitData.note || "";
+}
+
+function cerrarModal() {
+  document.getElementById("modal").style.display = "none";
+}
+
+async function guardarEdicion() {
+
+  const nuevaNota = document.getElementById("modalNota").value;
+
+  // actualizar en memoria
+  lastVisitData.note = nuevaNota;
+
+  // ⚠️ actualizar en backend (necesitamos id de visita más adelante)
+  // por ahora solo actualiza visual
+
+  alert("Nota actualizada (modo local)");
+
+  cerrarModal();
+}
+  
 </script>
 
   <div id="modal" style="
