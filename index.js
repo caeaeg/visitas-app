@@ -233,55 +233,71 @@ app.get("/debug/departments/:buildingId", async (req, res) => {
 });
 
 //importacion de datos - despues se puede borrar
-app.post("/import", async (req, res) => {
-  const data = req.body;
+const fetch = require("node-fetch");
 
-  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+app.get("/import-sheet", async (req, res) => {
 
-  for (let row of data) {
-    const address = row.direccion?.trim().toLowerCase();
-    const floors = Number(row.floors);
+  try {
 
-    if (!address || !floors) continue;
+    const response = await fetch("https://opensheet.elk.sh/1nTPjRGrYIGb69-u6ficD9pHRQDjMbVauXeW_Q6HyFaU/visitas-app");
+    const data = await response.json();
 
-    const existing = await Building.findOne({ address });
-    if (existing) continue;
+    for (let item of data) {
 
-    const unitsPerFloor = Number(row.units) || 2;
+      const address = item.DIRECCION?.trim();
+      const floors = Number(item.FLOORS || 0);
+      const unitsPerFloor = Number(item.UNITS || 2);
 
-    const building = new Building({
-      code: address,
-      address,
-      floors,
-      unitsPerFloor,
-      hasGroundFloor: true,
-      hasDoorman: false,
-      territory: row.territory || "",
-      name: row.name || "",
-      description: row.description || ""
-    });
+      if (!address || floors <= 0) continue;
 
-    await building.save();
+      // evitar duplicados
+      const exists = await Building.findOne({
+        address: address.toLowerCase()
+      });
 
-    let startFloor = 0;
+      if (exists) continue;
 
-    for (let f = startFloor; f <= floors; f++) {
-      for (let i = 0; i < unitsPerFloor; i++) {
-        if (i >= letters.length) continue;
+      const building = new Building({
+        code: address.toLowerCase(),
+        address: address.toLowerCase(),
+        floors,
+        unitsPerFloor,
+        hasGroundFloor: true,
+        hasDoorman: false,
+        territory: item.TERRITORY || "",
+        name: item.NAME || "",
+        description: item.DESCRIPTION || ""
+      });
 
-        const number =
-          (f === 0 ? "PB" : f.toString()) + letters[i];
+      await building.save();
 
-        await new Department({
-          number,
-          buildingId: building._id
-        }).save();
+      // crear departamentos
+      const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      let startFloor = 0;
+
+      for (let f = startFloor; f <= floors; f++) {
+        for (let i = 0; i < unitsPerFloor; i++) {
+
+          if (i >= letters.length) continue;
+
+          const number =
+            (f === 0 ? "PB" : f.toString()) + letters[i];
+
+          await Department.create({
+            number,
+            buildingId: building._id
+          });
+        }
       }
     }
+
+    res.send("Importación completada 🚀");
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error importando");
   }
 
-  res.send("Importación OK");
 });
-
 // hasta aca
 
