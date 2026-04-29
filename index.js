@@ -13,8 +13,10 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("🟢 Conectado a MongoDB"))
   .catch(err => console.log("❌ Error Mongo:", err.message));
 
-app.listen(3000, () => {
-  console.log("Servidor listo en puerto 3000");
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("Servidor listo en puerto " + PORT);
 });
 
 
