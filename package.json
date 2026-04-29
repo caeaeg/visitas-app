@@ -13,3 +13,6 @@
 {
   "type": "commonjs"
 }
+"scripts": {
+  "start": "node index.js"
+}
