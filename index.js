@@ -20,7 +20,7 @@ app.listen(PORT, () => {
 });
 
 
-// 🔹 NEXT (lógica principal)
+// 🔹 NEXT
 app.get("/next/:buildingId", async (req, res) => {
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -54,7 +54,7 @@ app.get("/next/:buildingId", async (req, res) => {
 });
 
 
-// 🔹 BUSCAR BUILDING (sin importar mayúsculas)
+// 🔹 BUSCAR BUILDING
 app.get("/building/:query", async (req, res) => {
   const query = req.params.query.trim().toLowerCase();
 
@@ -73,11 +73,10 @@ app.get("/building/:query", async (req, res) => {
 });
 
 
-// 🔹 CREAR BUILDING (con validación + anti-duplicado)
+// 🔹 CREAR BUILDING
 app.post("/building", async (req, res) => {
   let { address, floors, unitsPerFloor, hasGroundFloor, hasDoorman } = req.body;
 
-  // 🔒 validaciones básicas
   if (!address || !floors || !unitsPerFloor) {
     return res.status(400).json({ error: "DATOS_INCOMPLETOS" });
   }
@@ -89,10 +88,8 @@ app.post("/building", async (req, res) => {
     return res.status(400).json({ error: "DATOS_INVALIDOS" });
   }
 
-  // 🔤 normalizar dirección
   const normalizedAddress = address.trim().toLowerCase();
 
-  // 🔍 evitar duplicados
   const existing = await Building.findOne({
     address: normalizedAddress
   });
@@ -116,23 +113,20 @@ app.post("/building", async (req, res) => {
   await building.save();
 
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
   let startFloor = hasGroundFloor ? 0 : 1;
 
   for (let f = startFloor; f <= floors; f++) {
     for (let i = 0; i < unitsPerFloor; i++) {
 
-      if (i >= letters.length) continue; // límite seguridad
+      if (i >= letters.length) continue;
 
       const number =
         (f === 0 ? "PB" : f.toString()) + letters[i];
 
-      const dept = new Department({
+      await Department.create({
         number,
         buildingId: building._id
       });
-
-      await dept.save();
     }
   }
 
@@ -163,12 +157,7 @@ app.post("/visit", async (req, res) => {
 });
 
 
-// 🔹 TEST RÁPIDO (opcional)
-app.get("/ping", (req, res) => {
-  res.send("pong");
-});
-
-// parte de admin
+// 🔹 HISTORY
 app.get("/history/:buildingId", async (req, res) => {
   const departments = await Department.find({
     buildingId: req.params.buildingId
@@ -186,13 +175,9 @@ app.get("/history/:buildingId", async (req, res) => {
       departmentId: dept._id
     }).sort({ date: -1 });
 
-    if (!lastVisit) {
-      nunca++;
-    } else if (lastVisit.status === "ATENDIO") {
-      atendidos++;
-    } else {
-      noAtendieron++;
-    }
+    if (!lastVisit) nunca++;
+    else if (lastVisit.status === "ATENDIO") atendidos++;
+    else noAtendieron++;
 
     detalle.push({
       number: dept.number,
@@ -212,16 +197,18 @@ app.get("/history/:buildingId", async (req, res) => {
   });
 });
 
+
+// 🔹 EDITAR VISITA
 app.put("/visit/:id", async (req, res) => {
   const { note } = req.body;
 
-  await Visit.findByIdAndUpdate(req.params.id, {
-    note
-  });
+  await Visit.findByIdAndUpdate(req.params.id, { note });
 
   res.send("Visita actualizada");
 });
 
+
+// 🔹 DEBUG
 app.get("/debug/buildings", async (req, res) => {
   const buildings = await Building.find();
   res.json(buildings);
@@ -234,11 +221,9 @@ app.get("/debug/departments/:buildingId", async (req, res) => {
   res.json(depts);
 });
 
-//importacion de datos - despues se puede borrar
-const response = await fetch("...");
 
+// 🔹 IMPORTADOR
 app.get("/import-sheet", async (req, res) => {
-
   try {
 
     const response = await fetch("https://opensheet.elk.sh/1nTPjRGrYIGb69-u6ficD9pHRQDjMbVauXeW_Q6HyFaU/visitas-app");
@@ -252,7 +237,6 @@ app.get("/import-sheet", async (req, res) => {
 
       if (!address || floors <= 0) continue;
 
-      // evitar duplicados
       const exists = await Building.findOne({
         address: address.toLowerCase()
       });
@@ -273,11 +257,9 @@ app.get("/import-sheet", async (req, res) => {
 
       await building.save();
 
-      // crear departamentos
       const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-      let startFloor = 0;
 
-      for (let f = startFloor; f <= floors; f++) {
+      for (let f = 0; f <= floors; f++) {
         for (let i = 0; i < unitsPerFloor; i++) {
 
           if (i >= letters.length) continue;
@@ -299,7 +281,4 @@ app.get("/import-sheet", async (req, res) => {
     console.error(err);
     res.status(500).send("Error importando");
   }
-
 });
-// hasta aca
-
