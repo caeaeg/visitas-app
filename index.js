@@ -235,7 +235,7 @@ app.get("/debug/departments/:buildingId", async (req, res) => {
 });
 
 //importacion de datos - despues se puede borrar
-const fetch = require("node-fetch");
+const response = await fetch("...");
 
 app.get("/import-sheet", async (req, res) => {
 
