@@ -288,6 +288,35 @@ app.get("/building/id/:id", async (req, res) => {
   res.json(building);
 });
 
+app.put("/building/:id", async (req, res) => {
+
+  const {
+    address,
+    address2,
+    floors,
+    unitsPerFloor,
+    hasGroundFloor,
+    hasDoorman,
+    territory,
+    name,
+    description
+  } = req.body;
+
+  await Building.findByIdAndUpdate(req.params.id, {
+    address,
+    address2,
+    floors,
+    unitsPerFloor,
+    hasGroundFloor,
+    hasDoorman,
+    territory,
+    name,
+    description
+  });
+
+  res.send("Edificio actualizado");
+});
+
 // 🔹 IMPORTADOR
 app.get("/import-sheet", async (req, res) => {
   try {
