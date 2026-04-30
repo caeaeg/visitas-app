@@ -2,6 +2,9 @@ const Building = require("./models/Building");
 const Department = require("./models/Department");
 const Visit = require("./models/Visit");
 
+// 👇 NUEVO MODELO (tenés que crearlo después)
+const Report = require("./models/Report");
+
 const express = require("express");
 const mongoose = require("mongoose");
 
@@ -47,10 +50,7 @@ app.get("/next/:buildingId", async (req, res) => {
     departmentId: dept._id
   }).sort({ date: -1 });
 
-  res.json({
-    dept,
-    lastVisit
-  });
+  res.json({ dept, lastVisit });
 });
 
 
@@ -90,15 +90,10 @@ app.post("/building", async (req, res) => {
 
   const normalizedAddress = address.trim().toLowerCase();
 
-  const existing = await Building.findOne({
-    address: normalizedAddress
-  });
+  const existing = await Building.findOne({ address: normalizedAddress });
 
   if (existing) {
-    return res.json({
-      message: "EXISTS",
-      building: existing
-    });
+    return res.json({ message: "EXISTS", building: existing });
   }
 
   const building = new Building({
@@ -120,8 +115,7 @@ app.post("/building", async (req, res) => {
 
       if (i >= letters.length) continue;
 
-      const number =
-        (f === 0 ? "PB" : f.toString()) + letters[i];
+      const number = (f === 0 ? "PB" : f.toString()) + letters[i];
 
       await Department.create({
         number,
@@ -130,10 +124,7 @@ app.post("/building", async (req, res) => {
     }
   }
 
-  res.json({
-    message: "CREATED",
-    building
-  });
+  res.json({ message: "CREATED", building });
 });
 
 
@@ -208,72 +199,48 @@ app.put("/visit/:id", async (req, res) => {
 });
 
 
-// 🔹 DEBUG
-app.get("/debug/buildings", async (req, res) => {
-  const buildings = await Building.find();
+// 🔹 EDITAR BUILDING
+app.put("/building/:id", async (req, res) => {
+
+  const {
+    address,
+    address2,
+    territory,
+    name,
+    description
+  } = req.body;
+
+  await Building.findByIdAndUpdate(req.params.id, {
+    address,
+    address2,
+    territory,
+    name,
+    description
+  });
+
+  res.send("Edificio actualizado");
+});
+
+
+// 🔹 BUSCAR PARA EDITAR (ADMIN)
+app.get("/admin/search-buildings", async (req, res) => {
+
+  const q = req.query.q;
+
+  if (!q) return res.json([]);
+
+  const buildings = await Building.find({
+    $or: [
+      { address: new RegExp(q, "i") },
+      { territory: new RegExp(q, "i") }
+    ]
+  }).limit(20);
+
   res.json(buildings);
 });
 
-app.get("/debug/departments/:buildingId", async (req, res) => {
-  const depts = await Department.find({
-    buildingId: req.params.buildingId
-  });
-  res.json(depts);
-});
 
-app.get("/admin/buildings", async (req, res) => {
-  const { sort } = req.query;
-
-  const buildings = await Building.find();
-
-  const result = [];
-
-  for (let b of buildings) {
-
-    const departments = await Department.find({
-      buildingId: b._id
-    });
-
-    const deptIds = departments.map(d => d._id);
-
-    const visits = await Visit.find({
-      departmentId: { $in: deptIds }
-    });
-
-    const totalVisits = visits.length;
-
-    const lastVisit = visits.sort((a, b) => b.date - a.date)[0];
-
-    result.push({
-      _id: b._id,
-      address: b.address,
-      name: b.name,
-      territory: b.territory,
-      totalVisits,
-      lastVisitDate: lastVisit?.date || null
-    });
-  }
-
-  // 🔹 ordenamientos
-  if (sort === "territory") {
-    result.sort((a, b) =>
-      (a.territory || "").localeCompare(b.territory || "")
-    );
-  }
-
-  if (sort === "recent") {
-    result.sort((a, b) =>
-      new Date(b.lastVisitDate || 0) - new Date(a.lastVisitDate || 0)
-    );
-  }
-
-  if (sort === "most") {
-    result.sort((a, b) => b.totalVisits - a.totalVisits);
-  }
-
-  res.json(result);
-});
-
+// 🔹 TERRITORIO
 app.get("/territory/:num", async (req, res) => {
   const buildings = await Building.find({
     territory: req.params.num
@@ -283,42 +250,49 @@ app.get("/territory/:num", async (req, res) => {
 });
 
 
-app.get("/building/id/:id", async (req, res) => {
-  const building = await Building.findById(req.params.id);
-  res.json(building);
-});
+// 🔹 REPORTAR PROBLEMA
+app.post("/report", async (req, res) => {
 
-app.put("/building/:id", async (req, res) => {
+  const { buildingId, message } = req.body;
 
-  const {
-    address,
-    address2,
-    floors,
-    unitsPerFloor,
-    hasGroundFloor,
-    hasDoorman,
-    territory,
-    name,
-    description
-  } = req.body;
-
-  await Building.findByIdAndUpdate(req.params.id, {
-    address,
-    address2,
-    floors,
-    unitsPerFloor,
-    hasGroundFloor,
-    hasDoorman,
-    territory,
-    name,
-    description
+  const report = new Report({
+    building: buildingId,
+    message,
+    date: new Date(),
+    resolved: false
   });
 
-  res.send("Edificio actualizado");
+  await report.save();
+
+  res.send("Reporte enviado");
 });
+
+
+// 🔹 VER REPORTES
+app.get("/reports", async (req, res) => {
+
+  const reports = await Report.find()
+    .populate("building")
+    .sort({ date: -1 });
+
+  res.json(reports);
+});
+
+
+// 🔹 RESOLVER REPORTE
+app.put("/report/:id/resolve", async (req, res) => {
+
+  await Report.findByIdAndUpdate(req.params.id, {
+    resolved: true
+  });
+
+  res.send("Resuelto");
+});
+
 
 // 🔹 IMPORTADOR
 app.get("/import-sheet", async (req, res) => {
+
   try {
 
     const response = await fetch("https://opensheet.elk.sh/1nTPjRGrYIGb69-u6ficD9pHRQDjMbVauXeW_Q6HyFaU/visitas-app");
