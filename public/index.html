@@ -19,32 +19,43 @@
     }
 
     button {
-      width: 100%;
-      padding: 15px;
+      padding: 12px;
       margin: 5px 0;
-      font-size: 18px;
+      font-size: 16px;
       border: none;
       border-radius: 8px;
+    }
+
+    .buscar {
+      width: 100%;
+      background-color: #2196F3;
+      color: white;
     }
 
     .ok {
       background-color: #4CAF50;
       color: white;
+      width: 100%;
     }
 
     .no {
       background-color: #f44336;
       color: white;
-    }
-
-    .buscar {
-      background-color: #2196F3;
-      color: white;
+      width: 100%;
     }
 
     .secondary {
       background-color: #555;
       color: white;
+      width: 100%;
+    }
+
+    #adminBtn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: none;
+      font-size: 20px;
     }
 
     #resultado {
@@ -57,25 +68,47 @@
       color: gray;
       white-space: pre-line;
     }
+
+    #listaTerritorio button {
+      width: 100%;
+      text-align: left;
+      background: white;
+      margin: 5px 0;
+      border: 1px solid #ddd;
+    }
+
+    .link {
+      color: blue;
+      cursor: pointer;
+      text-decoration: underline;
+      font-size: 14px;
+    }
   </style>
 </head>
 
 <body>
 
+<button id="adminBtn" onclick="irAdmin()">🔒</button>
+
 <h2>📍 Visitas</h2>
 
 <input id="buildingId" placeholder="Código o dirección"
-  onkeypress="if(event.key==='Enter') buscar()">
+onkeypress="if(event.key==='Enter') buscar()">
+
+<div class="link" onclick="buscarPorTerritorio()">
+  Buscar por territorio
+</div>
+
+<p id="mensajeInicial">Ingresá una dirección para comenzar</p>
 
 <button class="buscar" onclick="buscar()">Buscar</button>
 
-<button onclick="crearEdificio()">➕ Nuevo edificio</button>
-<button onclick="irAdmin()">🔒 Admin</button>
+<div id="listaTerritorio"></div>
 
-<h3 id="resultado">Ingresá una dirección para comenzar</h3>
+<h3 id="resultado"></h3>
 <p id="estado"></p>
 
-<textarea id="nota" placeholder="Nota..."></textarea>
+<textarea id="nota" placeholder="Nota..." style="display:none;"></textarea>
 
 <button id="btnOk" class="ok" onclick="marcar('ATENDIO')" style="display:none;">
 ✔ ATENDIÓ
@@ -89,60 +122,35 @@
 ➡ Siguiente departamento
 </button>
 
-<button id="btnUltimo" class="secondary" onclick="verUltimo()" style="display:none;">
-🧾 Ver último informe
+<button id="btnNuevoEdificio" class="secondary" onclick="crearEdificio()" style="display:none;">
+➕ Agregar edificio
 </button>
 
 <script>
 let currentDept = null;
 let currentBuildingId = null;
 let currentBuildingData = null;
-let lastVisitData = null;
-
-// 🔥 función central de fechas (SOLUCIÓN REAL)
-function formatearFecha(fecha) {
-  return new Date(fecha).toLocaleDateString();
-}
-
-window.onload = () => {
-  const last = localStorage.getItem("lastBuilding");
-  if (last) {
-    document.getElementById("buildingId").value = last;
-  }
-};
 
 function irAdmin() {
   window.location.href = "/admin.html";
 }
 
+// 🔹 BUSCAR NORMAL
 async function buscar() {
+
+  limpiarVista();
 
   const input = document.getElementById("buildingId").value.trim();
   if (!input) return;
 
-  document.getElementById("resultado").innerText = "Buscando...";
-  document.getElementById("estado").innerText = "";
-
-  document.getElementById("btnOk").style.display = "none";
-  document.getElementById("btnNo").style.display = "none";
-  document.getElementById("btnSiguiente").style.display = "none";
-  document.getElementById("btnUltimo").style.display = "none";
-
-  localStorage.setItem("lastBuilding", input);
+  document.getElementById("mensajeInicial").style.display = "none";
 
   const b = await fetch(`/building/${encodeURIComponent(input)}`);
   const building = await b.json();
 
   if (!building._id) {
-    document.getElementById("resultado").innerText =
-      "Edificio no encontrado";
-
-    document.getElementById("estado").innerHTML =
-      `<button onclick="crearEdificio('${input}')">
-        ➕ Agregar edificio
-      </button>`;
-
-    currentDept = null;
+    document.getElementById("resultado").innerText = "Edificio no encontrado";
+    document.getElementById("btnNuevoEdificio").style.display = "block";
     return;
   }
 
@@ -152,6 +160,44 @@ async function buscar() {
   await cargarDepto();
 }
 
+// 🔹 BUSCAR POR TERRITORIO
+async function buscarPorTerritorio() {
+
+  limpiarVista();
+
+  const territorio = prompt("Número de territorio:");
+  if (!territorio) return;
+
+  const res = await fetch(`/territory/${territorio}`);
+  const data = await res.json();
+
+  const cont = document.getElementById("listaTerritorio");
+
+  if (!data.length) {
+    cont.innerHTML = "No hay edificios en ese territorio";
+    return;
+  }
+
+  cont.innerHTML = "";
+
+  data.forEach(b => {
+    const btn = document.createElement("button");
+    btn.innerText = b.address;
+    btn.onclick = () => seleccionarEdificio(b);
+    cont.appendChild(btn);
+  });
+}
+
+function seleccionarEdificio(building) {
+  limpiarVista();
+
+  currentBuildingId = building._id;
+  currentBuildingData = building;
+
+  cargarDepto();
+}
+
+// 🔹 CARGAR DEPTO
 async function cargarDepto() {
 
   const res = await fetch(`/next/${currentBuildingId}`);
@@ -159,9 +205,7 @@ async function cargarDepto() {
 
   if (data.message === "NO_AVAILABLE") {
     document.getElementById("resultado").innerText =
-      "No hay departamentos sin atender";
-
-    currentDept = null;
+      "No hay departamentos disponibles";
     return;
   }
 
@@ -170,199 +214,50 @@ async function cargarDepto() {
   document.getElementById("resultado").innerText =
     "Depto: " + data.dept.number;
 
+  document.getElementById("nota").style.display = "block";
   document.getElementById("btnOk").style.display = "block";
   document.getElementById("btnNo").style.display = "block";
-
-  let info = "";
-
-  if (currentBuildingData.name) info += "🏢 " + currentBuildingData.name + "\n";
-  if (currentBuildingData.territory) info += "📍 Territorio: " + currentBuildingData.territory + "\n";
-  if (currentBuildingData.description) info += "📝 " + currentBuildingData.description;
-
-  if (data.lastVisit && data.lastVisit.status === "NO_EN_CASA") {
-    info += `\n\n⚠ Visitado el ${formatearFecha(data.lastVisit.date)} - No atendió`;
-    if (data.lastVisit.note) {
-      info += `\nNota: ${data.lastVisit.note}`;
-    }
-  }
-
-  document.getElementById("estado").innerText = info;
 }
 
-async function crearEdificio(direccion = "") {
+// 🔹 MARCAR
+async function marcar(status) {
 
-  if (!direccion) {
-    direccion = prompt("Dirección del edificio:");
-    if (!direccion) return;
-  }
+  const note = document.getElementById("nota").value;
 
-  const floors = prompt("¿Cuántos pisos?");
-  const units = prompt("¿Departamentos por piso?");
-  const pb = confirm("¿Tiene planta baja?");
-  const portero = confirm("¿Tiene portero?");
-
-  const res = await fetch("/building", {
+  await fetch("/visit", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      address: direccion,
-      floors: Number(floors),
-      unitsPerFloor: Number(units),
-      hasGroundFloor: pb,
-      hasDoorman: portero
+      departmentId: currentDept._id,
+      status,
+      note
     })
   });
 
-  const data = await res.json();
-
-  if (data.message === "EXISTS") {
-    alert("El edificio ya estaba cargado");
-  } else {
-    alert("Edificio creado");
-  }
-
-  buscar();
+  document.getElementById("btnSiguiente").style.display = "block";
 }
 
-async function marcar(status) {
-
-  try {
-
-    if (!currentDept) {
-      alert("Primero buscá un departamento");
-      return;
-    }
-
-    const note = document.getElementById("nota").value;
-
-    const res = await fetch("/visit", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        departmentId: currentDept._id,
-        status,
-        note
-      })
-    });
-
-    const visit = await res.json();
-
-    lastVisitData = {
-      id: visit._id,
-      department: currentDept.number,
-      status,
-      note,
-      date: visit.date || new Date().toISOString() // 🔥 FIX REAL
-    };
-
-    document.getElementById("estado").innerText =
-      "✔ Guardado. Revisá si querés y avanzá.";
-
-    document.getElementById("btnSiguiente").style.display = "block";
-    document.getElementById("btnUltimo").style.display = "block";
-
-    abrirModal();
-
-  } catch (error) {
-    console.error("ERROR:", error);
-    alert("Hubo un error, revisá la consola (F12)");
-  }
-}
-
+// 🔹 SIGUIENTE
 async function siguiente() {
   document.getElementById("nota").value = "";
   await cargarDepto();
 }
 
-function verUltimo() {
+// 🔹 LIMPIAR UI
+function limpiarVista() {
+  document.getElementById("listaTerritorio").innerHTML = "";
+  document.getElementById("resultado").innerText = "";
+  document.getElementById("estado").innerText = "";
 
-  if (!lastVisitData) {
-    alert("No hay datos");
-    return;
-  }
-
-  alert(
-`Depto: ${lastVisitData.department}
-Estado: ${lastVisitData.status}
-Fecha: ${formatearFecha(lastVisitData.date)}
-Nota: ${lastVisitData.note || "Sin nota"}`
-  );
-}
-
-function abrirModal() {
-
-  if (!lastVisitData) return;
-
-  document.getElementById("modal").style.display = "flex";
-
-  document.getElementById("modalInfo").innerText =
-`Depto: ${lastVisitData.department}
-Estado: ${lastVisitData.status}
-Fecha: ${formatearFecha(lastVisitData.date)}`;
-
-  document.getElementById("modalNota").value =
-    lastVisitData.note || "";
-}
-
-function cerrarModal() {
-  document.getElementById("modal").style.display = "none";
-}
-
-async function guardarEdicion() {
-
-  const nuevaNota = document.getElementById("modalNota").value;
-
-  await fetch(`/visit/${lastVisitData.id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      note: nuevaNota
-    })
-  });
-
-  lastVisitData.note = nuevaNota;
-
-  alert("Nota actualizada correctamente");
-
-  cerrarModal();
+  document.getElementById("nota").style.display = "none";
+  document.getElementById("btnOk").style.display = "none";
+  document.getElementById("btnNo").style.display = "none";
+  document.getElementById("btnSiguiente").style.display = "none";
+  document.getElementById("btnNuevoEdificio").style.display = "none";
 }
 </script>
-
-<div id="modal" style="
-display:none;
-position:fixed;
-top:0; left:0;
-width:100%; height:100%;
-background:rgba(0,0,0,0.6);
-justify-content:center;
-align-items:center;
-">
-
-<div style="
-  background:white;
-  padding:20px;
-  border-radius:10px;
-  width:90%;
-  max-width:400px;
-">
-
-  <h3>🧾 Último informe</h3>
-
-  <p id="modalInfo"></p>
-
-  <textarea id="modalNota" placeholder="Editar nota..."></textarea>
-
-  <button onclick="guardarEdicion()" class="ok">💾 Guardar cambios</button>
-  <button onclick="cerrarModal()" class="secondary">Cerrar</button>
-
-</div>
-</div>
 
 </body>
 </html>
