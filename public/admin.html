@@ -11,7 +11,7 @@
       background: #fafafa;
     }
 
-    input, button, select {
+    input, button, select, textarea {
       width: 100%;
       padding: 12px;
       margin: 10px 0;
@@ -44,6 +44,11 @@
       background: #555;
       color: white;
     }
+
+    .danger {
+      background: #f44336;
+      color: white;
+    }
   </style>
 </head>
 
@@ -72,26 +77,39 @@
 
   <div id="resultado"></div>
 
-  <!-- 🔹 LISTADO -->
-  <h3>🏢 Edificios</h3>
+  <!-- 🔹 EDICIÓN -->
+  <h3>✏️ Editar edificios</h3>
 
-  <button class="primary" onclick="cargarEdificios()">Ver edificios</button>
+  <input id="buscarEdit" placeholder="Dirección o territorio">
+  <button class="primary" onclick="buscarEditar()">Buscar</button>
 
-  <select onchange="ordenar(this.value)">
-    <option value="">Ordenar...</option>
-    <option value="territory">Por territorio</option>
-    <option value="recent">Recientes</option>
-    <option value="most">Más trabajados</option>
-  </select>
+  <div id="listaEditar"></div>
 
-  <div id="listaEdificios"></div>
+  <div id="formEditar" class="hidden">
+    <h4>Editando edificio</h4>
+
+    <input id="editName" placeholder="Nombre">
+    <input id="editAddress" placeholder="Dirección">
+    <input id="editAddress2" placeholder="Dirección 2 (opcional)">
+    <input id="editTerritory" placeholder="Territorio">
+    <textarea id="editDescription" placeholder="Descripción"></textarea>
+
+    <button class="primary" onclick="guardarEdificio()">💾 Guardar cambios</button>
+  </div>
+
+  <!-- 🔹 PROBLEMAS -->
+  <h3>⚠️ Soluciones a problemas</h3>
+
+  <button class="primary" onclick="cargarReportes()">Ver reportes</button>
+
+  <div id="reportes"></div>
 
 </div>
 
 <script>
 
 const CLAVE = "2414";
-let ordenActual = "";
+let buildingEditId = null;
 
 // 🔐 LOGIN
 function verificar() {
@@ -114,94 +132,120 @@ async function cargar() {
 
   const input = document.getElementById("dir").value;
 
-  if (!input) {
-    alert("Ingresá una dirección");
-    return;
-  }
+  if (!input) return alert("Ingresá una dirección");
 
-  try {
+  const b = await fetch(`/building/${encodeURIComponent(input)}`);
+  const building = await b.json();
 
-    const b = await fetch(`/building/${encodeURIComponent(input)}`);
-    const building = await b.json();
+  if (!building._id) return alert("No existe");
 
-    if (!building._id) {
-      alert("No existe el edificio");
-      return;
-    }
+  const res = await fetch(`/history/${building._id}`);
+  const data = await res.json();
 
-    const res = await fetch(`/history/${building._id}`);
-    const data = await res.json();
+  const cont = document.getElementById("resultado");
+  cont.innerHTML = "";
 
-    const cont = document.getElementById("resultado");
-    cont.innerHTML = "";
+  cont.innerHTML += `
+    <div class="card">
+      <b>Resumen</b><br>
+      Total: ${data.total}<br>
+      Atendieron: ${data.atendidos}<br>
+      No atendieron: ${data.noAtendieron}<br>
+      Nunca: ${data.nunca}<br>
+      Progreso: ${data.progreso}%
+    </div>
+  `;
+}
 
-    cont.innerHTML += `
-      <div class="card">
-        <b>Resumen</b><br>
-        Total: ${data.total}<br>
-        Atendieron: ${data.atendidos}<br>
-        No atendieron: ${data.noAtendieron}<br>
-        Nunca: ${data.nunca}<br>
-        Progreso: ${data.progreso}%
+// 🔹 BUSCAR PARA EDITAR
+async function buscarEditar() {
+
+  const q = document.getElementById("buscarEdit").value;
+  if (!q) return;
+
+  const res = await fetch(`/admin/search-buildings?q=${encodeURIComponent(q)}`);
+  const data = await res.json();
+
+  let html = "";
+
+  data.forEach(b => {
+    html += `
+      <div class="card" onclick='seleccionarEditar(${JSON.stringify(b)})'>
+        <b>${b.name || "Sin nombre"}</b><br>
+        ${b.address}<br>
+        ${b.territory || "-"}
       </div>
     `;
+  });
 
-    data.detalle.forEach(d => {
-      cont.innerHTML += `
-        <div class="card">
-          <b>${d.number}</b><br>
-          Estado: ${d.lastStatus || "Nunca"}<br>
-          Fecha: ${d.lastDate ? new Date(d.lastDate).toLocaleDateString() : "-"}<br>
-          Nota: ${d.note || "-"}
-        </div>
-      `;
-    });
-
-  } catch (err) {
-    console.error(err);
-    alert("Error cargando historial");
-  }
+  document.getElementById("listaEditar").innerHTML = html;
 }
 
-// 🔹 ORDEN
-function ordenar(tipo) {
-  ordenActual = tipo;
-  cargarEdificios();
+function seleccionarEditar(b) {
+
+  buildingEditId = b._id;
+
+  document.getElementById("formEditar").style.display = "block";
+
+  document.getElementById("editName").value = b.name || "";
+  document.getElementById("editAddress").value = b.address || "";
+  document.getElementById("editAddress2").value = b.address2 || "";
+  document.getElementById("editTerritory").value = b.territory || "";
+  document.getElementById("editDescription").value = b.description || "";
 }
 
-// 🔹 LISTADO EDIFICIOS
-async function cargarEdificios() {
+// 🔹 GUARDAR EDICIÓN
+async function guardarEdificio() {
 
-  try {
+  await fetch(`/building/${buildingEditId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      name: document.getElementById("editName").value,
+      address: document.getElementById("editAddress").value,
+      address2: document.getElementById("editAddress2").value,
+      territory: document.getElementById("editTerritory").value,
+      description: document.getElementById("editDescription").value
+    })
+  });
 
-    const res = await fetch(`/admin/buildings?sort=${ordenActual}`);
-    const data = await res.json();
+  alert("Edificio actualizado");
+}
 
-    let html = "";
+// 🔹 REPORTES
+async function cargarReportes() {
 
-    if (!data.length) {
-      html = "<p>No hay edificios</p>";
-    }
+  const res = await fetch("/reports");
+  const data = await res.json();
 
-    data.forEach(b => {
-      html += `
-        <div class="card">
-          <b>${b.name || "Sin nombre"}</b><br>
-          📍 ${b.address}<br>
-          🗺 ${b.territory || "Sin territorio"}<br>
-          🔁 Visitas: ${b.totalVisits}<br>
-          🕒 Última: ${b.lastVisitDate ? new Date(b.lastVisitDate).toLocaleDateString() : "Nunca"}
-        </div>
-      `;
-    });
+  let html = "";
 
-    document.getElementById("listaEdificios").innerHTML = html;
+  data.forEach(r => {
+    html += `
+      <div class="card">
+        <b>${r.building?.address || "Sin dirección"}</b><br>
+        📝 ${r.message}<br>
+        🕒 ${new Date(r.date).toLocaleString()}<br>
 
-  } catch (err) {
-    console.error(err);
-    document.getElementById("listaEdificios").innerHTML =
-      "<p>Error cargando edificios</p>";
-  }
+        <button class="secondary" onclick="resolver('${r._id}')">
+          ✔ Marcar como resuelto
+        </button>
+      </div>
+    `;
+  });
+
+  document.getElementById("reportes").innerHTML = html;
+}
+
+async function resolver(id) {
+
+  await fetch(`/report/${id}/resolve`, {
+    method: "PUT"
+  });
+
+  cargarReportes();
 }
 
 </script>
