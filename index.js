@@ -274,6 +274,14 @@ app.get("/admin/buildings", async (req, res) => {
   res.json(result);
 });
 
+app.get("/territory/:num", async (req, res) => {
+  const buildings = await Building.find({
+    territory: req.params.num
+  });
+
+  res.json(buildings);
+});
+
 // 🔹 IMPORTADOR
 app.get("/import-sheet", async (req, res) => {
   try {
