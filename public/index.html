@@ -58,6 +58,15 @@
       font-size: 20px;
     }
 
+    #alertBtn {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: none;
+      font-size: 20px;
+      display: none;
+    }
+
     #resultado {
       font-size: 22px;
       margin-top: 20px;
@@ -88,6 +97,7 @@
 
 <body>
 
+<button id="alertBtn" onclick="reportar()">⚠️</button>
 <button id="adminBtn" onclick="irAdmin()">🔒</button>
 
 <h2>📍 Visitas</h2>
@@ -217,10 +227,15 @@ async function cargarDepto() {
   document.getElementById("nota").style.display = "block";
   document.getElementById("btnOk").style.display = "block";
   document.getElementById("btnNo").style.display = "block";
+
+  // 🔥 mostrar botón de alerta
+  document.getElementById("alertBtn").style.display = "block";
 }
 
 // 🔹 MARCAR
 async function marcar(status) {
+
+  if (!currentDept) return;
 
   const note = document.getElementById("nota").value;
 
@@ -245,6 +260,28 @@ async function siguiente() {
   await cargarDepto();
 }
 
+// 🔹 REPORTAR PROBLEMA
+async function reportar() {
+
+  if (!currentBuildingId) return;
+
+  const mensaje = prompt("¿Qué problema encontraste?");
+  if (!mensaje) return;
+
+  await fetch("/report", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      buildingId: currentBuildingId,
+      message: mensaje
+    })
+  });
+
+  alert("Reporte enviado");
+}
+
 // 🔹 LIMPIAR UI
 function limpiarVista() {
   document.getElementById("listaTerritorio").innerHTML = "";
@@ -256,6 +293,8 @@ function limpiarVista() {
   document.getElementById("btnNo").style.display = "none";
   document.getElementById("btnSiguiente").style.display = "none";
   document.getElementById("btnNuevoEdificio").style.display = "none";
+
+  document.getElementById("alertBtn").style.display = "none";
 }
 </script>
 
