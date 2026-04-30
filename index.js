@@ -221,6 +221,58 @@ app.get("/debug/departments/:buildingId", async (req, res) => {
   res.json(depts);
 });
 
+app.get("/admin/buildings", async (req, res) => {
+  const { sort } = req.query;
+
+  const buildings = await Building.find();
+
+  const result = [];
+
+  for (let b of buildings) {
+
+    const departments = await Department.find({
+      buildingId: b._id
+    });
+
+    const deptIds = departments.map(d => d._id);
+
+    const visits = await Visit.find({
+      departmentId: { $in: deptIds }
+    });
+
+    const totalVisits = visits.length;
+
+    const lastVisit = visits.sort((a, b) => b.date - a.date)[0];
+
+    result.push({
+      _id: b._id,
+      address: b.address,
+      name: b.name,
+      territory: b.territory,
+      totalVisits,
+      lastVisitDate: lastVisit?.date || null
+    });
+  }
+
+  // 🔹 ordenamientos
+  if (sort === "territory") {
+    result.sort((a, b) =>
+      (a.territory || "").localeCompare(b.territory || "")
+    );
+  }
+
+  if (sort === "recent") {
+    result.sort((a, b) =>
+      new Date(b.lastVisitDate || 0) - new Date(a.lastVisitDate || 0)
+    );
+  }
+
+  if (sort === "most") {
+    result.sort((a, b) => b.totalVisits - a.totalVisits);
+  }
+
+  res.json(result);
+});
 
 // 🔹 IMPORTADOR
 app.get("/import-sheet", async (req, res) => {
