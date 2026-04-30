@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const BuildingSchema = new mongoose.Schema({
   code: String,
   address: String,
+  address2: String,
   floors: Number,
   unitsPerFloor: Number,
   hasGroundFloor: Boolean,
