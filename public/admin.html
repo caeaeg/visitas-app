@@ -34,6 +34,17 @@
 
 <body>
 
+<button onclick="cargarEdificios()">🏢 Ver edificios</button>
+
+<select onchange="ordenar(this.value)">
+  <option value="">Ordenar...</option>
+  <option value="territory">Por territorio</option>
+  <option value="recent">Recientes</option>
+  <option value="most">Más trabajados</option>
+</select>
+
+<div id="listaEdificios"></div>  
+  
 <!-- 🔐 LOGIN -->
 <div id="login">
   <h2>🔒 Acceso Administrador</h2>
@@ -88,6 +99,7 @@ async function cargar() {
     return;
   }
 
+  
   const res = await fetch(`/history/${building._id}`);
   const data = await res.json();
 
@@ -117,7 +129,37 @@ async function cargar() {
   });
 }
 </script>
+<script>
+let ordenActual = "";
 
+function ordenar(tipo) {
+  ordenActual = tipo;
+  cargarEdificios();
+}
+
+async function cargarEdificios() {
+
+  const res = await fetch(`/admin/buildings?sort=${ordenActual}`);
+  const data = await res.json();
+
+  let html = "";
+
+  data.forEach(b => {
+    html += `
+      <div style="background:white; padding:10px; margin:10px 0; border-radius:8px;">
+        <b>${b.name || "Sin nombre"}</b><br>
+        📍 ${b.address}<br>
+        🗺 ${b.territory || "Sin territorio"}<br>
+        🔁 Visitas: ${b.totalVisits}<br>
+        🕒 Última: ${b.lastVisitDate ? new Date(b.lastVisitDate).toLocaleDateString() : "Nunca"}
+      </div>
+    `;
+  });
+
+  document.getElementById("listaEdificios").innerHTML = html;
+}
+</script>
+  
 </body>
 </html>
 
