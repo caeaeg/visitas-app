@@ -99,6 +99,11 @@ let currentBuildingId = null;
 let currentBuildingData = null;
 let lastVisitData = null;
 
+// 🔥 función central de fechas (SOLUCIÓN REAL)
+function formatearFecha(fecha) {
+  return new Date(fecha).toLocaleDateString();
+}
+
 window.onload = () => {
   const last = localStorage.getItem("lastBuilding");
   if (last) {
@@ -175,7 +180,7 @@ async function cargarDepto() {
   if (currentBuildingData.description) info += "📝 " + currentBuildingData.description;
 
   if (data.lastVisit && data.lastVisit.status === "NO_EN_CASA") {
-    info += `\n\n⚠ Visitado el ${new Date(data.lastVisit.date).toLocaleDateString()} - No atendió`;
+    info += `\n\n⚠ Visitado el ${formatearFecha(data.lastVisit.date)} - No atendió`;
     if (data.lastVisit.note) {
       info += `\nNota: ${data.lastVisit.note}`;
     }
@@ -251,7 +256,7 @@ async function marcar(status) {
       department: currentDept.number,
       status,
       note,
-      date: visit.date || new Date()
+      date: visit.date || new Date().toISOString() // 🔥 FIX REAL
     };
 
     document.getElementById("estado").innerText =
@@ -267,6 +272,7 @@ async function marcar(status) {
     alert("Hubo un error, revisá la consola (F12)");
   }
 }
+
 async function siguiente() {
   document.getElementById("nota").value = "";
   await cargarDepto();
@@ -282,13 +288,12 @@ function verUltimo() {
   alert(
 `Depto: ${lastVisitData.department}
 Estado: ${lastVisitData.status}
-Fecha: ${lastVisitData.date.toLocaleDateString()}
+Fecha: ${formatearFecha(lastVisitData.date)}
 Nota: ${lastVisitData.note || "Sin nota"}`
   );
 }
 
-
-  function abrirModal() {
+function abrirModal() {
 
   if (!lastVisitData) return;
 
@@ -297,7 +302,7 @@ Nota: ${lastVisitData.note || "Sin nota"}`
   document.getElementById("modalInfo").innerText =
 `Depto: ${lastVisitData.department}
 Estado: ${lastVisitData.status}
-Fecha: ${lastVisitData.date.toLocaleDateString()}`;
+Fecha: ${formatearFecha(lastVisitData.date)}`;
 
   document.getElementById("modalNota").value =
     lastVisitData.note || "";
@@ -327,39 +332,38 @@ async function guardarEdicion() {
 
   cerrarModal();
 }
-  
 </script>
 
-  <div id="modal" style="
-  display:none;
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:rgba(0,0,0,0.6);
-  justify-content:center;
-  align-items:center;
+<div id="modal" style="
+display:none;
+position:fixed;
+top:0; left:0;
+width:100%; height:100%;
+background:rgba(0,0,0,0.6);
+justify-content:center;
+align-items:center;
 ">
 
-  <div style="
-    background:white;
-    padding:20px;
-    border-radius:10px;
-    width:90%;
-    max-width:400px;
-  ">
+<div style="
+  background:white;
+  padding:20px;
+  border-radius:10px;
+  width:90%;
+  max-width:400px;
+">
 
-    <h3>🧾 Último informe</h3>
+  <h3>🧾 Último informe</h3>
 
-    <p id="modalInfo"></p>
+  <p id="modalInfo"></p>
 
-    <textarea id="modalNota" placeholder="Editar nota..."></textarea>
+  <textarea id="modalNota" placeholder="Editar nota..."></textarea>
 
-    <button onclick="guardarEdicion()" class="ok">💾 Guardar cambios</button>
-    <button onclick="cerrarModal()" class="secondary">Cerrar</button>
+  <button onclick="guardarEdicion()" class="ok">💾 Guardar cambios</button>
+  <button onclick="cerrarModal()" class="secondary">Cerrar</button>
 
-  </div>
 </div>
-  
+</div>
+
 </body>
 </html>
 
