@@ -282,6 +282,12 @@ app.get("/territory/:num", async (req, res) => {
   res.json(buildings);
 });
 
+
+app.get("/building/id/:id", async (req, res) => {
+  const building = await Building.findById(req.params.id);
+  res.json(building);
+});
+
 // 🔹 IMPORTADOR
 app.get("/import-sheet", async (req, res) => {
   try {
