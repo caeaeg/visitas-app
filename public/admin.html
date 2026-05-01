@@ -97,7 +97,11 @@
     <button class="primary" onclick="guardarEdificio()">💾 Guardar cambios</button>
   </div>
 
+<h3>⚠ Problemas reportados</h3>
+<button class="primary" onclick="cargarIssues()">Ver reportes</button>
 
+<div id="listaIssues"></div>
+  
 </button>
   <!-- 🔹 PROBLEMAS -->
   <h3>⚠️ Soluciones a problemas</h3>
@@ -159,6 +163,42 @@ async function cargar() {
   `;
 }
 
+  async function cargarIssues() {
+
+  const res = await fetch("/issues");
+  const data = await res.json();
+
+  let html = "";
+
+  data.forEach(i => {
+    html += `
+      <div class="card">
+        <b>${i.type}</b><br>
+        Estado: ${i.status}<br>
+        ${i.description || "-"}<br>
+        <small>${new Date(i.createdAt).toLocaleString()}</small><br>
+
+        ${
+          i.status === "PENDIENTE"
+            ? `<button onclick="resolver('${i._id}')">Marcar resuelto</button>`
+            : "✔ Resuelto"
+        }
+      </div>
+    `;
+  });
+
+  document.getElementById("listaIssues").innerHTML = html;
+}
+
+async function resolver(id) {
+
+  await fetch(`/issue/${id}/resolve`, {
+    method: "PUT"
+  });
+
+  cargarIssues();
+}
+  
 // 🔹 BUSCAR PARA EDITAR
 async function buscarEditar() {
 
