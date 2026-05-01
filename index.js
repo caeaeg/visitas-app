@@ -2,8 +2,6 @@ const Issue = require("./models/Issue");
 const Building = require("./models/Building");
 const Department = require("./models/Department");
 const Visit = require("./models/Visit");
-
-// 👇 NUEVO MODELO (tenés que crearlo después)
 const Report = require("./models/Report");
 
 const express = require("express");
@@ -26,218 +24,197 @@ app.listen(PORT, () => {
 
 // 🔹 NEXT
 app.get("/next/:buildingId", async (req, res) => {
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  try {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-  const visits = await Visit.find({
-    status: "ATENDIO",
-    date: { $gte: sixMonthsAgo }
-  });
+    const visits = await Visit.find({
+      status: "ATENDIO",
+      date: { $gte: sixMonthsAgo }
+    });
 
-  const blockedIds = visits.map(v => v.departmentId.toString());
+    const blockedIds = visits.map(v => v.departmentId.toString());
 
-  const departments = await Department.find({
-    buildingId: req.params.buildingId,
-    _id: { $nin: blockedIds }
-  });
+    const departments = await Department.find({
+      buildingId: req.params.buildingId,
+      _id: { $nin: blockedIds }
+    });
 
-  if (departments.length === 0) {
-    return res.json({ message: "NO_AVAILABLE" });
+    if (!departments.length) {
+      return res.json({ message: "NO_AVAILABLE" });
+    }
+
+    const dept = departments[Math.floor(Math.random() * departments.length)];
+
+    const lastVisit = await Visit.findOne({
+      departmentId: dept._id
+    }).sort({ date: -1 });
+
+    res.json({ dept, lastVisit });
+
+  } catch (err) {
+    res.status(500).send("Error en NEXT");
   }
-
-  const dept = departments[Math.floor(Math.random() * departments.length)];
-
-  const lastVisit = await Visit.findOne({
-    departmentId: dept._id
-  }).sort({ date: -1 });
-
-  res.json({ dept, lastVisit });
 });
 
 
 // 🔹 BUSCAR BUILDING
 app.get("/building/:query", async (req, res) => {
-  const query = req.params.query.trim().toLowerCase();
+  try {
+    const query = req.params.query.trim().toLowerCase();
 
-  const building = await Building.findOne({
-    $or: [
-      { code: new RegExp("^" + query + "$", "i") },
-      { address: new RegExp(query, "i") }
-    ]
-  });
+    const building = await Building.findOne({
+      $or: [
+        { code: new RegExp("^" + query + "$", "i") },
+        { address: new RegExp(query, "i") }
+      ]
+    });
 
-  if (!building) {
-    return res.json({ error: "NOT_FOUND" });
+    if (!building) return res.json({ error: "NOT_FOUND" });
+
+    res.json(building);
+
+  } catch (err) {
+    res.status(500).send("Error buscando edificio");
   }
-
-  res.json(building);
 });
 
 
 // 🔹 CREAR BUILDING
 app.post("/building", async (req, res) => {
-  let { address, floors, unitsPerFloor, hasGroundFloor, hasDoorman } = req.body;
+  try {
+    let { address, floors, unitsPerFloor, hasGroundFloor, hasDoorman } = req.body;
 
-  if (!address || !floors || !unitsPerFloor) {
-    return res.status(400).json({ error: "DATOS_INCOMPLETOS" });
-  }
-
-  floors = Number(floors);
-  unitsPerFloor = Number(unitsPerFloor);
-
-  if (floors <= 0 || unitsPerFloor <= 0) {
-    return res.status(400).json({ error: "DATOS_INVALIDOS" });
-  }
-
-  const normalizedAddress = address.trim().toLowerCase();
-
-  const existing = await Building.findOne({ address: normalizedAddress });
-
-  if (existing) {
-    return res.json({ message: "EXISTS", building: existing });
-  }
-
-  const building = new Building({
-    code: normalizedAddress,
-    address: normalizedAddress,
-    floors,
-    unitsPerFloor,
-    hasGroundFloor,
-    hasDoorman
-  });
-
-  await building.save();
-
-  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  let startFloor = hasGroundFloor ? 0 : 1;
-
-  for (let f = startFloor; f <= floors; f++) {
-    for (let i = 0; i < unitsPerFloor; i++) {
-
-      if (i >= letters.length) continue;
-
-      const number = (f === 0 ? "PB" : f.toString()) + letters[i];
-
-      await Department.create({
-        number,
-        buildingId: building._id
-      });
+    if (!address || !floors || !unitsPerFloor) {
+      return res.status(400).json({ error: "DATOS_INCOMPLETOS" });
     }
-  }
 
-  res.json({ message: "CREATED", building });
+    floors = Number(floors);
+    unitsPerFloor = Number(unitsPerFloor);
+
+    if (floors <= 0 || unitsPerFloor <= 0) {
+      return res.status(400).json({ error: "DATOS_INVALIDOS" });
+    }
+
+    const normalizedAddress = address.trim().toLowerCase();
+
+    const existing = await Building.findOne({ address: normalizedAddress });
+
+    if (existing) {
+      return res.json({ message: "EXISTS", building: existing });
+    }
+
+    const building = new Building({
+      code: normalizedAddress,
+      address: normalizedAddress,
+      floors,
+      unitsPerFloor,
+      hasGroundFloor,
+      hasDoorman
+    });
+
+    await building.save();
+
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    let startFloor = hasGroundFloor ? 0 : 1;
+
+    for (let f = startFloor; f <= floors; f++) {
+      for (let i = 0; i < unitsPerFloor; i++) {
+
+        if (i >= letters.length) continue;
+
+        const number = (f === 0 ? "PB" : f.toString()) + letters[i];
+
+        await Department.create({
+          number,
+          buildingId: building._id
+        });
+      }
+    }
+
+    res.json({ message: "CREATED", building });
+
+  } catch (err) {
+    res.status(500).send("Error creando edificio");
+  }
 });
 
 
-// 🔹 GUARDAR VISITA
+// 🔹 VISITA
 app.post("/visit", async (req, res) => {
-  const { departmentId, status, note } = req.body;
+  try {
+    const { departmentId, status, note } = req.body;
 
-  if (!departmentId || !status) {
-    return res.status(400).send("Datos incompletos");
+    if (!departmentId || !status) {
+      return res.status(400).send("Datos incompletos");
+    }
+
+    const visit = new Visit({ departmentId, status, note });
+
+    await visit.save();
+
+    res.json(visit);
+
+  } catch {
+    res.status(500).send("Error guardando visita");
   }
-
-  const visit = new Visit({
-    departmentId,
-    status,
-    note
-  });
-
-  await visit.save();
-
-  res.json(visit);
 });
 
 
 // 🔹 HISTORY
 app.get("/history/:buildingId", async (req, res) => {
-  const departments = await Department.find({
-    buildingId: req.params.buildingId
-  });
-
-  let total = departments.length;
-  let atendidos = 0;
-  let noAtendieron = 0;
-  let nunca = 0;
-
-  const detalle = [];
-
-  for (let dept of departments) {
-    const lastVisit = await Visit.findOne({
-      departmentId: dept._id
-    }).sort({ date: -1 });
-
-    if (!lastVisit) nunca++;
-    else if (lastVisit.status === "ATENDIO") atendidos++;
-    else noAtendieron++;
-
-    detalle.push({
-      number: dept.number,
-      lastStatus: lastVisit?.status,
-      lastDate: lastVisit?.date,
-      note: lastVisit?.note
+  try {
+    const departments = await Department.find({
+      buildingId: req.params.buildingId
     });
+
+    let total = departments.length;
+    let atendidos = 0;
+    let noAtendieron = 0;
+    let nunca = 0;
+
+    const detalle = [];
+
+    for (let dept of departments) {
+      const lastVisit = await Visit.findOne({
+        departmentId: dept._id
+      }).sort({ date: -1 });
+
+      if (!lastVisit) nunca++;
+      else if (lastVisit.status === "ATENDIO") atendidos++;
+      else noAtendieron++;
+
+      detalle.push({
+        number: dept.number,
+        lastStatus: lastVisit?.status,
+        lastDate: lastVisit?.date,
+        note: lastVisit?.note
+      });
+    }
+
+    res.json({
+      total,
+      atendidos,
+      noAtendieron,
+      nunca,
+      progreso: total ? Math.round((atendidos / total) * 100) : 0,
+      detalle
+    });
+
+  } catch {
+    res.status(500).send("Error historial");
   }
-
-  res.json({
-    total,
-    atendidos,
-    noAtendieron,
-    nunca,
-    progreso: total ? Math.round((atendidos / total) * 100) : 0,
-    detalle
-  });
-});
-
-
-// 🔹 EDITAR VISITA
-app.put("/visit/:id", async (req, res) => {
-  const { note } = req.body;
-
-  await Visit.findByIdAndUpdate(req.params.id, { note });
-
-  res.send("Visita actualizada");
 });
 
 
 // 🔹 EDITAR BUILDING
 app.put("/building/:id", async (req, res) => {
-
-  const {
-    address,
-    address2,
-    territory,
-    name,
-    description
-  } = req.body;
-
-  await Building.findByIdAndUpdate(req.params.id, {
-    address,
-    address2,
-    territory,
-    name,
-    description
-  });
-
-  res.send("Edificio actualizado");
-});
-
-
-// 🔹 BUSCAR PARA EDITAR (ADMIN)
-app.get("/admin/search-buildings", async (req, res) => {
-
-  const q = req.query.q;
-
-  if (!q) return res.json([]);
-
-  const buildings = await Building.find({
-    $or: [
-      { address: new RegExp(q, "i") },
-      { territory: new RegExp(q, "i") }
-    ]
-  }).limit(20);
-
-  res.json(buildings);
+  try {
+    await Building.findByIdAndUpdate(req.params.id, req.body);
+    res.send("Edificio actualizado");
+  } catch {
+    res.status(500).send("Error actualizando");
+  }
 });
 
 
@@ -251,7 +228,7 @@ app.get("/territory/:num", async (req, res) => {
 });
 
 
-// 🔹 REPORTAR PROBLEMA
+// 🔹 ISSUES (SISTEMA LIMPIO)
 app.post("/issues", async (req, res) => {
   const { buildingId, departmentId, type, description } = req.body;
 
@@ -267,7 +244,6 @@ app.post("/issues", async (req, res) => {
   });
 
   await issue.save();
-
   res.json(issue);
 });
 
@@ -284,78 +260,25 @@ app.get("/issues", async (req, res) => {
 
   res.json(issues);
 });
-app.put("/issues/:id", async (req, res) => {
 
+app.put("/issues/:id", async (req, res) => {
   const { status } = req.body;
 
-  await Issue.findByIdAndUpdate(req.params.id, {
-    status
-  });
+  await Issue.findByIdAndUpdate(req.params.id, { status });
 
   res.send("Estado actualizado");
 });
-// 🔹 VER REPORTES
-app.get("/reports", async (req, res) => {
-
-  const reports = await Report.find()
-    .populate("building")
-    .sort({ date: -1 });
-
-  res.json(reports);
-});
 
 
-// 🔹 RESOLVER REPORTE
-app.put("/report/:id/resolve", async (req, res) => {
-
-  await Report.findByIdAndUpdate(req.params.id, {
-    resolved: true
-  });
-
-  res.send("Resuelto");
-});
-
-app.post("/issue", async (req, res) => {
-  const { buildingId, departmentId, type, description } = req.body;
-
-  if (!buildingId || !type) {
-    return res.status(400).send("Datos incompletos");
-  }
-
-  const issue = new Issue({
-    buildingId,
-    departmentId,
-    type,
-    description
-  });
-
-  await issue.save();
-
-  res.json(issue);
-});
-//editar reportes
-app.get("/issues", async (req, res) => {
-
-  const issues = await Issue.find().sort({ createdAt: -1 });
-
-  res.json(issues);
-});
-//marcar com resuelto
-app.put("/issue/:id/resolve", async (req, res) => {
-
-  await Issue.findByIdAndUpdate(req.params.id, {
-    status: "RESUELTO"
-  });
-
-  res.send("OK");
-});
-
+// 🔹 BUILDING INFO (clave UX)
 app.get("/building-info/:id", async (req, res) => {
 
   const building = await Building.findById(req.params.id);
 
+  const deptIds = await Department.find({ buildingId: building._id }).distinct("_id");
+
   const lastVisit = await Visit.findOne({
-    departmentId: { $in: await Department.find({ buildingId: building._id }).distinct("_id") }
+    departmentId: { $in: deptIds }
   }).sort({ date: -1 });
 
   const issue = await Issue.findOne({
@@ -368,66 +291,4 @@ app.get("/building-info/:id", async (req, res) => {
     lastVisit,
     issue
   });
-});
-
-// 🔹 IMPORTADOR
-app.get("/import-sheet", async (req, res) => {
-
-  try {
-
-    const response = await fetch("https://opensheet.elk.sh/1nTPjRGrYIGb69-u6ficD9pHRQDjMbVauXeW_Q6HyFaU/visitas-app");
-    const data = await response.json();
-
-    for (let item of data) {
-
-      const address = item.DIRECCION?.trim();
-      const floors = Number(item.FLOORS || 0);
-      const unitsPerFloor = Number(item.UNITS || 2);
-
-      if (!address || floors <= 0) continue;
-
-      const exists = await Building.findOne({
-        address: address.toLowerCase()
-      });
-
-      if (exists) continue;
-
-      const building = new Building({
-        code: address.toLowerCase(),
-        address: address.toLowerCase(),
-        floors,
-        unitsPerFloor,
-        hasGroundFloor: true,
-        hasDoorman: false,
-        territory: item.TERRITORY || "",
-        name: item.NAME || "",
-        description: item.DESCRIPTION || ""
-      });
-
-      await building.save();
-
-      const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-      for (let f = 0; f <= floors; f++) {
-        for (let i = 0; i < unitsPerFloor; i++) {
-
-          if (i >= letters.length) continue;
-
-          const number =
-            (f === 0 ? "PB" : f.toString()) + letters[i];
-
-          await Department.create({
-            number,
-            buildingId: building._id
-          });
-        }
-      }
-    }
-
-    res.send("Importación completada 🚀");
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error importando");
-  }
 });
