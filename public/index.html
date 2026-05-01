@@ -26,71 +26,50 @@
       border-radius: 8px;
     }
 
-    .buscar {
-      width: 100%;
-      background-color: #2196F3;
-      color: white;
-    }
-
-    .ok {
-      background-color: #4CAF50;
-      color: white;
-      width: 100%;
-    }
-
-    .no {
-      background-color: #f44336;
-      color: white;
-      width: 100%;
-    }
-
-    .secondary {
-      background-color: #555;
-      color: white;
-      width: 100%;
-    }
+    .buscar { background:#2196F3; color:white; width:100%; }
+    .ok { background:#4CAF50; color:white; width:100%; }
+    .no { background:#f44336; color:white; width:100%; }
+    .secondary { background:#555; color:white; width:100%; }
 
     #adminBtn {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      background: none;
-      font-size: 20px;
+      position:absolute;
+      top:15px;
+      right:15px;
+      background:none;
+      font-size:20px;
     }
 
     #reportBtn {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      background: none;
-      font-size: 20px;
-      display: none;
+      position:absolute;
+      top:15px;
+      left:15px;
+      background:none;
+      font-size:20px;
+      display:none;
     }
 
-    #resultado {
-      font-size: 22px;
-      margin-top: 20px;
-    }
-
-    #estado {
-      margin-top: 10px;
-      color: gray;
-      white-space: pre-line;
+    #infoEdificio {
+      background:white;
+      padding:10px;
+      border-radius:8px;
+      margin-top:10px;
+      display:none;
+      font-size:14px;
     }
 
     #listaTerritorio button {
-      width: 100%;
-      text-align: left;
-      background: white;
-      margin: 5px 0;
-      border: 1px solid #ddd;
+      width:100%;
+      text-align:left;
+      background:white;
+      margin:5px 0;
+      border:1px solid #ddd;
     }
 
     .link {
-      color: blue;
-      cursor: pointer;
-      text-decoration: underline;
-      font-size: 14px;
+      color:blue;
+      cursor:pointer;
+      text-decoration:underline;
+      font-size:14px;
     }
   </style>
 </head>
@@ -113,20 +92,16 @@ onkeypress="if(event.key==='Enter') buscar()">
 
 <button class="buscar" onclick="buscar()">Buscar</button>
 
+<div id="infoEdificio"></div>
+
 <div id="listaTerritorio"></div>
 
 <h3 id="resultado"></h3>
-<p id="estado"></p>
 
 <textarea id="nota" placeholder="Nota..." style="display:none;"></textarea>
 
-<button id="btnOk" class="ok" onclick="marcar('ATENDIO')" style="display:none;">
-✔ ATENDIÓ
-</button>
-
-<button id="btnNo" class="no" onclick="marcar('NO_EN_CASA')" style="display:none;">
-✖ NO EN CASA
-</button>
+<button id="btnOk" class="ok" onclick="marcar('ATENDIO')" style="display:none;">✔ ATENDIÓ</button>
+<button id="btnNo" class="no" onclick="marcar('NO_EN_CASA')" style="display:none;">✖ NO EN CASA</button>
 
 <button id="btnSiguiente" class="secondary" onclick="siguiente()" style="display:none;">
 ➡ Siguiente departamento
@@ -139,38 +114,36 @@ onkeypress="if(event.key==='Enter') buscar()">
 <script>
 let currentDept = null;
 let currentBuildingId = null;
-let currentBuildingData = null;
 
 function irAdmin() {
   window.location.href = "/admin.html";
 }
 
-// 🔹 BUSCAR
+// 🔍 BUSCAR
 async function buscar() {
 
   limpiarVista();
 
-  const input = document.getElementById("buildingId").value.trim();
+  const input = buildingId.value.trim();
   if (!input) return;
 
-  document.getElementById("mensajeInicial").style.display = "none";
+  mensajeInicial.style.display = "none";
 
   const b = await fetch(`/building/${encodeURIComponent(input)}`);
   const building = await b.json();
 
   if (!building._id) {
-    document.getElementById("resultado").innerText = "Edificio no encontrado";
-    document.getElementById("btnNuevoEdificio").style.display = "block";
+    resultado.innerText = "Edificio no encontrado";
+    btnNuevoEdificio.style.display = "block";
     return;
   }
 
   currentBuildingId = building._id;
-  currentBuildingData = building;
 
   await cargarDepto();
 }
 
-// 🔹 TERRITORIO
+// 🗺 TERRITORIO
 async function buscarPorTerritorio() {
 
   limpiarVista();
@@ -181,156 +154,203 @@ async function buscarPorTerritorio() {
   const res = await fetch(`/territory/${territorio}`);
   const data = await res.json();
 
-  const cont = document.getElementById("listaTerritorio");
-
   if (!data.length) {
-    cont.innerHTML = "No hay edificios en ese territorio";
+    listaTerritorio.innerHTML = "No hay edificios";
     return;
   }
-
-  cont.innerHTML = "";
 
   data.forEach(b => {
     const btn = document.createElement("button");
     btn.innerText = b.address;
-    btn.onclick = () => seleccionarEdificio(b);
-    cont.appendChild(btn);
+    btn.onclick = () => {
+      currentBuildingId = b._id;
+      cargarDepto();
+    };
+    listaTerritorio.appendChild(btn);
   });
 }
 
-function seleccionarEdificio(building) {
-  limpiarVista();
-  currentBuildingId = building._id;
-  currentBuildingData = building;
-  cargarDepto();
-}
-
-// 🔹 DEPTO
+// 🏢 CARGAR DEPTO
 async function cargarDepto() {
 
   const res = await fetch(`/next/${currentBuildingId}`);
   const data = await res.json();
 
   if (data.message === "NO_AVAILABLE") {
-    document.getElementById("resultado").innerText =
-      "No hay departamentos disponibles";
+    resultado.innerText = "No hay departamentos disponibles";
     return;
   }
 
   currentDept = data.dept;
 
-  document.getElementById("resultado").innerText =
-    "Depto: " + data.dept.number;
+  resultado.innerText = "Depto: " + data.dept.number;
 
-  document.getElementById("nota").style.display = "block";
-  document.getElementById("btnOk").style.display = "block";
-  document.getElementById("btnNo").style.display = "block";
-  document.getElementById("reportBtn").style.display = "block";
+  nota.style.display = "block";
+  btnOk.style.display = "block";
+  btnNo.style.display = "block";
+  reportBtn.style.display = "block";
+
+  await mostrarInfoEdificio();
 }
 
-// 🔹 MARCAR
+// 🧾 INFO EDIFICIO
+async function mostrarInfoEdificio() {
+
+  const res = await fetch(`/building-info/${currentBuildingId}`);
+  const data = await res.json();
+
+  infoEdificio.style.display = "block";
+
+  infoEdificio.innerHTML = `
+    <b>${data.building.address}</b><br>
+    ${data.building.address2 || ""}<br>
+    ${data.building.name || ""}<br>
+    🕒 Última visita: ${
+      data.lastVisit
+        ? new Date(data.lastVisit.date).toLocaleDateString()
+        : "Nunca"
+    }<br>
+    ${
+      data.issue
+        ? `⚠ ${data.issue.description || data.issue.type}`
+        : ""
+    }
+  `;
+}
+
+// ✔ MARCAR
 async function marcar(status) {
 
   if (!currentDept) return;
 
-  const note = document.getElementById("nota").value;
-
   await fetch("/visit", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
       departmentId: currentDept._id,
       status,
-      note
+      note: nota.value
     })
   });
 
-  document.getElementById("btnSiguiente").style.display = "block";
+  btnSiguiente.style.display = "block";
 }
 
-// 🔹 SIGUIENTE
+// ➡ SIGUIENTE
 async function siguiente() {
-  document.getElementById("nota").value = "";
+  nota.value = "";
   await cargarDepto();
 }
 
-// 🔹 MODAL
+// ⚠ REPORTES
 function abrirReporte() {
-  document.getElementById("modalReporte").style.display = "flex";
+  modalReporte.style.display = "flex";
 }
 
 function cerrarReporte() {
-  document.getElementById("modalReporte").style.display = "none";
+  modalReporte.style.display = "none";
 }
 
 async function enviarReporte() {
 
-  const type = document.getElementById("tipoProblema").value;
-  const description = document.getElementById("descProblema").value;
-
   await fetch("/issues", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
       buildingId: currentBuildingId,
       departmentId: currentDept?._id,
-      type,
-      description
+      type: tipoProblema.value,
+      description: descProblema.value
     })
   });
 
-  alert("Reporte enviado 👍");
   cerrarReporte();
 }
 
-// 🔹 LIMPIAR
-function limpiarVista() {
-  document.getElementById("listaTerritorio").innerHTML = "";
-  document.getElementById("resultado").innerText = "";
-  document.getElementById("estado").innerText = "";
+// ➕ CREAR EDIFICIO
+function crearEdificio() {
+  modalNuevo.style.display = "flex";
+  new_address.value = buildingId.value;
+}
 
-  document.getElementById("nota").style.display = "none";
-  document.getElementById("btnOk").style.display = "none";
-  document.getElementById("btnNo").style.display = "none";
-  document.getElementById("btnSiguiente").style.display = "none";
-  document.getElementById("btnNuevoEdificio").style.display = "none";
-  document.getElementById("reportBtn").style.display = "none";
+function cerrarNuevo() {
+  modalNuevo.style.display = "none";
+}
+
+async function guardarNuevoEdificio() {
+
+  const res = await fetch("/building", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      address: new_address.value,
+      address2: new_address2.value,
+      name: new_name.value,
+      territory: new_territory.value,
+      floors: Number(new_floors.value),
+      unitsPerFloor: Number(new_units.value),
+      hasGroundFloor: new_pb.checked,
+      hasDoorman: new_portero.checked
+    })
+  });
+
+  const data = await res.json();
+
+  cerrarNuevo();
+
+  currentBuildingId = data.building._id;
+
+  await cargarDepto();
+}
+
+// 🧹 LIMPIAR
+function limpiarVista() {
+  listaTerritorio.innerHTML = "";
+  resultado.innerText = "";
+  infoEdificio.style.display = "none";
+
+  nota.style.display = "none";
+  btnOk.style.display = "none";
+  btnNo.style.display = "none";
+  btnSiguiente.style.display = "none";
+  btnNuevoEdificio.style.display = "none";
+  reportBtn.style.display = "none";
 }
 </script>
 
-<!-- MODAL -->
-<div id="modalReporte" style="
-  display:none;
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:rgba(0,0,0,0.6);
-  justify-content:center;
-  align-items:center;
-">
-  <div style="
-    background:white;
-    padding:20px;
-    border-radius:10px;
-    width:90%;
-    max-width:400px;
-  ">
+<!-- MODAL REPORTE -->
+<div id="modalReporte" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);justify-content:center;align-items:center;">
+  <div style="background:white;padding:20px;border-radius:10px;width:90%;max-width:400px;">
     <h3>⚠ Reportar problema</h3>
-
     <select id="tipoProblema">
       <option value="ERROR_DATO">Dato incorrecto</option>
       <option value="ACCESO">Problema de acceso</option>
       <option value="OTRO">Otro</option>
     </select>
-
-    <textarea id="descProblema" placeholder="Describí el problema..."></textarea>
-
+    <textarea id="descProblema"></textarea>
     <button onclick="enviarReporte()" class="ok">Enviar</button>
     <button onclick="cerrarReporte()" class="secondary">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL NUEVO -->
+<div id="modalNuevo" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);justify-content:center;align-items:center;">
+  <div style="background:white;padding:20px;border-radius:10px;width:90%;max-width:400px;">
+    <h3>➕ Nuevo edificio</h3>
+
+    <input id="new_address" placeholder="Dirección">
+    <input id="new_address2" placeholder="Dirección 2">
+    <input id="new_name" placeholder="Nombre">
+    <input id="new_territory" placeholder="Territorio">
+
+    <input id="new_floors" type="number" placeholder="Pisos">
+    <input id="new_units" type="number" placeholder="Deptos por piso">
+
+    <label><input type="checkbox" id="new_pb"> Planta baja</label>
+    <label><input type="checkbox" id="new_portero"> Portero</label>
+
+    <button onclick="guardarNuevoEdificio()" class="ok">Crear</button>
+    <button onclick="cerrarNuevo()" class="secondary">Cancelar</button>
   </div>
 </div>
 
