@@ -96,7 +96,9 @@
 </head>
 
 <body>
-
+<button onclick="reportarProblema()" style="background:#ff9800; color:white;">
+⚠ Reportar problema
+</button>
 <button id="alertBtn" onclick="reportar()">⚠️</button>
 <button id="adminBtn" onclick="irAdmin()">🔒</button>
 <button id="reportBtn" onclick="abrirReporte()" style="
@@ -262,7 +264,32 @@ async function marcar(status) {
 
   document.getElementById("btnSiguiente").style.display = "block";
 }
+async function reportarProblema() {
 
+  if (!currentBuildingId) {
+    alert("No hay edificio seleccionado");
+    return;
+  }
+
+  const type = prompt("Tipo de problema (ej: direccion, datos, otro):");
+  if (!type) return;
+
+  const description = prompt("Descripción (opcional):");
+
+  await fetch("/issues", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      buildingId: currentBuildingId,
+      type,
+      description
+    })
+  });
+
+  alert("Problema reportado");
+}
 // 🔹 SIGUIENTE
 async function siguiente() {
   document.getElementById("nota").value = "";
