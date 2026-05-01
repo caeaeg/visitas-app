@@ -350,6 +350,26 @@ app.put("/issue/:id/resolve", async (req, res) => {
   res.send("OK");
 });
 
+app.get("/building-info/:id", async (req, res) => {
+
+  const building = await Building.findById(req.params.id);
+
+  const lastVisit = await Visit.findOne({
+    departmentId: { $in: await Department.find({ buildingId: building._id }).distinct("_id") }
+  }).sort({ date: -1 });
+
+  const issue = await Issue.findOne({
+    buildingId: building._id,
+    status: { $ne: "RESUELTO" }
+  }).sort({ createdAt: -1 });
+
+  res.json({
+    building,
+    lastVisit,
+    issue
+  });
+});
+
 // 🔹 IMPORTADOR
 app.get("/import-sheet", async (req, res) => {
 
