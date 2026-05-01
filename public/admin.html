@@ -11,16 +11,30 @@
       background: #fafafa;
     }
 
-    input, button, select, textarea {
+    h2 {
+      text-align: center;
+    }
+
+    input, button, select {
       width: 100%;
       padding: 12px;
-      margin: 10px 0;
+      margin: 8px 0;
       font-size: 16px;
     }
 
     button {
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
+    }
+
+    .primary {
+      background: #2196F3;
+      color: white;
+    }
+
+    .secondary {
+      background: #555;
+      color: white;
     }
 
     .card {
@@ -35,20 +49,30 @@
       display: none;
     }
 
-    .primary {
-      background: #2196F3;
-      color: white;
+    /* 🔹 BOTÓN VOLVER */
+    #backBtn {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background: #ddd;
+      font-size: 20px;
     }
 
-    .secondary {
-      background: #555;
-      color: white;
+    /* 🔹 GRID MENÚ */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 20px;
     }
 
-    .danger {
-      background: #f44336;
-      color: white;
+    .full {
+      grid-column: span 2;
     }
+
   </style>
 </head>
 
@@ -62,60 +86,152 @@
   <button class="secondary" onclick="volver()">⬅ Volver</button>
 </div>
 
-<!-- 📊 PANEL -->
-<div id="panel" class="hidden">
+<!-- 🧭 MENÚ PRINCIPAL -->
+<div id="menu" class="hidden">
 
-  <h2>📊 Panel Administrador</h2>
+  <button id="backBtn" onclick="volver()">⬅</button>
 
-  <button class="secondary" onclick="volver()">⬅ Volver</button>
+  <h2>📊 Menú Administrador</h2>
 
-  <!-- 🔹 HISTORIAL -->
-  <h3>Historial por edificio</h3>
+  <div class="grid">
 
-  <input id="dir" placeholder="Dirección del edificio">
+    <button onclick="abrirSeccion('historial')" class="primary">
+      📊 Historial
+    </button>
+
+    <button onclick="abrirSeccion('territorio')" class="primary">
+      🗺 Por territorio
+    </button>
+
+    <button onclick="abrirSeccion('lista')" class="secondary">
+      🏢 Listado
+    </button>
+
+    <button onclick="abrirSeccion('editar')" class="secondary">
+      ✏ Editar
+    </button>
+
+    <button onclick="abrirSeccion('problemas')" class="primary full">
+      ⚠ Solución de problemas
+    </button>
+
+  </div>
+
+</div>
+
+<!-- 📊 HISTORIAL -->
+<div id="historial" class="hidden">
+
+  <button id="backBtn" onclick="volverMenu()">⬅</button>
+
+  <h2>Historial</h2>
+
+  <input id="dir" placeholder="Dirección">
   <button class="primary" onclick="cargar()">Ver historial</button>
 
   <div id="resultado"></div>
 
-  <!-- 🔹 EDICIÓN -->
-  <h3>✏️ Editar edificios</h3>
+</div>
+
+<!-- 🗺 TERRITORIO -->
+<div id="territorio" class="hidden">
+
+  <button id="backBtn" onclick="volverMenu()">⬅</button>
+
+  <h2>Buscar por territorio</h2>
+
+  <input id="territorioInput" placeholder="Número de territorio">
+  <button class="primary" onclick="buscarTerritorio()">Buscar</button>
+
+  <div id="listaTerritorio"></div>
+
+</div>
+
+<!-- 🏢 LISTADO -->
+<div id="lista" class="hidden">
+
+  <button id="backBtn" onclick="volverMenu()">⬅</button>
+
+  <h2>Listado de edificios</h2>
+
+  <select onchange="ordenar(this.value)">
+    <option value="">Ordenar...</option>
+    <option value="territory">Por territorio</option>
+    <option value="recent">Recientes</option>
+    <option value="most">Más trabajados</option>
+  </select>
+
+  <button class="primary" onclick="cargarEdificios()">Cargar</button>
+
+  <div id="listaEdificios"></div>
+
+</div>
+
+<!-- ✏ EDITAR -->
+<div id="editar" class="hidden">
+
+  <button id="backBtn" onclick="volverMenu()">⬅</button>
+
+  <h2>Editar edificio</h2>
 
   <input id="buscarEdit" placeholder="Dirección o territorio">
-  <button class="primary" onclick="buscarEditar()">Buscar</button>
+  <button class="primary" onclick="buscarParaEditar()">Buscar</button>
 
-  <div id="listaEditar"></div>
+  <div id="resultadoEdit"></div>
 
-  <div id="formEditar" class="hidden">
-    <h4>Editando edificio</h4>
+  <!-- FORMULARIO -->
+  <div id="formEdit" class="hidden">
 
-    <input id="editName" placeholder="Nombre">
-    <input id="editAddress" placeholder="Dirección">
-    <input id="editAddress2" placeholder="Dirección 2 (opcional)">
-    <input id="editTerritory" placeholder="Territorio">
-    <textarea id="editDescription" placeholder="Descripción"></textarea>
+    <h3>Datos del edificio</h3>
 
-    <button class="primary" onclick="guardarEdificio()">💾 Guardar cambios</button>
+    <input id="edit_address" placeholder="Dirección">
+    <input id="edit_address2" placeholder="Dirección 2 (opcional)">
+    <input id="edit_name" placeholder="Nombre">
+    <input id="edit_territory" placeholder="Territorio">
+
+    <input id="edit_floors" type="number" placeholder="Pisos">
+    <input id="edit_units" type="number" placeholder="Deptos por piso">
+
+    <label>
+      <input type="checkbox" id="edit_pb"> Tiene planta baja
+    </label>
+
+    <label>
+      <input type="checkbox" id="edit_portero"> Tiene portero
+    </label>
+
+    <textarea id="edit_description" placeholder="Descripción"></textarea>
+
+    <button class="primary" onclick="guardarEdificio()">
+      💾 Guardar cambios
+    </button>
+
+    <button class="secondary" onclick="cancelarEdicion()">
+      Cancelar
+    </button>
+
+    <p id="msgEdit" style="color:gray;"></p>
+
   </div>
 
-<h3>⚠ Problemas reportados</h3>
-<button class="primary" onclick="cargarIssues()">Ver reportes</button>
+</div>
+<!-- ⚠ PROBLEMAS -->
+<div id="problemas" class="hidden">
 
-<div id="listaIssues"></div>
-  
-</button>
-  <!-- 🔹 PROBLEMAS -->
-  <h3>⚠️ Soluciones a problemas</h3>
+  <button id="backBtn" onclick="volverMenu()">⬅</button>
 
-  <button class="primary" onclick="cargarReportes()">Ver reportes</button>
+  <h2>Problemas reportados</h2>
 
-  <div id="reportes"></div>
+  <button class="primary" onclick="cargarIssues()">Ver reportes</button>
+
+  <div id="listaIssues"></div>
 
 </div>
 
 <script>
 
 const CLAVE = "2414";
-let buildingEditId = null;
+let ordenActual = "";
 
 // 🔐 LOGIN
 function verificar() {
@@ -123,7 +239,7 @@ function verificar() {
 
   if (input === CLAVE) {
     document.getElementById("login").style.display = "none";
-    document.getElementById("panel").style.display = "block";
+    document.getElementById("menu").style.display = "block";
   } else {
     alert("Clave incorrecta");
   }
@@ -133,12 +249,34 @@ function volver() {
   window.location.href = "/";
 }
 
+// 🔹 NAVEGACIÓN
+function abrirSeccion(id) {
+
+  document.getElementById("menu").style.display = "none";
+
+  document.querySelectorAll("body > div").forEach(d => {
+    if (d.id !== "login" && d.id !== "menu") {
+      d.style.display = "none";
+    }
+  });
+
+  document.getElementById(id).style.display = "block";
+}
+
+function volverMenu() {
+
+  document.querySelectorAll("body > div").forEach(d => {
+    if (d.id !== "login") d.style.display = "none";
+  });
+
+  document.getElementById("menu").style.display = "block";
+}
+
 // 🔹 HISTORIAL
 async function cargar() {
 
   const input = document.getElementById("dir").value;
-
-  if (!input) return alert("Ingresá una dirección");
+  if (!input) return alert("Ingresá dirección");
 
   const b = await fetch(`/building/${encodeURIComponent(input)}`);
   const building = await b.json();
@@ -148,22 +286,191 @@ async function cargar() {
   const res = await fetch(`/history/${building._id}`);
   const data = await res.json();
 
-  const cont = document.getElementById("resultado");
-  cont.innerHTML = "";
-
-  cont.innerHTML += `
+  let html = `
     <div class="card">
-      <b>Resumen</b><br>
       Total: ${data.total}<br>
-      Atendieron: ${data.atendidos}<br>
-      No atendieron: ${data.noAtendieron}<br>
-      Nunca: ${data.nunca}<br>
+      Atendidos: ${data.atendidos}<br>
       Progreso: ${data.progreso}%
     </div>
   `;
+
+  data.detalle.forEach(d => {
+    html += `
+      <div class="card">
+        ${d.number} - ${d.lastStatus || "Nunca"}
+      </div>
+    `;
+  });
+
+  document.getElementById("resultado").innerHTML = html;
 }
 
-  async function cargarIssues() {
+// 🔹 TERRITORIO
+async function buscarTerritorio() {
+
+  const t = document.getElementById("territorioInput").value;
+
+  const res = await fetch(`/territory/${t}`);
+  const data = await res.json();
+
+  let html = "";
+
+  data.forEach(b => {
+    html += `<div class="card">${b.address}</div>`;
+  });
+
+  document.getElementById("listaTerritorio").innerHTML = html;
+}
+
+// 🔹 LISTADO
+async function cargarEdificios() {
+
+  const res = await fetch(`/admin/buildings?sort=${ordenActual}`);
+  const data = await res.json();
+
+  let html = "";
+
+  data.forEach(b => {
+    html += `
+      <div class="card">
+        ${b.address}<br>
+        ${b.territory || "-"}
+      </div>
+    `;
+  });
+
+  document.getElementById("listaEdificios").innerHTML = html;
+}
+
+function ordenar(v) {
+  ordenActual = v;
+}
+
+let buildingEditId = null;
+
+// 🔍 BUSCAR PARA EDITAR
+async function buscarParaEditar() {
+
+  const q = document.getElementById("buscarEdit").value.trim();
+  if (!q) return alert("Escribí algo");
+
+  const cont = document.getElementById("resultadoEdit");
+  cont.innerHTML = "Buscando...";
+
+  // intenta por dirección
+  const b = await fetch(`/building/${encodeURIComponent(q)}`);
+  const building = await b.json();
+
+  // 🔹 si encontró directo
+  if (building._id) {
+    mostrarFormulario(building);
+    return;
+  }
+
+  // 🔹 sino intenta por territorio
+  const res = await fetch(`/territory/${q}`);
+  const lista = await res.json();
+
+  if (!lista.length) {
+    cont.innerHTML = "No se encontraron resultados";
+    return;
+  }
+
+  cont.innerHTML = "";
+
+  lista.forEach(b => {
+    const btn = document.createElement("div");
+    btn.className = "card";
+    btn.innerText = b.address;
+    btn.onclick = () => mostrarFormulario(b);
+    cont.appendChild(btn);
+  });
+}
+
+
+// 🔹 MOSTRAR FORM
+function mostrarFormulario(b) {
+
+  buildingEditId = b._id;
+
+  document.getElementById("formEdit").style.display = "block";
+  document.getElementById("resultadoEdit").innerHTML = "";
+
+  document.getElementById("edit_address").value = b.address || "";
+  document.getElementById("edit_address2").value = b.address2 || "";
+  document.getElementById("edit_name").value = b.name || "";
+  document.getElementById("edit_territory").value = b.territory || "";
+  document.getElementById("edit_floors").value = b.floors || "";
+  document.getElementById("edit_units").value = b.unitsPerFloor || "";
+
+  document.getElementById("edit_pb").checked = b.hasGroundFloor || false;
+  document.getElementById("edit_portero").checked = b.hasDoorman || false;
+
+  document.getElementById("edit_description").value = b.description || "";
+}
+
+
+// 🔹 VALIDACIÓN + GUARDADO
+async function guardarEdificio() {
+
+  const address = document.getElementById("edit_address").value.trim();
+  const floors = Number(document.getElementById("edit_floors").value);
+  const units = Number(document.getElementById("edit_units").value);
+
+  const msg = document.getElementById("msgEdit");
+
+  // 🔒 VALIDACIONES
+  if (!address) {
+    msg.innerText = "La dirección es obligatoria";
+    return;
+  }
+
+  if (floors <= 0) {
+    msg.innerText = "Pisos inválidos";
+    return;
+  }
+
+  if (units <= 0) {
+    msg.innerText = "Deptos por piso inválido";
+    return;
+  }
+
+  msg.innerText = "Guardando...";
+
+  await fetch(`/building/${buildingEditId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      address,
+      address2: document.getElementById("edit_address2").value,
+      name: document.getElementById("edit_name").value,
+      territory: document.getElementById("edit_territory").value,
+      floors,
+      unitsPerFloor: units,
+      hasGroundFloor: document.getElementById("edit_pb").checked,
+      hasDoorman: document.getElementById("edit_portero").checked,
+      description: document.getElementById("edit_description").value
+    })
+  });
+
+  msg.innerText = "✅ Guardado correctamente";
+
+  setTimeout(() => {
+    msg.innerText = "";
+  }, 2000);
+}
+
+
+// 🔹 CANCELAR
+function cancelarEdicion() {
+  document.getElementById("formEdit").style.display = "none";
+  buildingEditId = null;
+}
+
+// 🔹 PROBLEMAS
+async function cargarIssues() {
 
   const res = await fetch("/issues");
   const data = await res.json();
@@ -173,16 +480,9 @@ async function cargar() {
   data.forEach(i => {
     html += `
       <div class="card">
-        <b>${i.type}</b><br>
-        Estado: ${i.status}<br>
+        ${i.type}<br>
         ${i.description || "-"}<br>
-        <small>${new Date(i.createdAt).toLocaleString()}</small><br>
-
-        ${
-          i.status === "PENDIENTE"
-            ? `<button onclick="resolver('${i._id}')">Marcar resuelto</button>`
-            : "✔ Resuelto"
-        }
+        ${i.status}
       </div>
     `;
   });
@@ -190,109 +490,8 @@ async function cargar() {
   document.getElementById("listaIssues").innerHTML = html;
 }
 
-async function resolver(id) {
-
-  await fetch(`/issue/${id}/resolve`, {
-    method: "PUT"
-  });
-
-  cargarIssues();
-}
-  
-// 🔹 BUSCAR PARA EDITAR
-async function buscarEditar() {
-
-  const q = document.getElementById("buscarEdit").value;
-  if (!q) return;
-
-  const res = await fetch(`/admin/search-buildings?q=${encodeURIComponent(q)}`);
-  const data = await res.json();
-
-  let html = "";
-
-  data.forEach(b => {
-    html += `
-      <div class="card" onclick='seleccionarEditar(${JSON.stringify(b)})'>
-        <b>${b.name || "Sin nombre"}</b><br>
-        ${b.address}<br>
-        ${b.territory || "-"}
-      </div>
-    `;
-  });
-
-  document.getElementById("listaEditar").innerHTML = html;
-}
-
-function seleccionarEditar(b) {
-
-  buildingEditId = b._id;
-
-  document.getElementById("formEditar").style.display = "block";
-
-  document.getElementById("editName").value = b.name || "";
-  document.getElementById("editAddress").value = b.address || "";
-  document.getElementById("editAddress2").value = b.address2 || "";
-  document.getElementById("editTerritory").value = b.territory || "";
-  document.getElementById("editDescription").value = b.description || "";
-}
-
-// 🔹 GUARDAR EDICIÓN
-async function guardarEdificio() {
-
-  await fetch(`/building/${buildingEditId}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      name: document.getElementById("editName").value,
-      address: document.getElementById("editAddress").value,
-      address2: document.getElementById("editAddress2").value,
-      territory: document.getElementById("editTerritory").value,
-      description: document.getElementById("editDescription").value
-    })
-  });
-
-  alert("Edificio actualizado");
-}
-
-// 🔹 REPORTES
-async function cargarReportes() {
-
-  const res = await fetch("/reports");
-  const data = await res.json();
-
-  let html = "";
-
-  data.forEach(r => {
-    html += `
-      <div class="card">
-        <b>${r.building?.address || "Sin dirección"}</b><br>
-        📝 ${r.message}<br>
-        🕒 ${new Date(r.date).toLocaleString()}<br>
-
-        <button class="secondary" onclick="resolver('${r._id}')">
-          ✔ Marcar como resuelto
-        </button>
-      </div>
-    `;
-  });
-
-  document.getElementById("reportes").innerHTML = html;
-}
-
-async function resolver(id) {
-
-  await fetch(`/report/${id}/resolve`, {
-    method: "PUT"
-  });
-
-  cargarReportes();
-}
-
 </script>
 
 </body>
 </html>
-
 
