@@ -290,6 +290,40 @@ app.put("/report/:id/resolve", async (req, res) => {
   res.send("Resuelto");
 });
 
+app.post("/issue", async (req, res) => {
+  const { buildingId, departmentId, type, description } = req.body;
+
+  if (!buildingId || !type) {
+    return res.status(400).send("Datos incompletos");
+  }
+
+  const issue = new Issue({
+    buildingId,
+    departmentId,
+    type,
+    description
+  });
+
+  await issue.save();
+
+  res.json(issue);
+});
+//editar reportes
+app.get("/issues", async (req, res) => {
+
+  const issues = await Issue.find().sort({ createdAt: -1 });
+
+  res.json(issues);
+});
+//marcar com resuelto
+app.put("/issue/:id/resolve", async (req, res) => {
+
+  await Issue.findByIdAndUpdate(req.params.id, {
+    status: "RESUELTO"
+  });
+
+  res.send("OK");
+});
 
 // 🔹 IMPORTADOR
 app.get("/import-sheet", async (req, res) => {
