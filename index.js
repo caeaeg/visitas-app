@@ -252,23 +252,48 @@ app.get("/territory/:num", async (req, res) => {
 
 
 // 🔹 REPORTAR PROBLEMA
-app.post("/report", async (req, res) => {
+app.post("/issues", async (req, res) => {
+  const { buildingId, departmentId, type, description } = req.body;
 
-  const { buildingId, message } = req.body;
+  if (!buildingId || !type) {
+    return res.status(400).send("Datos incompletos");
+  }
 
-  const report = new Report({
-    building: buildingId,
-    message,
-    date: new Date(),
-    resolved: false
+  const issue = new Issue({
+    buildingId,
+    departmentId,
+    type,
+    description
   });
 
-  await report.save();
+  await issue.save();
 
-  res.send("Reporte enviado");
+  res.json(issue);
 });
 
+app.get("/issues", async (req, res) => {
 
+  const { status } = req.query;
+
+  let filter = {};
+  if (status) filter.status = status;
+
+  const issues = await Issue.find(filter)
+    .populate("buildingId")
+    .sort({ createdAt: -1 });
+
+  res.json(issues);
+});
+app.put("/issues/:id", async (req, res) => {
+
+  const { status } = req.body;
+
+  await Issue.findByIdAndUpdate(req.params.id, {
+    status
+  });
+
+  res.send("Estado actualizado");
+});
 // 🔹 VER REPORTES
 app.get("/reports", async (req, res) => {
 
