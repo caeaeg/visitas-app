@@ -1,18 +1,23 @@
 const mongoose = require("mongoose");
 
-const IssueSchema = new mongoose.Schema({
-  buildingId: String,
-  departmentId: String,
-  type: String, // ERROR_DATO | ACCESO | OTRO
+const issueSchema = new mongoose.Schema({
+  buildingId: { type: mongoose.Schema.Types.ObjectId, ref: "Building" },
+  departmentId: { type: mongoose.Schema.Types.ObjectId, ref: "Department" },
+
+  type: String,
   description: String,
+
   status: {
     type: String,
-    default: "PENDIENTE" // PENDIENTE | RESUELTO
+    enum: ["PENDIENTE", "EN_PROCESO", "RESUELTO"],
+    default: "PENDIENTE"
   },
+
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
 
-module.exports = mongoose.model("Issue", IssueSchema);
+module.exports = mongoose.model("Issue", issueSchema);
+
