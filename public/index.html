@@ -99,7 +99,16 @@
 
 <button id="alertBtn" onclick="reportar()">⚠️</button>
 <button id="adminBtn" onclick="irAdmin()">🔒</button>
-
+<button id="reportBtn" onclick="abrirReporte()" style="
+  position:absolute;
+  top:15px;
+  left:15px;
+  background:none;
+  font-size:20px;
+  display:none;
+">
+⚠
+</button>
 <h2>📍 Visitas</h2>
 
 <input id="buildingId" placeholder="Código o dirección"
@@ -212,7 +221,7 @@ async function cargarDepto() {
 
   const res = await fetch(`/next/${currentBuildingId}`);
   const data = await res.json();
-
+document.getElementById("reportBtn").style.display = "block";
   if (data.message === "NO_AVAILABLE") {
     document.getElementById("resultado").innerText =
       "No hay departamentos disponibles";
@@ -281,13 +290,42 @@ async function reportar() {
 
   alert("Reporte enviado");
 }
+function abrirReporte() {
+  document.getElementById("modalReporte").style.display = "flex";
+}
 
+function cerrarReporte() {
+  document.getElementById("modalReporte").style.display = "none";
+}
+
+async function enviarReporte() {
+
+  const type = document.getElementById("tipoProblema").value;
+  const description = document.getElementById("descProblema").value;
+
+  await fetch("/issue", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      buildingId: currentBuildingId,
+      departmentId: currentDept?._id,
+      type,
+      description
+    })
+  });
+
+  alert("Reporte enviado 👍");
+
+  cerrarReporte();
+}
 // 🔹 LIMPIAR UI
 function limpiarVista() {
   document.getElementById("listaTerritorio").innerHTML = "";
   document.getElementById("resultado").innerText = "";
   document.getElementById("estado").innerText = "";
-
+  document.getElementById("reportBtn").style.display = "none";
   document.getElementById("nota").style.display = "none";
   document.getElementById("btnOk").style.display = "none";
   document.getElementById("btnNo").style.display = "none";
@@ -297,7 +335,39 @@ function limpiarVista() {
   document.getElementById("alertBtn").style.display = "none";
 }
 </script>
+<div id="modalReporte" style="
+  display:none;
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.6);
+  justify-content:center;
+  align-items:center;
+">
 
+  <div style="
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    width:90%;
+    max-width:400px;
+  ">
+
+    <h3>⚠ Reportar problema</h3>
+
+    <select id="tipoProblema">
+      <option value="ERROR_DATO">Dato incorrecto</option>
+      <option value="ACCESO">Problema de acceso</option>
+      <option value="OTRO">Otro</option>
+    </select>
+
+    <textarea id="descProblema" placeholder="Describí el problema..."></textarea>
+
+    <button onclick="enviarReporte()" class="ok">Enviar</button>
+    <button onclick="cerrarReporte()" class="secondary">Cancelar</button>
+
+  </div>
+</div>
 </body>
 </html>
 
