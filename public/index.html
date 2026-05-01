@@ -11,7 +11,7 @@
       background: #f5f5f5;
     }
 
-    input, textarea {
+    input, textarea, select {
       width: 100%;
       padding: 12px;
       margin: 10px 0;
@@ -58,7 +58,7 @@
       font-size: 20px;
     }
 
-    #alertBtn {
+    #reportBtn {
       position: absolute;
       top: 15px;
       left: 15px;
@@ -96,21 +96,10 @@
 </head>
 
 <body>
-<button onclick="reportarProblema()" style="background:#ff9800; color:white;">
-⚠ Reportar problema
-</button>
-<button id="alertBtn" onclick="reportar()">⚠️</button>
+
+<button id="reportBtn" onclick="abrirReporte()">⚠</button>
 <button id="adminBtn" onclick="irAdmin()">🔒</button>
-<button id="reportBtn" onclick="abrirReporte()" style="
-  position:absolute;
-  top:15px;
-  left:15px;
-  background:none;
-  font-size:20px;
-  display:none;
-">
-⚠
-</button>
+
 <h2>📍 Visitas</h2>
 
 <input id="buildingId" placeholder="Código o dirección"
@@ -156,7 +145,7 @@ function irAdmin() {
   window.location.href = "/admin.html";
 }
 
-// 🔹 BUSCAR NORMAL
+// 🔹 BUSCAR
 async function buscar() {
 
   limpiarVista();
@@ -181,7 +170,7 @@ async function buscar() {
   await cargarDepto();
 }
 
-// 🔹 BUSCAR POR TERRITORIO
+// 🔹 TERRITORIO
 async function buscarPorTerritorio() {
 
   limpiarVista();
@@ -211,19 +200,17 @@ async function buscarPorTerritorio() {
 
 function seleccionarEdificio(building) {
   limpiarVista();
-
   currentBuildingId = building._id;
   currentBuildingData = building;
-
   cargarDepto();
 }
 
-// 🔹 CARGAR DEPTO
+// 🔹 DEPTO
 async function cargarDepto() {
 
   const res = await fetch(`/next/${currentBuildingId}`);
   const data = await res.json();
-document.getElementById("reportBtn").style.display = "block";
+
   if (data.message === "NO_AVAILABLE") {
     document.getElementById("resultado").innerText =
       "No hay departamentos disponibles";
@@ -238,9 +225,7 @@ document.getElementById("reportBtn").style.display = "block";
   document.getElementById("nota").style.display = "block";
   document.getElementById("btnOk").style.display = "block";
   document.getElementById("btnNo").style.display = "block";
-
-  // 🔥 mostrar botón de alerta
-  document.getElementById("alertBtn").style.display = "block";
+  document.getElementById("reportBtn").style.display = "block";
 }
 
 // 🔹 MARCAR
@@ -264,59 +249,14 @@ async function marcar(status) {
 
   document.getElementById("btnSiguiente").style.display = "block";
 }
-async function reportarProblema() {
 
-  if (!currentBuildingId) {
-    alert("No hay edificio seleccionado");
-    return;
-  }
-
-  const type = prompt("Tipo de problema (ej: direccion, datos, otro):");
-  if (!type) return;
-
-  const description = prompt("Descripción (opcional):");
-
-  await fetch("/issues", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      buildingId: currentBuildingId,
-      type,
-      description
-    })
-  });
-
-  alert("Problema reportado");
-}
 // 🔹 SIGUIENTE
 async function siguiente() {
   document.getElementById("nota").value = "";
   await cargarDepto();
 }
 
-// 🔹 REPORTAR PROBLEMA
-async function reportar() {
-
-  if (!currentBuildingId) return;
-
-  const mensaje = prompt("¿Qué problema encontraste?");
-  if (!mensaje) return;
-
-  await fetch("/report", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      buildingId: currentBuildingId,
-      message: mensaje
-    })
-  });
-
-  alert("Reporte enviado");
-}
+// 🔹 MODAL
 function abrirReporte() {
   document.getElementById("modalReporte").style.display = "flex";
 }
@@ -330,7 +270,7 @@ async function enviarReporte() {
   const type = document.getElementById("tipoProblema").value;
   const description = document.getElementById("descProblema").value;
 
-  await fetch("/issue", {
+  await fetch("/issues", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -344,24 +284,25 @@ async function enviarReporte() {
   });
 
   alert("Reporte enviado 👍");
-
   cerrarReporte();
 }
-// 🔹 LIMPIAR UI
+
+// 🔹 LIMPIAR
 function limpiarVista() {
   document.getElementById("listaTerritorio").innerHTML = "";
   document.getElementById("resultado").innerText = "";
   document.getElementById("estado").innerText = "";
-  document.getElementById("reportBtn").style.display = "none";
+
   document.getElementById("nota").style.display = "none";
   document.getElementById("btnOk").style.display = "none";
   document.getElementById("btnNo").style.display = "none";
   document.getElementById("btnSiguiente").style.display = "none";
   document.getElementById("btnNuevoEdificio").style.display = "none";
-
-  document.getElementById("alertBtn").style.display = "none";
+  document.getElementById("reportBtn").style.display = "none";
 }
 </script>
+
+<!-- MODAL -->
 <div id="modalReporte" style="
   display:none;
   position:fixed;
@@ -371,7 +312,6 @@ function limpiarVista() {
   justify-content:center;
   align-items:center;
 ">
-
   <div style="
     background:white;
     padding:20px;
@@ -379,7 +319,6 @@ function limpiarVista() {
     width:90%;
     max-width:400px;
   ">
-
     <h3>⚠ Reportar problema</h3>
 
     <select id="tipoProblema">
@@ -392,9 +331,9 @@ function limpiarVista() {
 
     <button onclick="enviarReporte()" class="ok">Enviar</button>
     <button onclick="cerrarReporte()" class="secondary">Cancelar</button>
-
   </div>
 </div>
+
 </body>
 </html>
 
