@@ -138,7 +138,10 @@
 
   <button class="backBtn" onclick="volverMenu()">⬅</button>
 
-  <h2>Historial</h2>
+  <h2>
+  Historial
+  <button onclick="editarActual()" style="float:right;">✏️</button>
+</h2>
 
   <input id="dir" placeholder="Dirección">
   <button class="primary" onclick="cargar()">Ver historial</button>
@@ -255,6 +258,17 @@ function volver() {
   window.location.href = "/";
 }
 
+function editarActual() {
+
+  if (!currentBuildingHist) return;
+
+  abrirSeccion("editar");
+
+  setTimeout(() => {
+    mostrarFormulario(currentBuildingHist);
+  }, 100);
+}  
+  
 // NAV
 function abrirSeccion(id) {
   document.getElementById("menu").style.display = "none";
@@ -277,19 +291,49 @@ function volverMenu() {
 }
 
 // HISTORIAL
+let currentBuildingHist = null;
+
 async function cargar() {
+
   const input = document.getElementById("dir").value;
   if (!input) return alert("Ingresá dirección");
 
+  // 🔹 buscar edificio
   const b = await fetch(`/building/${encodeURIComponent(input)}`);
   const building = await b.json();
 
   if (!building._id) return alert("No existe");
 
+  currentBuildingHist = building; // 👈 guardamos para editar
+
+  // 🔹 historial
   const res = await fetch(`/history/${building._id}`);
   const data = await res.json();
 
-  let html = `
+  // 🔹 problemas
+  const issuesRes = await fetch(`/issues?status=PENDIENTE`);
+  const issues = await issuesRes.json();
+
+  const issuesDelEdificio = issues.filter(i =>
+    i.buildingId?._id === building._id
+  );
+
+  let html = "";
+
+  // 🔥 PROBLEMAS ARRIBA
+  if (issuesDelEdificio.length) {
+    html += `
+      <div class="card" style="border-left:5px solid red;">
+        <b>⚠ Problemas reportados:</b><br>
+        ${issuesDelEdificio.map(i =>
+          `• ${i.description || i.type}`
+        ).join("<br>")}
+      </div>
+    `;
+  }
+
+  // 🔹 resumen
+  html += `
     <div class="card">
       Total: ${data.total}<br>
       Atendidos: ${data.atendidos}<br>
@@ -297,11 +341,25 @@ async function cargar() {
     </div>
   `;
 
+  // 🔹 detalle departamentos
   data.detalle.forEach(d => {
+
     html += `
       <div class="card">
         <b>${d.number}</b><br>
-        ${d.lastStatus || "Nunca"}
+        Estado: ${d.lastStatus || "Nunca"}<br>
+
+        ${
+          d.lastDate
+            ? `📅 ${new Date(d.lastDate).toLocaleDateString()}<br>`
+            : ""
+        }
+
+        ${
+          d.note
+            ? `📝 ${d.note}<br>`
+            : ""
+        }
       </div>
     `;
   });
