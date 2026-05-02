@@ -66,6 +66,28 @@
       gap: 10px;
       margin-top: 20px;
     }
+    .gridBuildings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.cardBuilding {
+  background: white;
+  padding: 12px;
+  border-radius: 10px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.1);
+  cursor: pointer;
+}
+
+.cardBuilding b {
+  font-size: 16px;
+}
+
+.small {
+  font-size: 13px;
+  color: gray;
+}
 
     .full {
       grid-column: span 2;
@@ -171,12 +193,13 @@
 
   <h2>Listado de edificios</h2>
 
-  <select onchange="ordenar(this.value)">
-    <option value="">Ordenar...</option>
-    <option value="territory">Por territorio</option>
-    <option value="recent">Recientes</option>
-    <option value="most">Más trabajados</option>
-  </select>
+<select onchange="ordenar(this.value)">
+  <option value="">Ordenar...</option>
+  <option value="all">Mostrar todos</option>
+  <option value="territory">Por territorio</option>
+  <option value="recent">Recientes</option>
+  <option value="most">Más trabajados</option>
+</select>
 
   <button class="primary" onclick="cargarEdificios()">Cargar</button>
 
@@ -390,28 +413,188 @@ async function buscarTerritorio() {
 
 // LISTADO
 async function cargarEdificios() {
-  const res = await fetch(`/admin/buildings?sort=${ordenActual}`);
+
+  const sort = ordenActual === "all" ? "" : ordenActual;
+
+  const res = await fetch(`/admin/buildings?sort=${sort}`);
   const data = await res.json();
 
-  let html = "";
+  let html = `<div class="gridBuildings">`;
 
   data.forEach(b => {
+
     html += `
-      <div class="card">
+      <div class="cardBuilding" onclick='verEdificio(${JSON.stringify(b)})'>
         <b>${b.address}</b><br>
-        🗺 ${b.territory || "-"}<br>
-        🔁 ${b.totalVisits} visitas
+
+        <div class="small">
+          🕒 ${
+            b.lastVisit
+              ? new Date(b.lastVisit).toLocaleDateString()
+              : "Sin visitas"
+          }
+        </div>
+
+        <div class="small">
+          🗺 Territorio: ${b.territory || "-"}
+        </div>
       </div>
     `;
   });
 
+  html += `</div>`;
+
   document.getElementById("listaEdificios").innerHTML = html;
 }
-
 function ordenar(v) {
   ordenActual = v;
 }
 
+ <!-- DETALLE EDIFICIO -->
+<div id="detalleEdificio" class="hidden">
+
+  <button class="backBtn" onclick="volverMenu()">⬅</button>
+
+  <h2>Detalle del edificio</h2>
+
+  <div id="detalleContenido"></div>
+
+</div>
+   
+async function verEdificio(b) {
+
+  abrirSeccion("detalleEdificio");
+
+  const cont = document.getElementById("detalleContenido");
+
+  cont.innerHTML = "Cargando...";
+
+  const res = await fetch(`/history/${b._id}`);
+  const data = await res.json();
+
+  const issuesRes = await fetch(`/issues?status=PENDIENTE`);
+  const issues = await issuesRes.json();
+
+  const issuesDelEdificio = issues.filter(i =>
+    i.buildingId?._id === b._id
+  );
+
+  let html = `
+    <div class="card">
+      <h3>${b.address}</h3>
+      ${b.address2 || ""}<br>
+      ${b.name || ""}<br>
+      🗺 Territorio: ${b.territory || "-"}<br><br>
+
+      <button class="secondary" onclick='editarDesdeListado(${JSON.stringify(b)})'>
+        ✏️ Editar
+      </button>
+    </div>
+  `;
+
+  if (issuesDelEdificio.length) {
+    html += `
+      <div class="card" style="border-left:5px solid red;">
+        <b>⚠ Problemas:</b><br>
+        ${issuesDelEdificio.map(i =>
+          `• ${i.description || i.type}`
+        ).join("<br>")}
+      </div>
+    `;
+  }
+
+  data.detalle.forEach(d => {
+
+    html += `
+      <div class="card">
+        <b>${d.number}</b><br>
+        Estado: ${d.lastStatus || "Nunca"}<br>
+
+        ${
+          d.lastDate
+            ? `📅 ${new Date(d.lastDate).toLocaleDateString()}<br>`
+            : ""
+        }
+
+        ${
+          d.note
+            ? `📝 ${d.note}<br>`
+            : ""
+        }
+      </div>
+    `;
+  });
+
+  cont.innerHTML = html;
+}
+
+async function verEdificio(b) {
+
+  abrirSeccion("detalleEdificio");
+
+  const cont = document.getElementById("detalleContenido");
+
+  cont.innerHTML = "Cargando...";
+
+  const res = await fetch(`/history/${b._id}`);
+  const data = await res.json();
+
+  const issuesRes = await fetch(`/issues?status=PENDIENTE`);
+  const issues = await issuesRes.json();
+
+  const issuesDelEdificio = issues.filter(i =>
+    i.buildingId?._id === b._id
+  );
+
+  let html = `
+    <div class="card">
+      <h3>${b.address}</h3>
+      ${b.address2 || ""}<br>
+      ${b.name || ""}<br>
+      🗺 Territorio: ${b.territory || "-"}<br><br>
+
+      <button class="secondary" onclick='editarDesdeListado(${JSON.stringify(b)})'>
+        ✏️ Editar
+      </button>
+    </div>
+  `;
+
+  if (issuesDelEdificio.length) {
+    html += `
+      <div class="card" style="border-left:5px solid red;">
+        <b>⚠ Problemas:</b><br>
+        ${issuesDelEdificio.map(i =>
+          `• ${i.description || i.type}`
+        ).join("<br>")}
+      </div>
+    `;
+  }
+
+  data.detalle.forEach(d => {
+
+    html += `
+      <div class="card">
+        <b>${d.number}</b><br>
+        Estado: ${d.lastStatus || "Nunca"}<br>
+
+        ${
+          d.lastDate
+            ? `📅 ${new Date(d.lastDate).toLocaleDateString()}<br>`
+            : ""
+        }
+
+        ${
+          d.note
+            ? `📝 ${d.note}<br>`
+            : ""
+        }
+      </div>
+    `;
+  });
+
+  cont.innerHTML = html;
+}  
+  
 // EDITAR
 async function buscarParaEditar() {
 
