@@ -40,23 +40,24 @@
     }
 
     #reportBtn {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ff9800;
+      color: white;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      font-size: 22px;
+      display: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+      transition: 0.3s;
+    }
 
-  background: #ff9800;
-  color: white;
-
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-
-  font-size: 22px;
-  display: none;
-
-  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-}
+    .alerta {
+      background: #f44336 !important;
+    }
 
     #infoEdificio {
       background:white;
@@ -203,7 +204,7 @@ async function cargarDepto() {
   await mostrarInfoEdificio();
 }
 
-// 🧾 INFO EDIFICIO
+// 🧾 INFO EDIFICIO + COLOR INTELIGENTE
 async function mostrarInfoEdificio() {
 
   const res = await fetch(`/building-info/${currentBuildingId}`);
@@ -226,6 +227,13 @@ async function mostrarInfoEdificio() {
         : ""
     }
   `;
+
+  // 🔥 COLOR DINÁMICO DEL BOTÓN
+  if (data.issue) {
+    reportBtn.classList.add("alerta"); // rojo
+  } else {
+    reportBtn.classList.remove("alerta"); // naranja normal
+  }
 }
 
 // ✔ MARCAR
