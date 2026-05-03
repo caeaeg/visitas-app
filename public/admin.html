@@ -258,7 +258,17 @@
 
 </div>
 
+ <!-- DETALLE EDIFICIO -->
+<div id="detalleEdificio" class="hidden">
 
+  <button class="backBtn" onclick="volverMenu()">⬅</button>
+
+  <h2>Detalle del edificio</h2>
+
+  <div id="detalleContenido"></div>
+
+</div>
+   
 <script>
 
 const CLAVE = "2414";
@@ -450,83 +460,8 @@ function ordenar(v) {
   ordenActual = v;
 }
 
- <!-- DETALLE EDIFICIO -->
-<div id="detalleEdificio" class="hidden">
 
-  <button class="backBtn" onclick="volverMenu()">⬅</button>
 
-  <h2>Detalle del edificio</h2>
-
-  <div id="detalleContenido"></div>
-
-</div>
-   
-async function verEdificio(b) {
-
-  abrirSeccion("detalleEdificio");
-
-  const cont = document.getElementById("detalleContenido");
-
-  cont.innerHTML = "Cargando...";
-
-  const res = await fetch(`/history/${b._id}`);
-  const data = await res.json();
-
-  const issuesRes = await fetch(`/issues?status=PENDIENTE`);
-  const issues = await issuesRes.json();
-
-  const issuesDelEdificio = issues.filter(i =>
-    i.buildingId?._id === b._id
-  );
-
-  let html = `
-    <div class="card">
-      <h3>${b.address}</h3>
-      ${b.address2 || ""}<br>
-      ${b.name || ""}<br>
-      🗺 Territorio: ${b.territory || "-"}<br><br>
-
-      <button class="secondary" onclick='editarDesdeListado(${JSON.stringify(b)})'>
-        ✏️ Editar
-      </button>
-    </div>
-  `;
-
-  if (issuesDelEdificio.length) {
-    html += `
-      <div class="card" style="border-left:5px solid red;">
-        <b>⚠ Problemas:</b><br>
-        ${issuesDelEdificio.map(i =>
-          `• ${i.description || i.type}`
-        ).join("<br>")}
-      </div>
-    `;
-  }
-
-  data.detalle.forEach(d => {
-
-    html += `
-      <div class="card">
-        <b>${d.number}</b><br>
-        Estado: ${d.lastStatus || "Nunca"}<br>
-
-        ${
-          d.lastDate
-            ? `📅 ${new Date(d.lastDate).toLocaleDateString()}<br>`
-            : ""
-        }
-
-        ${
-          d.note
-            ? `📝 ${d.note}<br>`
-            : ""
-        }
-      </div>
-    `;
-  });
-
-  cont.innerHTML = html;
-}
 
 async function verEdificio(b) {
 
