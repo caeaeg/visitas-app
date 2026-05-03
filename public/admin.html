@@ -286,7 +286,9 @@ function verificar() {
     alert("Clave incorrecta");
   }
 }
-
+let paginaActual = 1;
+let totalPaginas = 1;
+  
 function volver() {
   window.location.href = "/";
 }
@@ -424,10 +426,15 @@ async function buscarTerritorio() {
 // LISTADO
 async function cargarEdificios() {
 
+  listaEdificios.innerHTML = "⏳ Cargando edificios...";
+
   const sort = ordenActual === "all" ? "" : ordenActual;
 
-  const res = await fetch(`/admin/buildings?sort=${sort}`);
-  const data = await res.json();
+  const res = await fetch(`/admin/buildings?sort=${sort}&page=${paginaActual}`);
+  const result = await res.json();
+
+  const data = result.data;
+  totalPaginas = result.totalPages;
 
   let html = `<div class="gridBuildings">`;
 
@@ -435,7 +442,7 @@ async function cargarEdificios() {
 
     html += `
       <div class="cardBuilding" onclick='verEdificio(${JSON.stringify(b)})'>
-        <b>${b.address}</b><br>
+        <b>${b.address}</b>
 
         <div class="small">
           🕒 ${
@@ -446,7 +453,7 @@ async function cargarEdificios() {
         </div>
 
         <div class="small">
-          🗺 Territorio: ${b.territory || "-"}
+          🗺 ${b.territory || "-"}
         </div>
       </div>
     `;
@@ -454,14 +461,45 @@ async function cargarEdificios() {
 
   html += `</div>`;
 
-  document.getElementById("listaEdificios").innerHTML = html;
+  // 🔽 PAGINACIÓN
+  html += `
+    <div style="text-align:center; margin-top:15px;">
+      <button onclick="cambiarPagina(-1)" ${paginaActual === 1 ? "disabled" : ""}>
+        ⬅
+      </button>
+
+      Página ${paginaActual} de ${totalPaginas}
+
+      <button onclick="cambiarPagina(1)" ${paginaActual === totalPaginas ? "disabled" : ""}>
+        ➡
+      </button>
+    </div>
+  `;
+
+  listaEdificios.innerHTML = html;
 }
+
+function cambiarPagina(dir) {
+
+  paginaActual += dir;
+
+  if (paginaActual < 1) paginaActual = 1;
+  if (paginaActual > totalPaginas) paginaActual = totalPaginas;
+
+  cargarEdificios();
+}
+
+listaEdificios.innerHTML = `
+  <div style="text-align:center; padding:20px;">
+    ⏳ Cargando edificios...<br>
+    <small>Esto puede tardar unos segundos</small>
+  </div>
+`;
+  
 function ordenar(v) {
   ordenActual = v;
+  paginaActual = 1; // reset
 }
-
-
-
 
 async function verEdificio(b) {
 
