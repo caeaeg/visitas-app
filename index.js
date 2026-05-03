@@ -57,6 +57,41 @@ app.get("/next/:buildingId", async (req, res) => {
   }
 });
 
+app.get("/admin/buildings", async (req, res) => {
+
+  const page = Number(req.query.page) || 1;
+  const limit = 20;
+  const skip = (page - 1) * limit;
+
+  const sort = req.query.sort;
+
+  let query = Building.find();
+
+  // 🔽 ORDENAMIENTO
+  if (sort === "territory") {
+    query = query.sort({ territory: 1 });
+  }
+
+  if (sort === "recent") {
+    query = query.sort({ updatedAt: -1 });
+  }
+
+  // ⚠ "most" lo dejamos simple por ahora
+  // después lo podemos hacer pro con conteo real
+
+  const buildings = await query
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Building.countDocuments();
+
+  res.json({
+    data: buildings,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit)
+  });
+});
 
 // 🔹 BUSCAR BUILDING
 app.get("/building/:query", async (req, res) => {
