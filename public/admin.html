@@ -370,6 +370,30 @@ function editarActual() {
     mostrarFormulario(currentBuildingHist);
   }, 100);
 }  
+
+  //DASHBOARD
+async function cargarDashboard() {
+
+  const res = await fetch("/stats");
+  const data = await res.json();
+
+  totalEdificios.innerText = data.totalEdificios;
+  visitados.innerText = data.visitados;
+
+  const total = data.totalVisitas || 1;
+
+  const porcA = Math.round((data.atendio / total) * 100);
+  const porcN = Math.round((data.noCasa / total) * 100);
+
+  porcAtendio.innerText = porcA + "%";
+  porcNo.innerText = porcN + "%";
+
+  barAtendio.style.width = porcA + "%";
+  barNo.style.width = porcN + "%";
+
+  noVisitados.innerText =
+    data.totalEdificios - data.visitados;
+}
   
 // NAV
 function abrirSeccion(id) {
@@ -489,7 +513,22 @@ async function buscarTerritorio() {
 
   document.getElementById("listaTerritorio").innerHTML = html;
 }
+function abrirSeccion(id) {
 
+  document.getElementById("menu").style.display = "none";
+
+  document.querySelectorAll("body > div").forEach(d => {
+    if (d.id !== "login" && d.id !== "menu") {
+      d.style.display = "none";
+    }
+  });
+
+  document.getElementById(id).style.display = "block";
+
+  if (id === "territorio") {
+    cargarDashboard(); // 👈 magia acá
+  }
+}
 // LISTADO
 async function cargarEdificios() {
 
