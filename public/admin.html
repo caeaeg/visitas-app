@@ -127,6 +127,27 @@
 .barra.rojo div {
   background: #f44336;
 }
+
+.barra div {
+  height: 100%;
+  width: 0%;
+  transition: width 1.2s ease-in-out;
+}
+
+.card {
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
     
   </style>
 </head>
@@ -141,44 +162,7 @@
   <button class="secondary" onclick="volver()">⬅ Volver</button>
 </div>
   
-<div id="dashboard" style="margin-bottom:15px;">
 
-  <div class="grid">
-
-    <div class="card">
-      <b>🏢 Total edificios</b><br>
-      <span id="totalEdificios">-</span>
-    </div>
-
-    <div class="card">
-      <b>✅ Visitados</b><br>
-      <span id="visitados">-</span>
-    </div>
-
-    <div class="card">
-      <b>🚪 Atendió</b>
-      <div class="barra">
-        <div id="barAtendio"></div>
-      </div>
-      <span id="porcAtendio">-</span>
-    </div>
-
-    <div class="card">
-      <b>❌ No en casa</b>
-      <div class="barra rojo">
-        <div id="barNo"></div>
-      </div>
-      <span id="porcNo">-</span>
-    </div>
-
-    <div class="card full">
-      <b>🕳 No visitados</b><br>
-      <span id="noVisitados">-</span>
-    </div>
-
-  </div>
-
-</div>
 <!-- MENÚ -->
 <div id="menu" class="hidden">
 
@@ -230,28 +214,6 @@
 </div>
 
 <!-- TERRITORIO -->
-<div id="territorio" class="hidden">
-
-  <button class="backBtn" onclick="volverMenu()">⬅</button>
-
-  <h2>Buscar por territorio</h2>
-
-  <input id="territorioInput" placeholder="Número de territorio">
-  <button class="primary" onclick="buscarTerritorio()">Buscar</button>
-
-  <!-- 🗺 MAPA -->
-  <div id="mapaContainer" style="margin-top:15px;">
-    <iframe 
-      src="https://www.google.com/maps/d/embed?mid=1lhh_CmzfSr-WrY3MbyNQ19sKgKBiGUU&ehbc=2E312F&noprof=1"
-      width="100%" 
-      height="400"
-      style="border:0; border-radius:10px;">
-    </iframe>
-  </div>
-
-  <div id="listaTerritorio"></div>
-
-</div><!-- REEMPLAZÁ SOLO LA SECCIÓN TERRITORIO POR ESTA -->
 
 <div id="territorio" class="hidden">
 
@@ -456,7 +418,11 @@ async function cargarDashboard() {
     data.totalEdificios - data.visitados;
 }
   
-
+setTimeout(() => {
+  barAtendio.style.width = porcA + "%";
+  barNo.style.width = porcN + "%";
+}, 200);
+  
 function volverMenu() {
   document.querySelectorAll("body > div").forEach(d => {
     if (d.id !== "login") d.style.display = "none";
