@@ -109,6 +109,25 @@
     .pendiente { background: orange; color: white; }
     .resuelto { background: green; color: white; }
 
+    .barra {
+  width: 100%;
+  height: 8px;
+  background: #ddd;
+  border-radius: 5px;
+  margin: 5px 0;
+  overflow: hidden;
+}
+
+.barra div {
+  height: 100%;
+  background: #4CAF50;
+  width: 0%;
+}
+
+.barra.rojo div {
+  background: #f44336;
+}
+    
   </style>
 </head>
 
@@ -121,7 +140,45 @@
   <button class="primary" onclick="verificar()">Entrar</button>
   <button class="secondary" onclick="volver()">⬅ Volver</button>
 </div>
+  
+<div id="dashboard" style="margin-bottom:15px;">
 
+  <div class="grid">
+
+    <div class="card">
+      <b>🏢 Total edificios</b><br>
+      <span id="totalEdificios">-</span>
+    </div>
+
+    <div class="card">
+      <b>✅ Visitados</b><br>
+      <span id="visitados">-</span>
+    </div>
+
+    <div class="card">
+      <b>🚪 Atendió</b>
+      <div class="barra">
+        <div id="barAtendio"></div>
+      </div>
+      <span id="porcAtendio">-</span>
+    </div>
+
+    <div class="card">
+      <b>❌ No en casa</b>
+      <div class="barra rojo">
+        <div id="barNo"></div>
+      </div>
+      <span id="porcNo">-</span>
+    </div>
+
+    <div class="card full">
+      <b>🕳 No visitados</b><br>
+      <span id="noVisitados">-</span>
+    </div>
+
+  </div>
+
+</div>
 <!-- MENÚ -->
 <div id="menu" class="hidden">
 
