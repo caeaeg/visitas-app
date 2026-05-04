@@ -304,6 +304,27 @@ app.put("/issues/:id", async (req, res) => {
   res.send("Estado actualizado");
 });
 
+app.get("/stats", async (req, res) => {
+
+  const buildings = await Building.countDocuments();
+
+  const visits = await Visit.find();
+
+  let atendio = visits.filter(v => v.status === "ATENDIO").length;
+  let noCasa = visits.filter(v => v.status === "NO_EN_CASA").length;
+
+  const totalVisits = visits.length;
+
+  const visitados = await Visit.distinct("departmentId");
+
+  res.json({
+    totalEdificios: buildings,
+    totalVisitas: totalVisits,
+    atendio,
+    noCasa,
+    visitados: visitados.length
+  });
+});
 
 // 🔹 BUILDING INFO (clave UX)
 app.get("/building-info/:id", async (req, res) => {
