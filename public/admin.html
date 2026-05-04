@@ -251,6 +251,67 @@
 
   <div id="listaTerritorio"></div>
 
+</div><!-- REEMPLAZÁ SOLO LA SECCIÓN TERRITORIO POR ESTA -->
+
+<div id="territorio" class="hidden">
+
+  <button class="backBtn" onclick="volverMenu()">⬅</button>
+
+  <h2>Territorio</h2>
+
+  <!-- 📊 DASHBOARD -->
+  <div id="dashboard" style="margin-bottom:15px;">
+    <div class="grid">
+
+      <div class="card">
+        <b>🏢 Total edificios</b><br>
+        <span id="totalEdificios">-</span>
+      </div>
+
+      <div class="card">
+        <b>✅ Visitados</b><br>
+        <span id="visitados">-</span>
+      </div>
+
+      <div class="card">
+        <b>🚪 Atendió</b>
+        <div class="barra"><div id="barAtendio"></div></div>
+        <span id="porcAtendio">-</span>
+      </div>
+
+      <div class="card">
+        <b>❌ No en casa</b>
+        <div class="barra rojo"><div id="barNo"></div></div>
+        <span id="porcNo">-</span>
+      </div>
+
+      <div class="card full">
+        <b>🕳 No visitados</b><br>
+        <span id="noVisitados">-</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 🗺 MAPA -->
+  <div id="mapaContainer" style="margin-top:10px;">
+    <iframe 
+      src="https://www.google.com/maps/d/embed?mid=1lhh_CmzfSr-WrY3MbyNQ19sKgKBiGUU&ehbc=2E312F&noprof=1"
+      width="100%" 
+      height="400"
+      style="border:0; border-radius:10px;">
+    </iframe>
+  </div>
+
+  <!-- 🔎 BUSCADOR -->
+  <h3 style="margin-top:15px;">Buscar edificios</h3>
+
+  <input id="territorioInput" placeholder="Número de territorio">
+  <button class="primary" onclick="buscarTerritorio()">Buscar</button>
+
+  <!-- 📋 RESULTADOS -->
+  <div id="listaTerritorio"></div>
+
 </div>
 
 <!-- LISTADO -->
@@ -395,18 +456,6 @@ async function cargarDashboard() {
     data.totalEdificios - data.visitados;
 }
   
-// NAV
-function abrirSeccion(id) {
-  document.getElementById("menu").style.display = "none";
-
-  document.querySelectorAll("body > div").forEach(d => {
-    if (d.id !== "login" && d.id !== "menu") {
-      d.style.display = "none";
-    }
-  });
-
-  document.getElementById(id).style.display = "block";
-}
 
 function volverMenu() {
   document.querySelectorAll("body > div").forEach(d => {
