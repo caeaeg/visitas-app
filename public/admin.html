@@ -302,7 +302,8 @@
 
   <button class="backBtn" onclick="volverMenu()">⬅</button>
 
-  <h2>Editar edificio</h2>
+  <h2 id="tituloForm">Agregar / Editar edificio</h2>
+<p id="modoForm" class="mini"></p>
 
   <input id="buscarEdit" placeholder="Dirección o territorio">
   <button class="primary" onclick="buscarParaEditar()">Buscar</button>
@@ -313,7 +314,8 @@
 
     <h3>Datos del edificio</h3>
 
-    <input id="edit_address" placeholder="Dirección">
+    <input id="edit_address" placeholder="Dirección"
+oninput="this.value = this.value.replace(/[^a-zA-Z0-9 ]/g, '')">
     <input id="edit_address2" placeholder="Dirección 2">
     <input id="edit_name" placeholder="Nombre">
     <input id="edit_territory" placeholder="Territorio">
@@ -481,6 +483,13 @@ async function cargar() {
       Progreso: ${data.progreso}%
     </div>
   `;
+  html += `
+  ${building.description ? `
+    <div class="card">
+      📝 ${building.description}
+    </div>
+  ` : ""}
+`;
 
   // 🔹 detalle departamentos
   data.detalle.forEach(d => {
@@ -576,6 +585,7 @@ async function cargarEdificios() {
         <div class="small">
           🗺 ${b.territory || "-"}
         </div>
+        ${b.description ? `<div class="small">📝 ${b.description}</div>` : ""}
       </div>
     `;
   });
@@ -646,7 +656,7 @@ async function verEdificio(b) {
       ${b.address2 || ""}<br>
       ${b.name || ""}<br>
       🗺 Territorio: ${b.territory || "-"}<br><br>
-
+      ${b.description ? `📝 ${b.description}<br><br>` : ""}
       <button class="secondary" onclick='editarDesdeListado(${JSON.stringify(b)})'>
         ✏️ Editar
       </button>
@@ -689,7 +699,6 @@ async function verEdificio(b) {
   cont.innerHTML = html;
 }  
   
-// EDITAR
 async function buscarParaEditar() {
 
   const q = document.getElementById("buscarEdit").value.trim();
@@ -698,23 +707,51 @@ async function buscarParaEditar() {
   const cont = document.getElementById("resultadoEdit");
   cont.innerHTML = "Buscando...";
 
+  // 🔍 Buscar edificio exacto
   const b = await fetch(`/building/${encodeURIComponent(q)}`);
   const building = await b.json();
 
-  if (building._id) return mostrarFormulario(building);
+  // ✅ SI EXISTE → EDITAR
+  if (building._id) {
+    document.getElementById("modoForm").innerText = "✏️ Editando edificio";
+    cont.innerHTML = "";
+    return mostrarFormulario(building);
+  }
 
+  // 🔎 Buscar por territorio o coincidencias
   const res = await fetch(`/territory/${q}`);
   const lista = await res.json();
 
   cont.innerHTML = "";
 
-  lista.forEach(b => {
-    const div = document.createElement("div");
-    div.className = "card";
-    div.innerText = b.address;
-    div.onclick = () => mostrarFormulario(b);
-    cont.appendChild(div);
-  });
+  // 👉 SI HAY RESULTADOS → mostrar opciones
+  if (lista.length) {
+    document.getElementById("modoForm").innerText = "Seleccioná un edificio";
+
+    lista.forEach(b => {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerText = b.address;
+      div.onclick = () => mostrarFormulario(b);
+      cont.appendChild(div);
+    });
+
+  } else {
+    // ➕ SI NO HAY NADA → CREAR NUEVO
+    document.getElementById("modoForm").innerText = "➕ Nuevo edificio";
+    document.getElementById("formEdit").style.display = "block";
+
+    // limpiar formulario
+    document.getElementById("edit_address").value = q;
+    document.getElementById("edit_address2").value = "";
+    document.getElementById("edit_name").value = "";
+    document.getElementById("edit_territory").value = "";
+    document.getElementById("edit_floors").value = "";
+    document.getElementById("edit_units").value = "";
+    document.getElementById("edit_pb").checked = false;
+    document.getElementById("edit_portero").checked = false;
+    document.getElementById("edit_description").value = "";
+  }
 }
 
 function mostrarFormulario(b) {
@@ -728,11 +765,10 @@ function mostrarFormulario(b) {
   document.getElementById("edit_territory").value = b.territory || "";
   document.getElementById("edit_floors").value = b.floors || "";
   document.getElementById("edit_units").value = b.unitsPerFloor || "";
-
   document.getElementById("edit_pb").checked = b.hasGroundFloor || false;
   document.getElementById("edit_portero").checked = b.hasDoorman || false;
-
   document.getElementById("edit_description").value = b.description || "";
+  document.getElementById("modoForm").innerText = "✏️ Editando edificio";
 }
 
 async function guardarEdificio() {
@@ -765,12 +801,16 @@ async function guardarEdificio() {
     })
   });
 
-  msg.innerText = "✅ Guardado";
+  msg.innerText = "✅ Guardado correctamente";
 
-  setTimeout(() => {
-    cancelarEdicion();
-    msg.innerText = "";
-  }, 1200);
+setTimeout(() => {
+  cancelarEdicion();
+  msg.innerText = "";
+
+  // limpiar búsqueda
+  document.getElementById("buscarEdit").value = "";
+
+}, 5000);
 }
 
 function cancelarEdicion() {
