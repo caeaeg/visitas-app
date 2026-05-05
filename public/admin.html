@@ -873,33 +873,31 @@ async function cambiarEstado(id, estado) {
 
   window.addEventListener("load", () => {
 
-  const direccion = localStorage.getItem("crearEdificioDireccion");
+  const params = new URLSearchParams(window.location.search);
+  const direccion = params.get("crear");
 
   if (direccion) {
 
-    // limpiar para no repetir
-    localStorage.removeItem("crearEdificioDireccion");
+    // 🔥 OCULTAR LOGIN
+    document.getElementById("login").style.display = "none";
 
-    abrirSeccion("editar");
+    // 🔥 MOSTRAR DIRECTO LA SECCIÓN EDITAR
+    document.getElementById("menu").style.display = "none";
+    document.getElementById("editar").style.display = "block";
 
-    setTimeout(() => {
+    document.getElementById("modoForm").innerText = "➕ Nuevo edificio";
+    document.getElementById("formEdit").style.display = "block";
 
-      document.getElementById("modoForm").innerText = "➕ Nuevo edificio";
-      document.getElementById("formEdit").style.display = "block";
+    document.getElementById("edit_address").value = direccion;
 
-      document.getElementById("edit_address").value = direccion;
-
-      // limpiar resto
-      document.getElementById("edit_address2").value = "";
-      document.getElementById("edit_name").value = "";
-      document.getElementById("edit_territory").value = "";
-      document.getElementById("edit_floors").value = "";
-      document.getElementById("edit_units").value = "";
-      document.getElementById("edit_description").value = "";
-
-    }, 200);
+    return;
   }
+
 });
+  function volver() {
+  window.location.href = "/";
+}
+  
   function normalizarDireccion(dir) {
 
   return dir
