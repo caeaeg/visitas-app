@@ -318,10 +318,13 @@
 oninput="this.value = this.value.replace(/[^a-zA-Z0-9 ]/g, '')">
     <input id="edit_address2" placeholder="Dirección 2">
     <input id="edit_name" placeholder="Nombre">
-    <input id="edit_territory" placeholder="Territorio">
+    <input id="edit_territory" placeholder="Territorio"
+oninput="this.value = this.value.replace(/[^0-9]/g, '')">
 
-    <input id="edit_floors" type="number" placeholder="Pisos">
-    <input id="edit_units" type="number" placeholder="Deptos por piso">
+    <input id="edit_floors" type="number" placeholder="Pisos"
+      oninput="this.value = this.value.replace(/[^a-zA-Z0-9 ]/g, '')">
+    <input id="edit_units" type="number" placeholder="Deptos por piso"
+      oninput="this.value = this.value.replace(/[^a-zA-Z0-9 ]/g, '')">
 
     <label><input type="checkbox" id="edit_pb"> Planta baja</label>
     <label><input type="checkbox" id="edit_portero"> Portero</label>
@@ -866,6 +869,36 @@ async function cambiarEstado(id, estado) {
   cargarIssues();
 }
 
+  window.addEventListener("load", () => {
+
+  const direccion = localStorage.getItem("crearEdificioDireccion");
+
+  if (direccion) {
+
+    // limpiar para no repetir
+    localStorage.removeItem("crearEdificioDireccion");
+
+    abrirSeccion("editar");
+
+    setTimeout(() => {
+
+      document.getElementById("modoForm").innerText = "➕ Nuevo edificio";
+      document.getElementById("formEdit").style.display = "block";
+
+      document.getElementById("edit_address").value = direccion;
+
+      // limpiar resto
+      document.getElementById("edit_address2").value = "";
+      document.getElementById("edit_name").value = "";
+      document.getElementById("edit_territory").value = "";
+      document.getElementById("edit_floors").value = "";
+      document.getElementById("edit_units").value = "";
+      document.getElementById("edit_description").value = "";
+
+    }, 200);
+  }
+});
+  
 </script>
 
 </body>
