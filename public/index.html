@@ -125,7 +125,6 @@ onkeypress="if(event.key==='Enter') buscar()">
 <script>
 let currentDept = null;
 let currentBuildingId = null;
-
 function irAdmin() {
   window.location.href = "/admin.html";
 }
@@ -287,39 +286,19 @@ async function enviarReporte() {
 
 // ➕ CREAR EDIFICIO
 function crearEdificio() {
-  modalNuevo.style.display = "flex";
-  new_address.value = buildingId.value;
+
+  const direccion = buildingId.value.trim();
+
+  if (!direccion) return alert("Escribí una dirección primero");
+
+  // guardamos en localStorage para pasarlo al admin
+  localStorage.setItem("crearEdificioDireccion", direccion);
+
+  // redirigir al admin
+  window.location.href = "/admin.html#crear";
 }
 
-function cerrarNuevo() {
-  modalNuevo.style.display = "none";
-}
 
-async function guardarNuevoEdificio() {
-
-  const res = await fetch("/building", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({
-      address: new_address.value,
-      address2: new_address2.value,
-      name: new_name.value,
-      territory: new_territory.value,
-      floors: Number(new_floors.value),
-      unitsPerFloor: Number(new_units.value),
-      hasGroundFloor: new_pb.checked,
-      hasDoorman: new_portero.checked
-    })
-  });
-
-  const data = await res.json();
-
-  cerrarNuevo();
-
-  currentBuildingId = data.building._id;
-
-  await cargarDepto();
-}
 
 // 🧹 LIMPIAR
 function limpiarVista() {
@@ -351,26 +330,6 @@ function limpiarVista() {
   </div>
 </div>
 
-<!-- MODAL NUEVO -->
-<div id="modalNuevo" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);justify-content:center;align-items:center;">
-  <div style="background:white;padding:20px;border-radius:10px;width:90%;max-width:400px;">
-    <h3>➕ Nuevo edificio</h3>
-
-    <input id="new_address" placeholder="Dirección">
-    <input id="new_address2" placeholder="Dirección 2">
-    <input id="new_name" placeholder="Nombre">
-    <input id="new_territory" placeholder="Territorio">
-
-    <input id="new_floors" type="number" placeholder="Pisos">
-    <input id="new_units" type="number" placeholder="Deptos por piso">
-
-    <label><input type="checkbox" id="new_pb"> Planta baja</label>
-    <label><input type="checkbox" id="new_portero"> Portero</label>
-
-    <button onclick="guardarNuevoEdificio()" class="ok">Crear</button>
-    <button onclick="cerrarNuevo()" class="secondary">Cancelar</button>
-  </div>
-</div>
 
 </body>
 </html>
