@@ -286,16 +286,11 @@ async function enviarReporte() {
 
 // ➕ CREAR EDIFICIO
 function crearEdificio() {
+  const dir = buildingId.value.trim();
 
-  const direccion = buildingId.value.trim();
+  if (!dir) return;
 
-  if (!direccion) return alert("Escribí una dirección primero");
-
-  // guardamos en localStorage para pasarlo al admin
-  localStorage.setItem("crearEdificioDireccion", direccion);
-
-  // redirigir al admin
-  window.location.href = "/admin.html#crear";
+  window.location.href = `/admin.html?crear=${encodeURIComponent(dir)}`;
 }
 
 function normalizarDireccion(dir) {
