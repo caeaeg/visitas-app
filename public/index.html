@@ -134,7 +134,7 @@ async function buscar() {
 
   limpiarVista();
 
-  const input = buildingId.value.trim();
+  const input = normalizarDireccion(buildingId.value);
   if (!input) return;
 
   mensajeInicial.style.display = "none";
@@ -298,7 +298,27 @@ function crearEdificio() {
   window.location.href = "/admin.html#crear";
 }
 
+function normalizarDireccion(dir) {
 
+  return dir
+    .toLowerCase()
+
+    // quitar tildes
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+
+    // reemplazos comunes
+    .replace(/\bav\b|\bav\.\b/g, "avenida")
+    .replace(/\bgral\b/g, "general")
+    .replace(/\bdr\b|\bdr\.\b/g, "doctor")
+
+    // eliminar símbolos
+    .replace(/[^a-z0-9 ]/g, "")
+
+    // espacios dobles
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 // 🧹 LIMPIAR
 function limpiarVista() {
