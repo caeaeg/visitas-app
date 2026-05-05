@@ -369,7 +369,7 @@ oninput="this.value = this.value.replace(/[^0-9]/g, '')">
 const CLAVE = "2414";
 let ordenActual = "";
 let buildingEditId = null;
-
+let modoSoloCrear = false;
 // LOGIN
 function verificar() {
   const input = document.getElementById("clave").value;
@@ -429,6 +429,12 @@ setTimeout(() => {
 }, 200);
   
 function volverMenu() {
+
+  if (modoSoloCrear) {
+    window.location.href = "/";
+    return;
+  }
+
   document.querySelectorAll("body > div").forEach(d => {
     if (d.id !== "login") d.style.display = "none";
   });
@@ -878,11 +884,13 @@ async function cambiarEstado(id, estado) {
 
   if (direccion) {
 
-    // 🔥 OCULTAR LOGIN
-    document.getElementById("login").style.display = "none";
+    modoSoloCrear = true;
 
-    // 🔥 MOSTRAR DIRECTO LA SECCIÓN EDITAR
+    // ocultar todo
+    document.getElementById("login").style.display = "none";
     document.getElementById("menu").style.display = "none";
+
+    // mostrar solo editar
     document.getElementById("editar").style.display = "block";
 
     document.getElementById("modoForm").innerText = "➕ Nuevo edificio";
@@ -894,8 +902,34 @@ async function cambiarEstado(id, estado) {
   }
 
 });
+  
   function volver() {
+
+  if (modoSoloCrear) {
+    window.location.href = "/";
+    return;
+  }
+
   window.location.href = "/";
+}
+  
+function abrirSeccion(id) {
+
+  if (modoSoloCrear) return; // 🚫 bloqueo total
+
+  document.getElementById("menu").style.display = "none";
+
+  document.querySelectorAll("body > div").forEach(d => {
+    if (d.id !== "login" && d.id !== "menu") {
+      d.style.display = "none";
+    }
+  });
+
+  document.getElementById(id).style.display = "block";
+
+  if (id === "territorio") {
+    cargarDashboard();
+  }
 }
   
   function normalizarDireccion(dir) {
