@@ -778,7 +778,9 @@ async function guardarEdificio() {
 
   const msg = document.getElementById("msgEdit");
 
-  const address = document.getElementById("edit_address").value.trim();
+  const address = normalizarDireccion(
+  document.getElementById("edit_address").value
+);
   const floors = Number(document.getElementById("edit_floors").value);
   const units = Number(document.getElementById("edit_units").value);
 
@@ -898,7 +900,27 @@ async function cambiarEstado(id, estado) {
     }, 200);
   }
 });
-  
+  function normalizarDireccion(dir) {
+
+  return dir
+    .toLowerCase()
+
+    // quitar tildes
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+
+    // reemplazos comunes
+    .replace(/\bav\b|\bav\.\b/g, "avenida")
+    .replace(/\bgral\b/g, "general")
+    .replace(/\bdr\b|\bdr\.\b/g, "doctor")
+
+    // eliminar símbolos
+    .replace(/[^a-z0-9 ]/g, "")
+
+    // espacios dobles
+    .replace(/\s+/g, " ")
+    .trim();
+}
 </script>
 
 </body>
