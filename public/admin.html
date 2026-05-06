@@ -796,21 +796,33 @@ async function guardarEdificio() {
 
   msg.innerText = "Guardando...";
 
-  await fetch(`/building/${buildingEditId}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      address,
-      address2: document.getElementById("edit_address2").value,
-      name: document.getElementById("edit_name").value,
-      territory: document.getElementById("edit_territory").value,
-      floors,
-      unitsPerFloor: units,
-      hasGroundFloor: document.getElementById("edit_pb").checked,
-      hasDoorman: document.getElementById("edit_portero").checked,
-      description: document.getElementById("edit_description").value
-    })
-  });
+  const url = buildingEditId ? `/building/${buildingEditId}` : `/building`;
+const method = buildingEditId ? "PUT" : "POST";
+
+const res = await fetch(url, {
+  method,
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    address,
+    address2: document.getElementById("edit_address2").value,
+    name: document.getElementById("edit_name").value,
+    territory: document.getElementById("edit_territory").value,
+    floors,
+    unitsPerFloor: units,
+    hasGroundFloor: document.getElementById("edit_pb").checked,
+    hasDoorman: document.getElementById("edit_portero").checked,
+    description: document.getElementById("edit_description").value
+  })
+});
+
+const data = await res.json();
+  if (modoSoloCrear) {
+
+  const id = data.building?._id || buildingEditId;
+
+  window.location.href = `/?building=${id}`;
+  return;
+}
 
   msg.innerText = "✅ Guardado correctamente";
 
