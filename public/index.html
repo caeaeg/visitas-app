@@ -328,6 +328,22 @@ function limpiarVista() {
   btnNuevoEdificio.style.display = "none";
   reportBtn.style.display = "none";
 }
+
+  window.addEventListener("load", async () => {
+
+  const params = new URLSearchParams(window.location.search);
+  const buildingIdParam = params.get("building");
+
+  if (buildingIdParam) {
+
+    currentBuildingId = buildingIdParam;
+
+    mensajeInicial.style.display = "none";
+
+    await cargarDepto();
+  }
+
+});
 </script>
 
 <!-- MODAL REPORTE -->
