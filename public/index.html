@@ -7,7 +7,7 @@
   <style>
     body {
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 18px;
+  font-size: 19px;
   line-height: 1.5;
   padding: 15px;
   padding-top: 70px;
@@ -119,7 +119,15 @@ body.dark #adminBtn {
   color: white;
   box-shadow: 0 4px 12px rgba(0,0,0,0.45);
 }
+#modalReporte .modalContent {
+  background: white;
+  color: black;
+}
 
+body.dark #modalReporte .modalContent {
+  background: #1f1f1f;
+  color: white;
+}
     #reportBtn {
       position: fixed;
       bottom: 20px;
@@ -202,6 +210,13 @@ body.dark #adminBtn {
 
 .darkToggle:active {
   transform: translateX(-50%) scale(0.98);
+}
+    button {
+  transition: all 0.2s ease;
+}
+
+button:active {
+  transform: scale(0.97);
 }
   </style>
 </head>
@@ -368,6 +383,8 @@ async function mostrarInfoEdificio() {
 async function marcar(status) {
 
   if (!currentDept) return;
+  btnOk.disabled = true;
+btnNo.disabled = true;
 
   await fetch("/visit", {
     method:"POST",
@@ -458,21 +475,7 @@ function limpiarVista() {
   reportBtn.style.display = "none";
 }
 
-  window.addEventListener("load", async () => {
-
-  const params = new URLSearchParams(window.location.search);
-  const buildingIdParam = params.get("building");
-
-  if (buildingIdParam) {
-
-    currentBuildingId = buildingIdParam;
-
-    mensajeInicial.style.display = "none";
-
-    await cargarDepto();
-  }
-
-});
+  
 
  function toggleDark() {
 
@@ -494,27 +497,39 @@ function limpiarVista() {
   }
 }
 
-window.addEventListener("load", () => {
+window.addEventListener("load", async () => {
 
+  // 🌙 modo oscuro
   const modo = localStorage.getItem("modo");
   const btn = document.querySelector(".darkToggle");
 
   if (modo === "dark") {
-
     document.body.classList.add("dark");
-
     btn.innerHTML = "☀️ Modo claro";
-
   } else {
-
     btn.innerHTML = "🌙 Modo oscuro";
   }
+
+  // 🔗 abrir edificio desde URL
+  const params = new URLSearchParams(window.location.search);
+  const buildingIdParam = params.get("building");
+
+  if (buildingIdParam) {
+
+    currentBuildingId = buildingIdParam;
+
+    mensajeInicial.style.display = "none";
+
+    await cargarDepto();
+  }
+
 });
+  
 </script>
 
 <!-- MODAL REPORTE -->
 <div id="modalReporte" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);justify-content:center;align-items:center;">
-  <div style="background:white;padding:20px;border-radius:10px;width:90%;max-width:400px;">
+  <div class="modalContent" style="padding:20px;border-radius:10px;width:90%;max-width:400px;">
     <h3>⚠ Reportar problema</h3>
     <select id="tipoProblema">
       <option value="ERROR_DATO">Dato incorrecto</option>
