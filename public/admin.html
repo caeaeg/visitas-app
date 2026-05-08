@@ -451,7 +451,12 @@ function editarActual() {
     mostrarFormulario(currentBuildingHist);
   }, 100);
 }  
-
+function editarDesdeListado(b) {
+  abrirSeccion("editar");
+  setTimeout(() => {
+    mostrarFormulario(b);
+  }, 100);
+}
   //DASHBOARD
 async function cargarDashboard() {
 
@@ -485,13 +490,16 @@ function volverMenu() {
     return;
   }
 
-  document.querySelectorAll("body > div").forEach(d => {
-    if (d.id !== "login") d.style.display = "none";
+  // ocultar todas las secciones
+  document.querySelectorAll(
+    "#historial, #territorio, #lista, #editar, #problemas, #detalleEdificio"
+  ).forEach(d => {
+    d.style.display = "none";
   });
 
+  // mostrar menú
   document.getElementById("menu").style.display = "block";
 }
-
 // HISTORIAL
 let currentBuildingHist = null;
 
@@ -664,12 +672,7 @@ function cambiarPagina(dir) {
   cargarEdificios();
 }
 
-listaEdificios.innerHTML = `
-  <div style="text-align:center; padding:20px;">
-    ⏳ Cargando edificios...<br>
-    <small>Esto puede tardar unos segundos</small>
-  </div>
-`;
+
   
 function ordenar(v) {
   ordenActual = v;
@@ -962,16 +965,18 @@ async function cambiarEstado(id, estado) {
   
 function abrirSeccion(id) {
 
-  if (modoSoloCrear) return; // 🚫 bloqueo total
+  if (modoSoloCrear) return;
 
   document.getElementById("menu").style.display = "none";
 
-  document.querySelectorAll("body > div").forEach(d => {
-    if (d.id !== "login" && d.id !== "menu") {
-      d.style.display = "none";
-    }
+  // ocultar secciones
+  document.querySelectorAll(
+    "#historial, #territorio, #lista, #editar, #problemas, #detalleEdificio"
+  ).forEach(d => {
+    d.style.display = "none";
   });
 
+  // mostrar sección elegida
   document.getElementById(id).style.display = "block";
 
   if (id === "territorio") {
