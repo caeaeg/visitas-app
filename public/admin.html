@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
-    <button onclick="toggleDark()">🌙</button>
+   
     body {
       font-family: Arial;
       padding: 15px;
@@ -191,8 +191,23 @@ body.dark .barra {
 </head>
 
 <body>
+  <button onclick="toggleDark()" 
+style="
+position:fixed;
+top:15px;
+right:15px;
+width:50px;
+height:50px;
+border-radius:50%;
+z-index:999;
+background:#222;
+color:white;
+font-size:20px;
+">
+🌙
+</button>
 <div class="container">
-  <div class="container">
+
   <div class="card-container">
     
 <!-- LOGIN -->
@@ -425,9 +440,6 @@ function verificar() {
 let paginaActual = 1;
 let totalPaginas = 1;
   
-function volver() {
-  window.location.href = "/";
-}
 
 function editarActual() {
 
@@ -464,10 +476,7 @@ async function cargarDashboard() {
     data.totalEdificios - data.visitados;
 }
   
-setTimeout(() => {
-  barAtendio.style.width = porcA + "%";
-  barNo.style.width = porcN + "%";
-}, 200);
+
   
 function volverMenu() {
 
@@ -587,22 +596,7 @@ async function buscarTerritorio() {
 
   document.getElementById("listaTerritorio").innerHTML = html;
 }
-function abrirSeccion(id) {
 
-  document.getElementById("menu").style.display = "none";
-
-  document.querySelectorAll("body > div").forEach(d => {
-    if (d.id !== "login" && d.id !== "menu") {
-      d.style.display = "none";
-    }
-  });
-
-  document.getElementById(id).style.display = "block";
-
-  if (id === "territorio") {
-    cargarDashboard(); // 👈 magia acá
-  }
-}
 // LISTADO
 async function cargarEdificios() {
 
