@@ -75,12 +75,50 @@ body.dark .barra {
     .secondary { background:#555; color:white; width:100%; }
 
     #adminBtn {
-      position:absolute;
-      top:15px;
-      right:15px;
-      background:none;
-      font-size:20px;
-    }
+
+  position: fixed;
+
+  top: 12px;
+  right: 15px;
+
+  width: 48px;
+  height: 48px;
+
+  border: none;
+  border-radius: 14px;
+
+  background: white;
+  color: #222;
+
+  font-size: 22px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+
+  z-index: 999;
+
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+
+  transition: all 0.2s ease;
+}
+
+#adminBtn:hover {
+  transform: scale(1.05);
+}
+
+#adminBtn:active {
+  transform: scale(0.96);
+}
+
+/* 🌙 modo oscuro */
+body.dark #adminBtn {
+  background: #1f1f1f;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+}
 
     #reportBtn {
       position: fixed;
@@ -177,7 +215,9 @@ body.dark .barra {
   <div class="card-container">
   
 <button id="reportBtn" onclick="abrirReporte()">🚨</button>
-<button id="adminBtn" onclick="irAdmin()">🔒</button>
+<button id="adminBtn" onclick="irAdmin()" aria-label="Administrador">
+  🔒
+</button>
 
 <h2>📍 Visitas</h2>
 
