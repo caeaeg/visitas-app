@@ -3,56 +3,16 @@
 <head>
   <title>Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<button onclick="toggleDark()">🌙</button>
+
   <style>
+    <button onclick="toggleDark()">🌙</button>
     body {
       font-family: Arial;
       padding: 15px;
       background: #fafafa;
     }
-    .container {
-  max-width: 500px;
-  margin: auto;
-  padding: 10px;
-}
-<div class="container">
-  <div class="card-container">
-    h2 {
-      text-align: center;
-    }
-body.dark {
-  background: #121212;
-  color: #e0e0e0;
-}
-
-body.dark .card-container {
-  background: #1e1e1e;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-}
-
-body.dark input,
-body.dark textarea,
-body.dark select {
-  background: #2a2a2a;
-  color: white;
-  border: 1px solid #444;
-}
-
-body.dark button.primary {
-  background: #3b82f6;
-}
-
-body.dark button.secondary {
-  background: #444;
-}
-body.dark .card {
-  background: #1f1f1f;
-  color: #e0e0e0;
-}
-body.dark .barra {
-  background: #333;
-}    
     
+   
     input, button, select, textarea {
       width: 100%;
       padding: 12px;
@@ -144,6 +104,44 @@ body.dark .barra {
       margin-top: 5px;
     }
 
+    .container {
+  max-width: 500px;
+  margin: auto;
+  padding: 10px;
+}
+    
+body.dark {
+  background: #121212;
+  color: #e0e0e0;
+}
+
+body.dark .card-container {
+  background: #1e1e1e;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+body.dark input,
+body.dark textarea,
+body.dark select {
+  background: #2a2a2a;
+  color: white;
+  border: 1px solid #444;
+}
+
+body.dark button.primary {
+  background: #3b82f6;
+}
+
+body.dark button.secondary {
+  background: #444;
+}
+body.dark .card {
+  background: #1f1f1f;
+  color: #e0e0e0;
+}
+body.dark .barra {
+  background: #333;
+}    
     .pendiente { background: orange; color: white; }
     .resuelto { background: green; color: white; }
 
@@ -192,7 +190,11 @@ body.dark .barra {
 
 <body>
 <div class="container">
-  
+  <div class="container">
+  <div class="card-container">
+    h2 {
+      text-align: center;
+    }
 <!-- LOGIN -->
 <div id="login">
   <h2>🔒 Acceso Administrador</h2>
