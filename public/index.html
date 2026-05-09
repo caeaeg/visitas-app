@@ -442,10 +442,13 @@ async function enviarReporte() {
 }
 // ➕ CREAR EDIFICIO
 function crearEdificio() {
-  const dir = buildingId.value.trim();
-  if (!dir) return;
-  window.location.href =
-    `/admin.html?crear=${encodeURIComponent(dir)}`;
+  if (
+    !tienePermiso(["admin", "conductor"])
+  ) {
+    alert("No tenés permisos");
+    return;
+  }
+  abrirEditorEdificio();
 }
 // 🧹 NORMALIZAR
 function normalizarDireccion(dir) {
@@ -637,6 +640,140 @@ async function verProblemas() {
     `;
   });
   adminContenido.innerHTML = html;
+}
+function abrirEditorEdificio(building = null) {
+
+  panelAdmin.style.display = "block";
+
+  let html = `
+    <div class="card-container">
+
+      <h3>
+        ${building ? "✏ Editar edificio" : "➕ Nuevo edificio"}
+      </h3>
+
+      <input
+        id="edit_address"
+        placeholder="Dirección"
+        value="${building?.address || buildingId.value || ""}"
+      >
+
+      <input
+        id="edit_address2"
+        placeholder="Dirección 2"
+        value="${building?.address2 || ""}"
+      >
+
+      <input
+        id="edit_name"
+        placeholder="Nombre"
+        value="${building?.name || ""}"
+      >
+
+      <input
+        id="edit_territory"
+        placeholder="Territorio"
+        value="${building?.territory || ""}"
+      >
+
+      <input
+        id="edit_floors"
+        type="number"
+        placeholder="Pisos"
+        value="${building?.floors || ""}"
+      >
+
+      <input
+        id="edit_units"
+        type="number"
+        placeholder="Deptos por piso"
+        value="${building?.unitsPerFloor || ""}"
+      >
+
+      <label>
+        <input
+          type="checkbox"
+          id="edit_pb"
+          ${building?.hasGroundFloor ? "checked" : ""}
+        >
+        Planta baja
+      </label>
+
+      <label>
+        <input
+          type="checkbox"
+          id="edit_portero"
+          ${building?.hasDoorman ? "checked" : ""}
+        >
+        Portero
+      </label>
+
+      <textarea
+        id="edit_description"
+        placeholder="Descripción"
+      >${building?.description || ""}</textarea>
+
+      <button
+        class="ok"
+        onclick='${
+          building
+            ? `guardarEdificio("${building._id}")`
+            : `guardarEdificio()`
+        }'
+      >
+        💾 Guardar
+      </button>
+
+    </div>
+  `;
+
+  adminContenido.innerHTML = html;
+}
+
+async function guardarEdificio(id = null) {
+
+  const address =
+    normalizarDireccion(
+      edit_address.value
+    );
+
+  const payload = {
+    address,
+    address2: edit_address2.value,
+    name: edit_name.value,
+    territory: edit_territory.value,
+    floors: Number(edit_floors.value),
+    unitsPerFloor: Number(edit_units.value),
+    hasGroundFloor: edit_pb.checked,
+    hasDoorman: edit_portero.checked,
+    description: edit_description.value
+  };
+
+  const res = await apiFetch(
+    id ? `/building/${id}` : "/building",
+    {
+      method: id ? "PUT" : "POST",
+      body: JSON.stringify(payload)
+    }
+  );
+
+  const data = await res.json();
+
+  if (data.error) {
+
+    alert(data.error);
+
+    return;
+  }
+
+  alert("Guardado correctamente");
+
+  if (data.building?._id) {
+
+    currentBuildingId = data.building._id;
+
+    await cargarDepto();
+  }
 }
   </script>
     
