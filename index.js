@@ -8,6 +8,7 @@ const express = require("express");
 const {
   auth,
   requireRole
+  requireLogin
 } = require("./auth");
 
 const mongoose = require("mongoose");
