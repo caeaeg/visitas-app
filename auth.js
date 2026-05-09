@@ -1,3 +1,46 @@
+const USERS = [
+  {
+    username: "admin",
+    password: "2414",
+    role: "admin"
+  },
+  {
+    username: "predi",
+    password: "1234",
+    role: "predi"
+  },
+  {
+    username: "conductor",
+    password: "2414",
+    role: "conductor"
+  }
+];
+
+// 🔐 LOGIN
+function auth(req, res) {
+
+  const { username, password } = req.body;
+
+  const user = USERS.find(u =>
+    u.username === username &&
+    u.password === password
+  );
+
+  if (!user) {
+
+    return res.json({
+      ok: false
+    });
+  }
+
+  res.json({
+    ok: true,
+    username: user.username,
+    role: user.role
+  });
+}
+
+// 🔒 LOGIN REQUERIDO
 function requireLogin(req, res, next) {
 
   const username = req.headers["x-user"];
@@ -18,6 +61,7 @@ function requireLogin(req, res, next) {
   next();
 }
 
+// 🛡 PERMISOS
 function requireRole(roles) {
 
   return (req, res, next) => {
@@ -36,6 +80,7 @@ function requireRole(roles) {
 }
 
 module.exports = {
+  auth,
   requireLogin,
   requireRole
 };
