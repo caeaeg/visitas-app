@@ -661,7 +661,13 @@ function iniciarApp() {
   
  console.log("Sesión iniciada");
 }
-  
+  function logout() {
+
+  localStorage.removeItem("user");
+  localStorage.removeItem("role");
+
+  location.reload();
+}
   function aplicarPermisos() {
   // ADMIN
   if (tienePermiso(["admin"])) {
