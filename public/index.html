@@ -260,43 +260,31 @@
     
 </style>
 </head>
-
 <body>
 <!-- LOGIN -->
 <div id="loginScreen">
-
   <div class="loginCard">
-
     <h2>🔐 Acceso</h2>
-
     <input
       id="loginUser"
       placeholder="Usuario"
       autocomplete="username"
     >
-
     <input
       id="loginPass"
       type="password"
       placeholder="Contraseña"
       autocomplete="current-password"
     >
-
     <button class="buscar" onclick="login()">
       Ingresar
     </button>
-
     <p id="loginMsg"></p>
-
   </div>
-
 </div>
 <div class="container" id="appContainer" style="display:none;">
   <div class="card-container">
-
 <button id="reportBtn" onclick="abrirReporte()">🚨</button>
-
-
 <h2>📍 Visitas</h2>
 <button
   class="secondary"
@@ -309,31 +297,23 @@
   placeholder="Código o dirección"
   onkeypress="if(event.key==='Enter') buscar()"
 >
-
 <div class="link" onclick="buscarPorTerritorio()">
   Buscar por territorio
 </div>
-
 <p id="mensajeInicial">
   Ingresá una dirección para comenzar
 </p>
-
 <button class="buscar" onclick="buscar()">
   Buscar
 </button>
-
 <div id="infoEdificio"></div>
-
 <div id="listaTerritorio"></div>
-
 <h3 id="resultado"></h3>
-
 <textarea
   id="nota"
   placeholder="Nota..."
   style="display:none;"
 ></textarea>
-
 <button
   id="btnOk"
   class="ok"
@@ -342,7 +322,6 @@
 >
   ✔ ATENDIÓ
 </button>
-
 <button
   id="btnNo"
   class="no"
@@ -351,7 +330,6 @@
 >
   ✖ NO EN CASA
 </button>
-
 <button
   id="btnSiguiente"
   class="secondary"
@@ -360,7 +338,6 @@
 >
 ➡ Siguiente departamento
 </button>
-
 <button
   id="btnNuevoEdificio"
   class="secondary"
@@ -369,9 +346,7 @@
 >
 ➕ Agregar edificio
 </button>
-
 <script>
-
 let currentDept = null;
 let currentUser = null;
 let currentRole = null;
@@ -411,7 +386,7 @@ async function buscar() {
   const input = normalizarDireccion(buildingId.value);
   if (!input) return;
   mensajeInicial.style.display = "none";
-  const b = await fetch(`/building/${encodeURIComponent(input)}`);
+  const b = await apiFetch(`/building/${encodeURIComponent(input)}`);
   const building = await b.json();
   if (!building._id) {
     resultado.innerText = "Edificio no encontrado";
@@ -424,114 +399,77 @@ async function buscar() {
 
 // 🗺 TERRITORIO
 async function buscarPorTerritorio() {
-
   limpiarVista();
-
   const territorio = prompt("Número de territorio:");
-
   if (!territorio) return;
-
-  const res = await fetch(`/territory/${territorio}`);
+  const res = await apiFetch(`/territory/${territorio}`);
   const data = await res.json();
-
   if (!data.length) {
-
     listaTerritorio.innerHTML = "No hay edificios";
-
     return;
   }
-
   data.forEach(b => {
-
     const btn = document.createElement("button");
-
     btn.innerText = b.address;
-
     btn.onclick = () => {
-
       currentBuildingId = b._id;
-
       cargarDepto();
     };
-
     listaTerritorio.appendChild(btn);
   });
 }
 
 // 🏢 CARGAR DEPTO
 async function cargarDepto() {
-
-  const res = await fetch(`/next/${currentBuildingId}`);
+  const res = await apiFetch(`/next/${currentBuildingId}`);
   const data = await res.json();
-
   if (data.message === "NO_AVAILABLE") {
-
     resultado.innerText = "No hay departamentos disponibles";
-
     return;
   }
-
   currentDept = data.dept;
-
   resultado.innerText = "Depto: " + data.dept.number;
-
   nota.style.display = "block";
   btnOk.style.display = "block";
   btnNo.style.display = "block";
   reportBtn.style.display = "block";
-
   btnOk.disabled = false;
   btnNo.disabled = false;
-
   await mostrarInfoEdificio();
 }
-
 // 🧾 INFO EDIFICIO
 async function mostrarInfoEdificio() {
-
-  const res = await fetch(`/building-info/${currentBuildingId}`);
+  const res = await apiFetch(`/building-info/${currentBuildingId}`);
   const data = await res.json();
-
   infoEdificio.style.display = "block";
-
   infoEdificio.innerHTML = `
     <b>${data.building.address}</b><br>
     ${data.building.address2 || ""}<br>
     ${data.building.name || ""}<br>
-
     🕒 Última visita:
     ${
       data.lastVisit
         ? new Date(data.lastVisit.date).toLocaleDateString()
         : "Nunca"
     }<br>
-
     ${
       data.issue
         ? `⚠ ${data.issue.description || data.issue.type}`
         : ""
     }
   `;
-
   if (data.issue) {
-
     reportBtn.classList.add("alerta");
-
   } else {
-
     reportBtn.classList.remove("alerta");
   }
 }
-
 // ✔ MARCAR
 async function marcar(status) {
-
   if (!currentDept) return;
-
   btnOk.disabled = true;
   btnNo.disabled = true;
-
-  await fetch("/visit", {
+  await apiFetch("/visit", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
@@ -540,30 +478,22 @@ async function marcar(status) {
       note: nota.value
     })
   });
-
   btnSiguiente.style.display = "block";
 }
-
 // ➡ SIGUIENTE
 async function siguiente() {
-
   nota.value = "";
-
   await cargarDepto();
 }
-
 // ⚠ REPORTES
 function abrirReporte() {
   modalReporte.style.display = "flex";
 }
-
 function cerrarReporte() {
   modalReporte.style.display = "none";
 }
-
 async function enviarReporte() {
-
-  await fetch("/issues", {
+  await apiFetch("/issues", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
@@ -573,40 +503,28 @@ async function enviarReporte() {
       description: descProblema.value
     })
   });
-
   cerrarReporte();
 }
-
 // ➕ CREAR EDIFICIO
 function crearEdificio() {
-
   const dir = buildingId.value.trim();
-
   if (!dir) return;
-
   window.location.href =
     `/admin.html?crear=${encodeURIComponent(dir)}`;
 }
-
 // 🧹 NORMALIZAR
 function normalizarDireccion(dir) {
-
   return dir
     .toLowerCase()
-
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-
     .replace(/\bav\b|\bav\.\b/g, "avenida")
     .replace(/\bgral\b/g, "general")
     .replace(/\bdr\b|\bdr\.\b/g, "doctor")
-
     .replace(/[^a-z0-9 ]/g, "")
-
     .replace(/\s+/g, " ")
     .trim();
 }
-
 // 🧹 LIMPIAR
 function limpiarVista() {
   listaTerritorio.innerHTML = "";
@@ -619,21 +537,14 @@ function limpiarVista() {
   btnNuevoEdificio.style.display = "none";
   reportBtn.style.display = "none";
 }
-
 async function login() {
-
   const username = loginUser.value.trim();
   const password = loginPass.value.trim();
-
   loginMsg.innerText = "";
-
   if (!username || !password) {
-
     loginMsg.innerText = "Completá usuario y contraseña";
-
     return;
   }
-
   const res = await fetch("/login", {
     method: "POST",
     headers: {
@@ -644,89 +555,62 @@ async function login() {
       password
     })
   });
-
   const data = await res.json();
-
   if (!data.ok) {
-
     loginMsg.innerText = "Usuario o contraseña incorrectos";
-
     return;
   }
-
   currentUser = data.username;
   currentRole = data.role;
   localStorage.setItem("user", data.username);
   localStorage.setItem("role", data.role);
-
   iniciarApp();
 }
-
 function iniciarApp() {
-
   loginScreen.style.display = "none";
-
   appContainer.style.display = "block";
-
   console.log("Usuario:", currentUser);
   console.log("Rol:", currentRole);
   aplicarPermisos();
-  
- console.log("Sesión iniciada");
+   console.log("Sesión iniciada");
 }
   function logout() {
-
   localStorage.removeItem("user");
   localStorage.removeItem("role");
-
   location.reload();
 }
   function aplicarPermisos() {
   // ADMIN
   if (tienePermiso(["admin"])) {
-
     console.log("Modo admin");
   }
   // CONDUCTOR
   if (tienePermiso(["conductor"])) {
-
     console.log("Modo conductor");
   }
   // PREDI
   if (tienePermiso(["predi"])) {
-
     console.log("Modo predi");
   }
 }
 window.addEventListener("load", async () => {
-
   const savedUser = localStorage.getItem("user");
   const savedRole = localStorage.getItem("role");
-
   if (savedUser && savedRole) {
-
     currentUser = savedUser;
     currentRole = savedRole;
-
     iniciarApp();
   }
-
   // 🔗 abrir edificio desde URL
   const params = new URLSearchParams(window.location.search);
   const buildingIdParam = params.get("building");
-
   if (buildingIdParam) {
-
     currentBuildingId = buildingIdParam;
-
     mensajeInicial.style.display = "none";
-
     await cargarDepto();
   }
-
 });
-  
-</script>
+  </script>
 
 <!-- MODAL REPORTE -->
 <div
