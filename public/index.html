@@ -3,49 +3,40 @@
 <head>
   <title>Visitas</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <style>
     * {
       box-sizing: border-box;
     }
-
     input, button, select, textarea {
       box-sizing: border-box;
     }
-
     body {
       font-family: Arial, Helvetica, sans-serif;
       font-size: 19px;
       line-height: 1.5;
       letter-spacing: 0.3px;
-
       padding: 15px;
       padding-top: 30px;
-
       background: #121212;
       color: #e0e0e0;
     }
-
     h2 {
       text-align: center;
       font-size: 28px;
       margin-bottom: 20px;
       color: white;
     }
-
     .container {
       max-width: 500px;
       margin: auto;
       padding: 10px;
     }
-
     .card-container {
       background: #1e1e1e;
       border-radius: 18px;
       padding: 15px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.45);
     }
-
     input,
     button,
     select,
@@ -53,114 +44,83 @@
       width: 100%;
       padding: 16px;
       margin: 10px 0;
-
       font-size: 18px;
       border-radius: 12px;
-
       background: #2a2a2a;
       color: white;
       border: 1px solid #444;
     }
-
     input::placeholder,
     textarea::placeholder {
       color: #bdbdbd;
     }
-
     .buscar {
       background: #2196F3;
       color: white;
       width: 100%;
     }
-
     .ok {
       background: #4CAF50;
       color: white;
       width: 100%;
     }
-
     .no {
       background: #f44336;
       color: white;
       width: 100%;
     }
-
     .secondary {
       background: #555;
       color: white;
       width: 100%;
     }
-
     #adminBtn {
-
       position: fixed;
-
       top: 12px;
       right: 15px;
-
       width: 48px;
       height: 48px;
-
       border: none;
       border-radius: 14px;
-
       background: #1f1f1f;
       color: white;
-
       font-size: 22px;
-
       display: flex;
       align-items: center;
       justify-content: center;
-
       cursor: pointer;
-
       z-index: 999;
-
       box-shadow: 0 4px 12px rgba(0,0,0,0.45);
-
       transition: all 0.2s ease;
     }
-
     #adminBtn:hover {
       transform: scale(1.05);
     }
-
     #adminBtn:active {
       transform: scale(0.96);
     }
-
     #modalReporte .modalContent {
       background: #1f1f1f;
       color: white;
     }
-
     #reportBtn {
       position: fixed;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-
       background: #ff9800;
       color: white;
-
       width: 60px;
       height: 60px;
-
       border-radius: 50%;
       font-size: 22px;
-
       display: none;
-
       box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-
       transition: 0.3s;
     }
-
     .alerta {
       background: #f44336 !important;
     }
-
     #infoEdificio {
       background: #1f1f1f;
       padding: 10px;
@@ -170,94 +130,62 @@
       font-size: 14px;
       border: 1px solid #333;
     }
-
     #listaTerritorio button {
       width: 100%;
       text-align: left;
-
       background: #1f1f1f;
-
       margin: 5px 0;
-
       border: 1px solid #333;
     }
-
     .link {
       color: #64b5ff;
       cursor: pointer;
       text-decoration: underline;
       font-size: 15px;
     }
-
     button {
       min-height: 55px;
       font-weight: bold;
       transition: all 0.2s ease;
       border: none;
     }
-
     button:active {
       transform: scale(0.97);
     }
 #loginScreen {
-
   position: fixed;
   inset: 0;
-
   background: #121212;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   z-index: 9999;
 }
-
 .loginCard {
-
   width: 100%;
   max-width: 400px;
-
   background: #1e1e1e;
-
   padding: 28px;
-
   border-radius: 22px;
-
   box-shadow: 0 10px 40px rgba(0,0,0,0.45);
 }
-
 .loginCard h2 {
-
   text-align: center;
-
   margin-bottom: 20px;
-
   color: white;
-
   font-size: 30px;
 }
-
 .loginCard input {
-
   background: #2a2a2a;
-
   color: white;
-
   border: 1px solid #444;
 }
-
 #loginMsg {
-
   text-align: center;
-
   margin-top: 10px;
-
   color: #ff8a80;
-
   min-height: 20px;
 }
-    
 </style>
 </head>
 <body>
@@ -286,6 +214,13 @@
   <div class="card-container">
 <button id="reportBtn" onclick="abrirReporte()">🚨</button>
 <h2>📍 Visitas</h2>
+ <button
+  id="adminBtn"
+  onclick="abrirPanelAdmin()"
+  style="display:none;"
+>
+  ⚙
+</button>   
 <button
   class="secondary"
   onclick="logout()"
@@ -610,8 +545,127 @@ window.addEventListener("load", async () => {
     await cargarDepto();
   }
 });
+  function abrirPanelAdmin() {
+  const panel = document.getElementById("panelAdmin");
+  if (panel.style.display === "block") {
+    panel.style.display = "none";
+  } else {
+    panel.style.display = "block";
+  }
+}
+function aplicarPermisos() {
+  if (
+    tienePermiso(["admin", "conductor"])
+  ) {
+    adminBtn.style.display = "flex";
+  }
+}
+async function verHistorial() {
+  const dir = prompt("Dirección:");
+  if (!dir) return;
+  const b = await apiFetch(`/building/${encodeURIComponent(dir)}`);
+  const building = await b.json();
+  if (!building._id) {
+    alert("No encontrado");
+    return;
+  }
+  const res = await apiFetch(`/history/${building._id}`);
+  const data = await res.json();
+  let html = `
+    <div class="card-container">
+      <h3>${building.address}</h3>
+      Total: ${data.total}<br>
+      Atendidos: ${data.atendidos}<br>
+      Progreso: ${data.progreso}%<br><br>
+  `;
+  data.detalle.forEach(d => {
+    html += `
+      <div style="margin-bottom:10px;">
+        <b>${d.number}</b><br>
+        ${d.lastStatus || "Nunca"}<br>
+      </div>
+    `;
+  });
+  html += `</div>`;
+  adminContenido.innerHTML = html;
+}
+async function verTerritorios() {
+  const t = prompt("Territorio:");
+  if (!t) return;
+  const res = await apiFetch(`/territory/${t}`);
+  const data = await res.json();
+  let html = "";
+  data.forEach(b => {
+    html += `
+      <div class="card-container" style="margin-bottom:10px;">
+        ${b.address}
+      </div>
+    `;
+  });
+  adminContenido.innerHTML = html;
+}
+async function verListado() {
+  const res = await apiFetch("/admin/buildings");
+  const result = await res.json();
+  let html = "";
+  result.data.forEach(b => {
+    html += `
+      <div
+        class="card-container"
+        style="margin-bottom:10px;"
+      >
+        <b>${b.address}</b><br>
+        Territorio: ${b.territory || "-"}
+      </div>
+    `;
+  });
+  adminContenido.innerHTML = html;
+}
+async function verProblemas() {
+  const res = await apiFetch("/issues");
+  const data = await res.json();
+  let html = "";
+  data.forEach(i => {
+    html += `
+      <div
+        class="card-container"
+        style="margin-bottom:10px;"
+      >
+        <b>${i.type}</b><br>
+        ${i.description || "-"}
+      </div>
+    `;
+  });
+  adminContenido.innerHTML = html;
+}
   </script>
-
+    
+<!-- PANEL ADMIN -->
+<div
+  id="panelAdmin"
+  style="
+    display:none;
+    margin-top:20px;
+    background:#1e1e1e;
+    padding:15px;
+    border-radius:18px;
+  "
+>
+  <h2>⚙ Panel</h2>
+  <button class="secondary" onclick="verHistorial()">
+    📊 Historial
+  </button>
+  <button class="secondary" onclick="verTerritorios()">
+    🗺 Territorios
+  </button>
+  <button class="secondary" onclick="verListado()">
+    🏢 Listado
+  </button>
+  <button class="secondary" onclick="verProblemas()">
+    ⚠ Problemas
+  </button>
+  <div id="adminContenido" style="margin-top:15px;"></div>
+</div>
 <!-- MODAL REPORTE -->
 <div
   id="modalReporte"
@@ -627,7 +681,6 @@ window.addEventListener("load", async () => {
     align-items:center;
   "
 >
-
   <div
     class="modalContent"
     style="
@@ -637,36 +690,27 @@ window.addEventListener("load", async () => {
       max-width:400px;
     "
   >
-
     <h3>⚠ Reportar problema</h3>
-
     <select id="tipoProblema">
       <option value="ERROR_DATO">
         Dato incorrecto
       </option>
-
       <option value="ACCESO">
         Problema de acceso
       </option>
-
       <option value="OTRO">
         Otro
       </option>
     </select>
-
     <textarea id="descProblema"></textarea>
-
     <button onclick="enviarReporte()" class="ok">
       Enviar
     </button>
-
     <button onclick="cerrarReporte()" class="secondary">
       Cancelar
     </button>
-
   </div>
 </div>
-
   </div>
 </div>
 </body>
