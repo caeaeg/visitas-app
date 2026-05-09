@@ -5,6 +5,23 @@ const Visit = require("./models/Visit");
 const Report = require("./models/Report");
 
 const express = require("express");
+const USERS = [
+  {
+    username: "admin",
+    password: "2414",
+    role: "admin"
+  },
+  {
+    username: "predi",
+    password: "1234",
+    role: "predi"
+  },
+  {
+    username: "conductor",
+    password: "2414",
+    role: "cond"
+  }
+];
 const mongoose = require("mongoose");
 
 const app = express();
@@ -114,6 +131,28 @@ app.get("/building/:query", async (req, res) => {
   }
 });
 
+app.post("/login", (req, res) => {
+
+  const { username, password } = req.body;
+
+  const user = USERS.find(u =>
+    u.username === username &&
+    u.password === password
+  );
+
+  if (!user) {
+    return res.json({
+      ok: false
+    });
+  }
+
+  res.json({
+    ok: true,
+    role: user.role,
+    username: user.username
+  });
+
+});
 
 // 🔹 CREAR BUILDING
 app.post("/building", async (req, res) => {
