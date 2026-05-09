@@ -6,147 +6,154 @@
 
   <style>
     * {
-  box-sizing: border-box;
-}
+      box-sizing: border-box;
+    }
+
     input, button, select, textarea {
-  box-sizing: border-box;
-}
+      box-sizing: border-box;
+    }
+
     body {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 19px;
-  line-height: 1.5;
-  padding: 15px;
-  padding-top: 70px;
-  background: #fafafa;
-}
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 19px;
+      line-height: 1.5;
+      letter-spacing: 0.3px;
+
+      padding: 15px;
+      padding-top: 30px;
+
+      background: #121212;
+      color: #e0e0e0;
+    }
+
     h2 {
-  text-align: center;
-  font-size: 28px;
-  margin-bottom: 20px;
-}
+      text-align: center;
+      font-size: 28px;
+      margin-bottom: 20px;
+      color: white;
+    }
+
     .container {
-  max-width: 500px;
-  margin: auto;
-  padding: 10px;
-}
+      max-width: 500px;
+      margin: auto;
+      padding: 10px;
+    }
+
     .card-container {
-  background: white;
-  border-radius: 18px;
-  padding: 15px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-}
-body.dark {
-  background: #121212;
-  color: #e0e0e0;
-}
+      background: #1e1e1e;
+      border-radius: 18px;
+      padding: 15px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.45);
+    }
 
-body.dark .card-container {
-  background: #1e1e1e;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-}
+    input,
+    button,
+    select,
+    textarea {
+      width: 100%;
+      padding: 16px;
+      margin: 10px 0;
 
-body.dark input,
-body.dark textarea,
-body.dark select {
-  background: #2a2a2a;
-  color: white;
-  border: 1px solid #444;
-}
+      font-size: 18px;
+      border-radius: 12px;
 
-body.dark button.primary {
-  background: #3b82f6;
-}
+      background: #2a2a2a;
+      color: white;
+      border: 1px solid #444;
+    }
 
-body.dark button.secondary {
-  background: #444;
-}
-body.dark .card {
-  background: #1f1f1f;
-  color: #e0e0e0;
-}
-body.dark .barra {
-  background: #333;
-}
-    
-    input, button, select, textarea {
-  width: 100%;
-  padding: 16px;
-  margin: 10px 0;
-  font-size: 18px;
-  border-radius: 12px;
-}
-    .buscar { background:#2196F3; color:white; width:100%; }
-    .ok { background:#4CAF50; color:white; width:100%; }
-    .no { background:#f44336; color:white; width:100%; }
-    .secondary { background:#555; color:white; width:100%; }
+    input::placeholder,
+    textarea::placeholder {
+      color: #bdbdbd;
+    }
+
+    .buscar {
+      background: #2196F3;
+      color: white;
+      width: 100%;
+    }
+
+    .ok {
+      background: #4CAF50;
+      color: white;
+      width: 100%;
+    }
+
+    .no {
+      background: #f44336;
+      color: white;
+      width: 100%;
+    }
+
+    .secondary {
+      background: #555;
+      color: white;
+      width: 100%;
+    }
 
     #adminBtn {
 
-  position: fixed;
+      position: fixed;
 
-  top: 12px;
-  right: 15px;
+      top: 12px;
+      right: 15px;
 
-  width: 48px;
-  height: 48px;
+      width: 48px;
+      height: 48px;
 
-  border: none;
-  border-radius: 14px;
+      border: none;
+      border-radius: 14px;
 
-  background: white;
-  color: #222;
+      background: #1f1f1f;
+      color: white;
 
-  font-size: 22px;
+      font-size: 22px;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
 
-  cursor: pointer;
+      cursor: pointer;
 
-  z-index: 999;
+      z-index: 999;
 
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.45);
 
-  transition: all 0.2s ease;
-}
+      transition: all 0.2s ease;
+    }
 
-#adminBtn:hover {
-  transform: scale(1.05);
-}
+    #adminBtn:hover {
+      transform: scale(1.05);
+    }
 
-#adminBtn:active {
-  transform: scale(0.96);
-}
+    #adminBtn:active {
+      transform: scale(0.96);
+    }
 
-/* 🌙 modo oscuro */
-body.dark #adminBtn {
-  background: #1f1f1f;
-  color: white;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.45);
-}
-#modalReporte .modalContent {
-  background: white;
-  color: black;
-}
+    #modalReporte .modalContent {
+      background: #1f1f1f;
+      color: white;
+    }
 
-body.dark #modalReporte .modalContent {
-  background: #1f1f1f;
-  color: white;
-}
     #reportBtn {
       position: fixed;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
+
       background: #ff9800;
       color: white;
+
       width: 60px;
       height: 60px;
+
       border-radius: 50%;
       font-size: 22px;
+
       display: none;
+
       box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+
       transition: 0.3s;
     }
 
@@ -155,103 +162,77 @@ body.dark #modalReporte .modalContent {
     }
 
     #infoEdificio {
-      background:white;
-      padding:10px;
-      border-radius:8px;
-      margin-top:10px;
-      display:none;
-      font-size:14px;
+      background: #1f1f1f;
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 10px;
+      display: none;
+      font-size: 14px;
+      border: 1px solid #333;
     }
 
     #listaTerritorio button {
-      width:100%;
-      text-align:left;
-      background:white;
-      margin:5px 0;
-      border:1px solid #ddd;
+      width: 100%;
+      text-align: left;
+
+      background: #1f1f1f;
+
+      margin: 5px 0;
+
+      border: 1px solid #333;
     }
 
     .link {
-      color:blue;
-      cursor:pointer;
-      text-decoration:underline;
-      font-size:14px;
+      color: #64b5ff;
+      cursor: pointer;
+      text-decoration: underline;
+      font-size: 15px;
     }
+
     button {
-  min-height: 55px;
-  font-weight: bold;
-}
-    body {
-  letter-spacing: 0.3px;
-}
-    .darkToggle {
-  position: fixed;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
+      min-height: 55px;
+      font-weight: bold;
+      transition: all 0.2s ease;
+      border: none;
+    }
 
-  padding: 10px 18px;
-  border: none;
-  border-radius: 999px;
+    button:active {
+      transform: scale(0.97);
+    }
 
-  background: #222;
-  color: white;
-
-  font-size: 16px;
-  font-weight: bold;
-
-  width: auto;
-  min-height: 45px;
-
-  z-index: 999;
-
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-
-  transition: all 0.2s ease;
-}
-
-.darkToggle:hover {
-  transform: translateX(-50%) scale(1.03);
-}
-
-.darkToggle:active {
-  transform: translateX(-50%) scale(0.98);
-}
-    button {
-  transition: all 0.2s ease;
-}
-
-button:active {
-  transform: scale(0.97);
-}
   </style>
 </head>
 
 <body>
- <button onclick="toggleDark()" class="darkToggle">
-  🌙 Modo oscuro
-</button>
-  
+
 <div class="container">
   <div class="card-container">
-  
+
 <button id="reportBtn" onclick="abrirReporte()">🚨</button>
+
 <button id="adminBtn" onclick="irAdmin()" aria-label="Administrador">
   🔒
 </button>
 
 <h2>📍 Visitas</h2>
 
-<input id="buildingId" placeholder="Código o dirección"
-onkeypress="if(event.key==='Enter') buscar()">
+<input
+  id="buildingId"
+  placeholder="Código o dirección"
+  onkeypress="if(event.key==='Enter') buscar()"
+>
 
 <div class="link" onclick="buscarPorTerritorio()">
   Buscar por territorio
 </div>
 
-<p id="mensajeInicial">Ingresá una dirección para comenzar</p>
+<p id="mensajeInicial">
+  Ingresá una dirección para comenzar
+</p>
 
-<button class="buscar" onclick="buscar()">Buscar</button>
+<button class="buscar" onclick="buscar()">
+  Buscar
+</button>
 
 <div id="infoEdificio"></div>
 
@@ -259,22 +240,53 @@ onkeypress="if(event.key==='Enter') buscar()">
 
 <h3 id="resultado"></h3>
 
-<textarea id="nota" placeholder="Nota..." style="display:none;"></textarea>
+<textarea
+  id="nota"
+  placeholder="Nota..."
+  style="display:none;"
+></textarea>
 
-<button id="btnOk" class="ok" onclick="marcar('ATENDIO')" style="display:none;">✔ ATENDIÓ</button>
-<button id="btnNo" class="no" onclick="marcar('NO_EN_CASA')" style="display:none;">✖ NO EN CASA</button>
+<button
+  id="btnOk"
+  class="ok"
+  onclick="marcar('ATENDIO')"
+  style="display:none;"
+>
+  ✔ ATENDIÓ
+</button>
 
-<button id="btnSiguiente" class="secondary" onclick="siguiente()" style="display:none;">
+<button
+  id="btnNo"
+  class="no"
+  onclick="marcar('NO_EN_CASA')"
+  style="display:none;"
+>
+  ✖ NO EN CASA
+</button>
+
+<button
+  id="btnSiguiente"
+  class="secondary"
+  onclick="siguiente()"
+  style="display:none;"
+>
 ➡ Siguiente departamento
 </button>
 
-<button id="btnNuevoEdificio" class="secondary" onclick="crearEdificio()" style="display:none;">
+<button
+  id="btnNuevoEdificio"
+  class="secondary"
+  onclick="crearEdificio()"
+  style="display:none;"
+>
 ➕ Agregar edificio
 </button>
 
 <script>
+
 let currentDept = null;
 let currentBuildingId = null;
+
 function irAdmin() {
   window.location.href = "/admin.html";
 }
@@ -285,6 +297,7 @@ async function buscar() {
   limpiarVista();
 
   const input = normalizarDireccion(buildingId.value);
+
   if (!input) return;
 
   mensajeInicial.style.display = "none";
@@ -293,8 +306,11 @@ async function buscar() {
   const building = await b.json();
 
   if (!building._id) {
+
     resultado.innerText = "Edificio no encontrado";
+
     btnNuevoEdificio.style.display = "block";
+
     return;
   }
 
@@ -309,23 +325,32 @@ async function buscarPorTerritorio() {
   limpiarVista();
 
   const territorio = prompt("Número de territorio:");
+
   if (!territorio) return;
 
   const res = await fetch(`/territory/${territorio}`);
   const data = await res.json();
 
   if (!data.length) {
+
     listaTerritorio.innerHTML = "No hay edificios";
+
     return;
   }
 
   data.forEach(b => {
+
     const btn = document.createElement("button");
+
     btn.innerText = b.address;
+
     btn.onclick = () => {
+
       currentBuildingId = b._id;
+
       cargarDepto();
     };
+
     listaTerritorio.appendChild(btn);
   });
 }
@@ -337,7 +362,9 @@ async function cargarDepto() {
   const data = await res.json();
 
   if (data.message === "NO_AVAILABLE") {
+
     resultado.innerText = "No hay departamentos disponibles";
+
     return;
   }
 
@@ -350,10 +377,13 @@ async function cargarDepto() {
   btnNo.style.display = "block";
   reportBtn.style.display = "block";
 
+  btnOk.disabled = false;
+  btnNo.disabled = false;
+
   await mostrarInfoEdificio();
 }
 
-// 🧾 INFO EDIFICIO + COLOR INTELIGENTE
+// 🧾 INFO EDIFICIO
 async function mostrarInfoEdificio() {
 
   const res = await fetch(`/building-info/${currentBuildingId}`);
@@ -365,11 +395,14 @@ async function mostrarInfoEdificio() {
     <b>${data.building.address}</b><br>
     ${data.building.address2 || ""}<br>
     ${data.building.name || ""}<br>
-    🕒 Última visita: ${
+
+    🕒 Última visita:
+    ${
       data.lastVisit
         ? new Date(data.lastVisit.date).toLocaleDateString()
         : "Nunca"
     }<br>
+
     ${
       data.issue
         ? `⚠ ${data.issue.description || data.issue.type}`
@@ -377,11 +410,13 @@ async function mostrarInfoEdificio() {
     }
   `;
 
-  // 🔥 COLOR DINÁMICO DEL BOTÓN
   if (data.issue) {
-    reportBtn.classList.add("alerta"); // rojo
+
+    reportBtn.classList.add("alerta");
+
   } else {
-    reportBtn.classList.remove("alerta"); // naranja normal
+
+    reportBtn.classList.remove("alerta");
   }
 }
 
@@ -389,8 +424,9 @@ async function mostrarInfoEdificio() {
 async function marcar(status) {
 
   if (!currentDept) return;
+
   btnOk.disabled = true;
-btnNo.disabled = true;
+  btnNo.disabled = true;
 
   await fetch("/visit", {
     method:"POST",
@@ -407,7 +443,9 @@ btnNo.disabled = true;
 
 // ➡ SIGUIENTE
 async function siguiente() {
+
   nota.value = "";
+
   await cargarDepto();
 }
 
@@ -438,86 +476,59 @@ async function enviarReporte() {
 
 // ➕ CREAR EDIFICIO
 function crearEdificio() {
+
   const dir = buildingId.value.trim();
 
   if (!dir) return;
 
-  window.location.href = `/admin.html?crear=${encodeURIComponent(dir)}`;
+  window.location.href =
+    `/admin.html?crear=${encodeURIComponent(dir)}`;
 }
 
+// 🧹 NORMALIZAR
 function normalizarDireccion(dir) {
 
   return dir
     .toLowerCase()
 
-    // quitar tildes
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
 
-    // reemplazos comunes
     .replace(/\bav\b|\bav\.\b/g, "avenida")
     .replace(/\bgral\b/g, "general")
     .replace(/\bdr\b|\bdr\.\b/g, "doctor")
 
-    // eliminar símbolos
     .replace(/[^a-z0-9 ]/g, "")
 
-    // espacios dobles
     .replace(/\s+/g, " ")
     .trim();
 }
 
 // 🧹 LIMPIAR
 function limpiarVista() {
+
   listaTerritorio.innerHTML = "";
+
   resultado.innerText = "";
+
   infoEdificio.style.display = "none";
 
   nota.style.display = "none";
+
   btnOk.style.display = "none";
   btnNo.style.display = "none";
+
   btnSiguiente.style.display = "none";
+
   btnNuevoEdificio.style.display = "none";
+
   reportBtn.style.display = "none";
-}
-
-  
-
- function toggleDark() {
-
-  document.body.classList.toggle("dark");
-
-  const btn = document.querySelector(".darkToggle");
-
-  if (document.body.classList.contains("dark")) {
-
-    localStorage.setItem("modo", "dark");
-
-    btn.innerHTML = "☀️ Modo claro";
-
-  } else {
-
-    localStorage.setItem("modo", "light");
-
-    btn.innerHTML = "🌙 Modo oscuro";
-  }
 }
 
 window.addEventListener("load", async () => {
 
-  // 🌙 modo oscuro
-  const modo = localStorage.getItem("modo");
-  const btn = document.querySelector(".darkToggle");
-
-  if (modo === "dark") {
-    document.body.classList.add("dark");
-    btn.innerHTML = "☀️ Modo claro";
-  } else {
-    btn.innerHTML = "🌙 Modo oscuro";
-  }
-
-  // 🔗 abrir edificio desde URL
   const params = new URLSearchParams(window.location.search);
+
   const buildingIdParam = params.get("building");
 
   if (buildingIdParam) {
@@ -528,23 +539,62 @@ window.addEventListener("load", async () => {
 
     await cargarDepto();
   }
-
 });
-  
+
 </script>
 
 <!-- MODAL REPORTE -->
-<div id="modalReporte" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);justify-content:center;align-items:center;">
-  <div class="modalContent" style="padding:20px;border-radius:10px;width:90%;max-width:400px;">
+<div
+  id="modalReporte"
+  style="
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.6);
+    justify-content:center;
+    align-items:center;
+  "
+>
+
+  <div
+    class="modalContent"
+    style="
+      padding:20px;
+      border-radius:10px;
+      width:90%;
+      max-width:400px;
+    "
+  >
+
     <h3>⚠ Reportar problema</h3>
+
     <select id="tipoProblema">
-      <option value="ERROR_DATO">Dato incorrecto</option>
-      <option value="ACCESO">Problema de acceso</option>
-      <option value="OTRO">Otro</option>
+      <option value="ERROR_DATO">
+        Dato incorrecto
+      </option>
+
+      <option value="ACCESO">
+        Problema de acceso
+      </option>
+
+      <option value="OTRO">
+        Otro
+      </option>
     </select>
+
     <textarea id="descProblema"></textarea>
-    <button onclick="enviarReporte()" class="ok">Enviar</button>
-    <button onclick="cerrarReporte()" class="secondary">Cancelar</button>
+
+    <button onclick="enviarReporte()" class="ok">
+      Enviar
+    </button>
+
+    <button onclick="cerrarReporte()" class="secondary">
+      Cancelar
+    </button>
+
   </div>
 </div>
 
