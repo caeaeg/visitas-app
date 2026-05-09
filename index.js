@@ -5,23 +5,11 @@ const Visit = require("./models/Visit");
 const Report = require("./models/Report");
 
 const express = require("express");
-const USERS = [
-  {
-    username: "admin",
-    password: "2414",
-    role: "admin"
-  },
-  {
-    username: "predi",
-    password: "1234",
-    role: "predi"
-  },
-  {
-    username: "conductor",
-    password: "2414",
-    role: "cond"
-  }
-];
+const {
+  auth,
+  requireRole
+} = require("./auth");
+
 const mongoose = require("mongoose");
 
 const app = express();
@@ -74,7 +62,7 @@ app.get("/next/:buildingId", async (req, res) => {
   }
 });
 
-app.get("/admin/buildings", async (req, res) => {
+app.get("/admin/buildings", requireRole(["admin", "conductor"]), async (req, res) => {
 
   const page = Number(req.query.page) || 1;
   const limit = 20;
@@ -93,8 +81,7 @@ app.get("/admin/buildings", async (req, res) => {
     query = query.sort({ updatedAt: -1 });
   }
 
-  // ⚠ "most" lo dejamos simple por ahora
-  // después lo podemos hacer pro con conteo real
+ 
 
   const buildings = await query
     .skip(skip)
@@ -131,31 +118,10 @@ app.get("/building/:query", async (req, res) => {
   }
 });
 
-app.post("/login", (req, res) => {
-
-  const { username, password } = req.body;
-
-  const user = USERS.find(u =>
-    u.username === username &&
-    u.password === password
-  );
-
-  if (!user) {
-    return res.json({
-      ok: false
-    });
-  }
-
-  res.json({
-    ok: true,
-    role: user.role,
-    username: user.username
-  });
-
-});
+app.post("/login", auth);
 
 // 🔹 CREAR BUILDING
-app.post("/building", async (req, res) => {
+app.post("/building", requireRole(["admin", "conductor"]), async (req, res) => {
   try {
     let { address, floors, unitsPerFloor, hasGroundFloor, hasDoorman } = req.body;
 
@@ -215,7 +181,7 @@ app.post("/building", async (req, res) => {
 
 
 // 🔹 VISITA
-app.post("/visit", async (req, res) => {
+app.post("/visit", requireRole(["admin","conductor","predi"]), async (req, res) => {
   try {
     const { departmentId, status, note } = req.body;
 
@@ -282,7 +248,7 @@ app.get("/history/:buildingId", async (req, res) => {
 
 
 // 🔹 EDITAR BUILDING
-app.put("/building/:id", async (req, res) => {
+app.put("/building/:id", requireRole(["admin", "conductor"]), async (req, res) => {
   try {
     await Building.findByIdAndUpdate(req.params.id, req.body);
     res.send("Edificio actualizado");
@@ -303,7 +269,7 @@ app.get("/territory/:num", async (req, res) => {
 
 
 // 🔹 ISSUES (SISTEMA LIMPIO)
-app.post("/issues", async (req, res) => {
+app.post("/issues", requireRole(["admin","conductor","predi"]), async (req, res) => {
   const { buildingId, departmentId, type, description } = req.body;
 
   if (!buildingId || !type) {
@@ -335,7 +301,7 @@ app.get("/issues", async (req, res) => {
   res.json(issues);
 });
 
-app.put("/issues/:id", async (req, res) => {
+app.put("/issues/:id", requireRole(["admin"]), async (req, res) => {
   const { status } = req.body;
 
   await Issue.findByIdAndUpdate(req.params.id, { status });
@@ -343,7 +309,7 @@ app.put("/issues/:id", async (req, res) => {
   res.send("Estado actualizado");
 });
 
-app.get("/stats", async (req, res) => {
+app.get("/stats", requireRole(["admin"]), async (req, res) => {
 
   const buildings = await Building.countDocuments();
 
