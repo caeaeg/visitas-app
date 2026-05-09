@@ -199,13 +199,99 @@
     button:active {
       transform: scale(0.97);
     }
+#loginScreen {
 
-  </style>
+  position: fixed;
+  inset: 0;
+
+  background: #121212;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 9999;
+}
+
+.loginCard {
+
+  width: 100%;
+  max-width: 400px;
+
+  background: #1e1e1e;
+
+  padding: 28px;
+
+  border-radius: 22px;
+
+  box-shadow: 0 10px 40px rgba(0,0,0,0.45);
+}
+
+.loginCard h2 {
+
+  text-align: center;
+
+  margin-bottom: 20px;
+
+  color: white;
+
+  font-size: 30px;
+}
+
+.loginCard input {
+
+  background: #2a2a2a;
+
+  color: white;
+
+  border: 1px solid #444;
+}
+
+#loginMsg {
+
+  text-align: center;
+
+  margin-top: 10px;
+
+  color: #ff8a80;
+
+  min-height: 20px;
+}
+    
+</style>
 </head>
 
 <body>
+<!-- LOGIN -->
+<div id="loginScreen">
 
-<div class="container">
+  <div class="loginCard">
+
+    <h2>🔐 Acceso</h2>
+
+    <input
+      id="loginUser"
+      placeholder="Usuario"
+      autocomplete="username"
+    >
+
+    <input
+      id="loginPass"
+      type="password"
+      placeholder="Contraseña"
+      autocomplete="current-password"
+    >
+
+    <button class="buscar" onclick="login()">
+      Ingresar
+    </button>
+
+    <p id="loginMsg"></p>
+
+  </div>
+
+</div>
+<div class="container" id="appContainer" style="display:none;">
   <div class="card-container">
 
 <button id="reportBtn" onclick="abrirReporte()">🚨</button>
@@ -285,6 +371,8 @@
 <script>
 
 let currentDept = null;
+let currentUser = null;
+let currentRole = null;
 let currentBuildingId = null;
 
 function irAdmin() {
@@ -525,10 +613,89 @@ function limpiarVista() {
   reportBtn.style.display = "none";
 }
 
+async function login() {
+
+  const username = loginUser.value.trim();
+  const password = loginPass.value.trim();
+
+  loginMsg.innerText = "";
+
+  if (!username || !password) {
+
+    loginMsg.innerText = "Completá usuario y contraseña";
+
+    return;
+  }
+
+  const res = await fetch("/login", {
+    method: "POST",
+    headers: {
+      "Content-Type":"application/json"
+    },
+    body: JSON.stringify({
+      username,
+      password
+    })
+  });
+
+  const data = await res.json();
+
+  if (!data.ok) {
+
+    loginMsg.innerText = "Usuario o contraseña incorrectos";
+
+    return;
+  }
+
+  currentUser = data.username;
+  currentRole = data.role;
+
+  localStorage.setItem("user", data.username);
+  localStorage.setItem("role", data.role);
+
+  iniciarApp();
+}
+
+function iniciarApp() {
+
+  loginScreen.style.display = "none";
+
+  appContainer.style.display = "block";
+
+  console.log("Usuario:", currentUser);
+  console.log("Rol:", currentRole);
+
+  // permisos futuros
+  if (currentRole === "admin") {
+
+    console.log("Acceso admin");
+
+  } else if (currentRole === "predi") {
+
+    console.log("Acceso predi");
+
+  } else {
+
+    console.log("Acceso usuario");
+  }
+}
+  
 window.addEventListener("load", async () => {
 
-  const params = new URLSearchParams(window.location.search);
+  const savedUser = localStorage.getItem("user");
+  const savedRole = localStorage.getItem("role");
 
+  if (savedUser && savedRole) {
+
+    currentUser = savedUser;
+    currentRole = savedRole;
+
+    iniciarApp();
+
+  }
+
+  // 🔗 abrir edificio desde URL
+  const params = new URLSearchParams(window.location.search);
   const buildingIdParam = params.get("building");
 
   if (buildingIdParam) {
@@ -539,8 +706,9 @@ window.addEventListener("load", async () => {
 
     await cargarDepto();
   }
-});
 
+});
+  
 </script>
 
 <!-- MODAL REPORTE -->
