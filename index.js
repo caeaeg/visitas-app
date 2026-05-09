@@ -25,7 +25,11 @@ app.listen(PORT, () => {
 
 
 // 🔹 NEXT
-app.get("/next/:buildingId", async (req, res) => {
+app.get(
+  "/next/:buildingId",
+  requireLogin,
+  requireRole(["admin", "conductor", "predi"]),
+  async (req, res) => {
   try {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -33,19 +37,29 @@ app.get("/next/:buildingId", async (req, res) => {
       status: "ATENDIO",
       date: { $gte: sixMonthsAgo }
     });
-    const blockedIds = visits.map(v => v.departmentId.toString());
+    const blockedIds = visits.map(v =>
+      v.departmentId.toString()
+    );
     const departments = await Department.find({
       buildingId: req.params.buildingId,
       _id: { $nin: blockedIds }
     });
     if (!departments.length) {
-      return res.json({ message: "NO_AVAILABLE" });
+      return res.json({
+        message: "NO_AVAILABLE"
+      });
     }
-    const dept = departments[Math.floor(Math.random() * departments.length)];
+    const dept =
+      departments[
+        Math.floor(Math.random() * departments.length)
+      ];
     const lastVisit = await Visit.findOne({
       departmentId: dept._id
     }).sort({ date: -1 });
-    res.json({ dept, lastVisit });
+    res.json({
+      dept,
+      lastVisit
+    });
   } catch (err) {
     res.status(500).send("Error en NEXT");
   }
@@ -81,7 +95,11 @@ app.get(
 });
 
 // 🔹 BUSCAR BUILDING
-app.get("/building/:query", async (req, res) => {
+app.get(
+  "/building/:query",
+  requireLogin,
+  requireRole(["admin", "conductor", "predi"]),
+  async (req, res) => {
   try {
     const query = req.params.query.trim().toLowerCase();
     const building = await Building.findOne({
@@ -167,7 +185,11 @@ app.post(
 });
 
 // 🔹 HISTORY
-app.get("/history/:buildingId", async (req, res) => {
+app.get(
+  "/history/:buildingId",
+  requireLogin,
+  requireRole(["admin", "conductor"]),
+  async (req, res) => {
   try {
     const departments = await Department.find({
       buildingId: req.params.buildingId
@@ -218,16 +240,17 @@ app.put(
   }
 });
 
-
 // 🔹 TERRITORIO
-app.get("/territory/:num", async (req, res) => {
+app.get(
+  "/territory/:num",
+  requireLogin,
+  requireRole(["admin", "conductor", "predi"]),
+  async (req, res) => {
   const buildings = await Building.find({
     territory: req.params.num
   });
-
   res.json(buildings);
 });
-
 
 // 🔹 ISSUES (SISTEMA LIMPIO)
 app.post(
@@ -236,33 +259,29 @@ app.post(
   requireRole(["admin","conductor","predi"]),
   async (req, res) => {
   const { buildingId, departmentId, type, description } = req.body;
-
   if (!buildingId || !type) {
     return res.status(400).send("Datos incompletos");
   }
-
   const issue = new Issue({
     buildingId,
     departmentId,
     type,
     description
   });
-
   await issue.save();
   res.json(issue);
 });
-
-app.get("/issues", async (req, res) => {
-
+app.get(
+  "/issues",
+  requireLogin,
+  requireRole(["admin", "conductor"]),
+  async (req, res) => {
   const { status } = req.query;
-
   let filter = {};
   if (status) filter.status = status;
-
   const issues = await Issue.find(filter)
     .populate("buildingId")
     .sort({ createdAt: -1 });
-
   res.json(issues);
 });
 
@@ -283,18 +302,12 @@ app.get(
   requireLogin,
   requireRole(["admin"]),
   async (req, res) => {
-
   const buildings = await Building.countDocuments();
-
   const visits = await Visit.find();
-
   let atendio = visits.filter(v => v.status === "ATENDIO").length;
   let noCasa = visits.filter(v => v.status === "NO_EN_CASA").length;
-
   const totalVisits = visits.length;
-
   const visitados = await Visit.distinct("departmentId");
-
   res.json({
     totalEdificios: buildings,
     totalVisitas: totalVisits,
@@ -305,21 +318,20 @@ app.get(
 });
 
 // 🔹 BUILDING INFO (clave UX)
-app.get("/building-info/:id", async (req, res) => {
-
+app.get(
+  "/building-info/:id",
+  requireLogin,
+  requireRole(["admin", "conductor", "predi"]),
+  async (req, res) => {
   const building = await Building.findById(req.params.id);
-
   const deptIds = await Department.find({ buildingId: building._id }).distinct("_id");
-
   const lastVisit = await Visit.findOne({
     departmentId: { $in: deptIds }
   }).sort({ date: -1 });
-
   const issue = await Issue.findOne({
     buildingId: building._id,
     status: { $ne: "RESUELTO" }
   }).sort({ createdAt: -1 });
-
   res.json({
     building,
     lastVisit,
