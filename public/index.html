@@ -618,7 +618,13 @@ async function verListado() {
         style="margin-bottom:10px;"
       >
         <b>${b.address}</b><br>
-        Territorio: ${b.territory || "-"}
+            Territorio: ${b.territory || "-"}<br><br>
+            <button
+              class="secondary"
+              onclick='abrirEditorEdificio(${JSON.stringify(b)})'
+              >
+              ✏ Editar
+              </button>
       </div>
     `;
   });
