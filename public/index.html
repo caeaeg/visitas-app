@@ -209,7 +209,7 @@
   margin-top:20px;
 }
 .dashboardCard{
-  background:white;
+  background:#1e1e1e;
   border-radius:20px;
   padding:22px;
   cursor:pointer;
@@ -225,6 +225,7 @@
   margin-bottom:10px;
 }
 .dashboardCard h3{
+  color:white;
   margin:0;
   font-size:18px;
 }
@@ -251,7 +252,8 @@
 }
 
 .statCard{
-  background:white;
+  background:#1e1e1e;
+  border:1px solid #2d2d2d;
   border-radius:18px;
   padding:18px;
 
@@ -264,6 +266,10 @@
 }
 
 .statCard h2{
+  .statCard p{
+  color:#a8a8a8;
+}
+  color:white;
   margin:10px 0 0;
   font-size:28px;
 }
@@ -677,11 +683,12 @@ async function login() {
 }
 function iniciarApp() {
   loginScreen.style.display = "none";
-  appContainer.style.display = "block";
+  mainDashboard.style.display = "block";
   console.log("Usuario:", currentUser);
   console.log("Rol:", currentRole);
   aplicarPermisos();
-   console.log("Sesión iniciada");
+  abrirVista("dashboardView");
+  console.log("Sesión iniciada");
 }
   function logout() {
   localStorage.removeItem("user");
@@ -837,7 +844,16 @@ async function verListado() {
       </div>
     `;
   });
-  adminContenido.innerHTML = html;
+  edificiosView.innerHTML = `
+  <button
+    class="secondary backModern"
+    onclick="abrirVista('dashboardView')"
+  >
+    ← Volver
+  </button>
+  <h2>🏢 Edificios</h2>
+  ${html}
+`;
 }
 async function verProblemas() {
   const res = await apiFetch("/issues");
@@ -854,57 +870,56 @@ async function verProblemas() {
       </div>
     `;
   });
-  adminContenido.innerHTML = html;
+  problemasView.innerHTML = `
+  <button
+    class="secondary backModern"
+    onclick="abrirVista('dashboardView')"
+  >
+    ← Volver
+  </button>
+  <h2>⚠ Problemas</h2>
+  ${html}
+`;
 }
 function abrirEditorEdificio(building = null) {
-
-  panelAdmin.style.display = "block";
-
+ 
   let html = `
     <div class="card-container">
-
       <h3>
         ${building ? "✏ Editar edificio" : "➕ Nuevo edificio"}
       </h3>
-
       <input
         id="edit_address"
         placeholder="Dirección"
         value="${building?.address || buildingId.value || ""}"
       >
-
       <input
         id="edit_address2"
         placeholder="Dirección 2"
         value="${building?.address2 || ""}"
       >
-
       <input
         id="edit_name"
         placeholder="Nombre"
         value="${building?.name || ""}"
       >
-
       <input
         id="edit_territory"
         placeholder="Territorio"
         value="${building?.territory || ""}"
       >
-
       <input
         id="edit_floors"
         type="number"
         placeholder="Pisos"
         value="${building?.floors || ""}"
       >
-
       <input
         id="edit_units"
         type="number"
         placeholder="Deptos por piso"
         value="${building?.unitsPerFloor || ""}"
       >
-
       <label>
         <input
           type="checkbox"
@@ -913,7 +928,6 @@ function abrirEditorEdificio(building = null) {
         >
         Planta baja
       </label>
-
       <label>
         <input
           type="checkbox"
@@ -922,12 +936,10 @@ function abrirEditorEdificio(building = null) {
         >
         Portero
       </label>
-
       <textarea
         id="edit_description"
         placeholder="Descripción"
       >${building?.description || ""}</textarea>
-
       <button
         class="ok"
         onclick='${
@@ -938,20 +950,23 @@ function abrirEditorEdificio(building = null) {
       >
         💾 Guardar
       </button>
-
     </div>
   `;
-
-  adminContenido.innerHTML = html;
+  editarView.innerHTML = `
+  <button
+    class="secondary backModern"
+    onclick="abrirVista('dashboardView')"
+  >
+    ← Volver
+  </button>
+  ${html}
+`;
 }
-
 async function guardarEdificio(id = null) {
-
   const address =
     normalizarDireccion(
       edit_address.value
     );
-
   const payload = {
     address,
     address2: edit_address2.value,
@@ -963,7 +978,6 @@ async function guardarEdificio(id = null) {
     hasDoorman: edit_portero.checked,
     description: edit_description.value
   };
-
   const res = await apiFetch(
     id ? `/building/${id}` : "/building",
     {
@@ -971,22 +985,14 @@ async function guardarEdificio(id = null) {
       body: JSON.stringify(payload)
     }
   );
-
   const data = await res.json();
-
   if (data.error) {
-
     alert(data.error);
-
     return;
   }
-
   alert("Guardado correctamente");
-
   if (data.building?._id) {
-
     currentBuildingId = data.building._id;
-
     await cargarDepto();
   }
 }
