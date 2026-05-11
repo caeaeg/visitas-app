@@ -10,6 +10,15 @@
     input, button, select, textarea {
       box-sizing: border-box;
     }
+    .mapaBox{
+  overflow:hidden;
+  border-radius:20px;
+
+  box-shadow:
+    0 10px 30px rgba(0,0,0,.12);
+
+  margin-top:15px;
+}
     body {
       font-family: Arial, Helvetica, sans-serif;
       font-size: 19px;
@@ -186,6 +195,83 @@
   color: #ff8a80;
   min-height: 20px;
 }
+  .view{
+  display:none;
+  animation:fade .25s ease;
+}
+.view.active{
+  display:block;
+}
+.dashboardGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-top:20px;
+}
+.dashboardCard{
+  background:white;
+  border-radius:20px;
+  padding:22px;
+  cursor:pointer;
+  box-shadow:
+    0 10px 25px rgba(0,0,0,.08);
+  transition:.2s ease;
+}
+.dashboardCard:hover{
+  transform:translateY(-3px);
+}
+.dashboardCard .icon{
+  font-size:32px;
+  margin-bottom:10px;
+}
+.dashboardCard h3{
+  margin:0;
+  font-size:18px;
+}
+.dashboardCard p{
+  color:gray;
+  font-size:14px;
+  margin-top:5px;
+}
+@keyframes fade{
+  from{
+    opacity:0;
+    transform:translateY(10px);
+  }
+  to{
+    opacity:1;
+    transform:none;
+  }
+}
+    .statsGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-bottom:18px;
+}
+
+.statCard{
+  background:white;
+  border-radius:18px;
+  padding:18px;
+
+  box-shadow:
+    0 5px 15px rgba(0,0,0,.06);
+}
+
+.statCard span{
+  font-size:22px;
+}
+
+.statCard h2{
+  margin:10px 0 0;
+  font-size:28px;
+}
+    .backModern{
+  width:auto;
+  padding:12px 18px;
+  border-radius:999px;
+}
 </style>
 </head>
 <body>
@@ -209,6 +295,91 @@
     </button>
     <p id="loginMsg"></p>
   </div>
+</div>
+   <div
+  id="mainDashboard"
+  style="display:none;"
+>
+<div id="dashboardView" class="view active">
+  <h2>⚙ Panel</h2>
+  <div class="dashboardGrid">
+    <div
+      class="dashboardCard"
+      onclick="abrirVista('territorioView')"
+    >
+      <div class="icon">🗺</div>
+      <h3>Territorios</h3>
+      <p>Mapa, estadísticas y búsqueda</p>
+    </div>
+    <div
+      class="dashboardCard"
+      onclick="abrirVista('edificiosView')"
+    >
+      <div class="icon">🏢</div>
+      <h3>Edificios</h3>
+      <p>Listado y edición</p>
+    </div>
+    <div
+      class="dashboardCard"
+      onclick="abrirVista('editarView')"
+    >
+      <div class="icon">➕</div>
+      <h3>Nuevo edificio</h3>
+      <p>Agregar rápidamente</p>
+    </div>
+    <div
+      class="dashboardCard"
+      onclick="abrirVista('problemasView')"
+    >
+      <div class="icon">⚠</div>
+      <h3>Problemas</h3>
+      <p>Reportes pendientes</p>
+    </div>
+  </div>
+</div>
+  <div id="territorioView" class="view">
+  <button
+    class="secondary backModern"
+    onclick="abrirVista('dashboardView')"
+  >
+    ← Volver
+  </button>
+  <h2>🗺 Territorios</h2>
+  <div class="statsGrid">
+    <div class="statCard">
+      <span>🏢</span>
+      <h2 id="totalEdificios">-</h2>
+      <p>Edificios</p>
+    </div>
+    <div class="statCard">
+      <span>✅</span>
+      <h2 id="visitados">-</h2>
+      <p>Visitados</p>
+    </div>
+  </div>
+  <div class="mapaBox">
+    <iframe
+      src="https://www.google.com/maps/d/embed?mid=1lhh_CmzfSr-WrY3MbyNQ19sKgKBiGUU&ehbc=2E312F&noprof=1"
+      width="100%"
+      height="400"
+      style="border:0;"
+    ></iframe>
+  </div>
+  <input
+    id="territorioAdminInput"
+    placeholder="Número de territorio"
+  >
+  <button
+    class="buscar"
+    onclick="buscarTerritorioAdmin()"
+  >
+    Buscar territorio
+  </button>
+  <div id="territorioResultados"></div>
+</div>
+  <div id="edificiosView" class="view hidden"></div>
+  <div id="editarView" class="view hidden"></div>
+  <div id="problemasView" class="view hidden"></div>
 </div>
 <div class="container" id="appContainer" style="display:none;">
   <div class="card-container">
@@ -548,12 +719,36 @@ window.addEventListener("load", async () => {
     await cargarDepto();
   }
 });
-  function abrirPanelAdmin() {
-  const panel = document.getElementById("panelAdmin");
-  if (panel.style.display === "block") {
-    panel.style.display = "none";
+  function abrirVista(id) {
+  document
+    .querySelectorAll(".view")
+    .forEach(v => {
+      v.classList.remove("active");
+    });
+  document
+    .getElementById(id)
+    .classList.add("active");
+  // cargar dashboard
+  if (id === "territorioView") {
+    cargarDashboard();
+  }
+  // cargar edificios
+  if (id === "edificiosView") {
+    verListado();
+  }
+  // cargar problemas
+  if (id === "problemasView") {
+    verProblemas();
+  }
+}
+function abrirPanelAdmin() {
+  const dashboard =
+    document.getElementById("mainDashboard");
+  if (dashboard.style.display === "block") {
+    dashboard.style.display = "none";
   } else {
-    panel.style.display = "block";
+    dashboard.style.display = "block";
+    abrirVista("dashboardView");
   }
 }
 function aplicarPermisos() {
@@ -563,7 +758,15 @@ function aplicarPermisos() {
     adminBtn.style.display = "flex";
   }
 }
-async function verHistorial() {
+  async function cargarDashboard() {
+  const res = await apiFetch("/stats");
+  const data = await res.json();
+  totalEdificios.innerText =
+    data.totalEdificios;
+  visitados.innerText =
+    data.visitados;
+}
+  async function verHistorial() {
   const dir = prompt("Dirección:");
   if (!dir) return;
   const b = await apiFetch(`/building/${encodeURIComponent(dir)}`);
@@ -592,20 +795,26 @@ async function verHistorial() {
   html += `</div>`;
   adminContenido.innerHTML = html;
 }
-async function verTerritorios() {
-  const t = prompt("Territorio:");
+async function buscarTerritorioAdmin() {
+  const t =
+    territorioAdminInput.value;
   if (!t) return;
-  const res = await apiFetch(`/territory/${t}`);
+  const res =
+    await apiFetch(`/territory/${t}`);
   const data = await res.json();
   let html = "";
   data.forEach(b => {
     html += `
-      <div class="card-container" style="margin-bottom:10px;">
-        ${b.address}
+      <div
+        class="card-container"
+        style="margin-bottom:10px;"
+      >
+        <b>${b.address}</b><br>
+        🗺 ${b.territory || "-"}
       </div>
     `;
   });
-  adminContenido.innerHTML = html;
+  territorioResultados.innerHTML = html;
 }
 async function verListado() {
   const res = await apiFetch("/admin/buildings");
@@ -783,32 +992,7 @@ async function guardarEdificio(id = null) {
 }
   </script>
     
-<!-- PANEL ADMIN -->
-<div
-  id="panelAdmin"
-  style="
-    display:none;
-    margin-top:20px;
-    background:#1e1e1e;
-    padding:15px;
-    border-radius:18px;
-  "
->
-  <h2>⚙ Panel</h2>
-  <button class="secondary" onclick="verHistorial()">
-    📊 Historial
-  </button>
-  <button class="secondary" onclick="verTerritorios()">
-    🗺 Territorios
-  </button>
-  <button class="secondary" onclick="verListado()">
-    🏢 Listado
-  </button>
-  <button class="secondary" onclick="verProblemas()">
-    ⚠ Problemas
-  </button>
-  <div id="adminContenido" style="margin-top:15px;"></div>
-</div>
+
 <!-- MODAL REPORTE -->
 <div
   id="modalReporte"
