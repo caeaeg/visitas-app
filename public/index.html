@@ -250,21 +250,17 @@
   gap:12px;
   margin-bottom:18px;
 }
-
 .statCard{
   background:#1e1e1e;
   border:1px solid #2d2d2d;
   border-radius:18px;
   padding:18px;
-
   box-shadow:
     0 5px 15px rgba(0,0,0,.06);
 }
-
 .statCard span{
   font-size:22px;
 }
-
 .statCard h2{
   .statCard p{
   color:#a8a8a8;
@@ -277,6 +273,56 @@
   width:auto;
   padding:12px 18px;
   border-radius:999px;
+}
+  .appShell{
+  max-width:900px;
+  margin:auto;
+}
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
+  padding:14px 18px;
+  background:#1b1b1b;
+  border:1px solid #2b2b2b;
+  border-radius:20px;
+  box-shadow:
+    0 10px 30px rgba(0,0,0,.25);
+}
+.topbarTitle{
+  font-size:22px;
+  font-weight:bold;
+  color:white;
+}
+.topbarSub{
+  font-size:13px;
+  color:#9e9e9e;
+  margin-top:2px;
+}
+.topbarActions{
+  display:flex;
+  gap:10px;
+}
+.miniBtn{
+  width:auto;
+  min-height:auto;
+  padding:10px 16px;
+  border-radius:12px;
+  background:#2b2b2b;
+  color:white;
+  border:1px solid #3a3a3a;
+}
+.view{
+  margin-top:20px;
+}
+.sectionCard{
+  background:#1b1b1b;
+  border:1px solid #2b2b2b;
+  border-radius:22px;
+  padding:18px;
+  box-shadow:
+    0 10px 25px rgba(0,0,0,.22);
 }
 </style>
 </head>
@@ -302,10 +348,29 @@
     <p id="loginMsg"></p>
   </div>
 </div>
-   <div
+  <div
   id="mainDashboard"
+  class="appShell"
   style="display:none;"
 >
+<div class="topbar">
+  <div>
+    <div class="topbarTitle">
+      📍 Visitas
+    </div>
+    <div class="topbarSub">
+      Sistema de territorios
+    </div>
+  </div>
+  <div class="topbarActions">
+    <button
+      class="miniBtn"
+      onclick="logout()"
+    >
+      Salir
+    </button>
+  </div>
+</div>
 <div id="dashboardView" class="view active">
   <h2>⚙ Panel</h2>
   <div class="dashboardGrid">
@@ -394,7 +459,7 @@
  <button
   id="adminBtn"
   onclick="abrirPanelAdmin()"
-  style="display:none;"
+  style="display:none; margin-top:20px;"
 >
   ⚙
 </button>   
@@ -737,8 +802,11 @@ window.addEventListener("load", async () => {
     .classList.add("active");
   // cargar dashboard
   if (id === "territorioView") {
-    cargarDashboard();
-  }
+  cargarDashboard();
+  appContainer.style.display = "block";
+} else {
+  appContainer.style.display = "none";
+}
   // cargar edificios
   if (id === "edificiosView") {
     verListado();
