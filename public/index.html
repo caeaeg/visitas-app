@@ -295,10 +295,7 @@
 .statCard p{
   color:#a8a8a8;
 }
-  color:white;
-  margin:10px 0 0;
-  font-size:28px;
-}
+  
     .backModern{
   width:auto;
   padding:12px 18px;
@@ -500,19 +497,44 @@
 <div id="dashboardView" class="view active">
   <h2>⚙ Panel</h2>
   <div class="dashboardGrid">
-    <div
-      class="dashboardCard"
-      onclick="abrirVista('territorioView')"
-    >
-      <div class="icon">🗺</div>
-      <h3>Territorios</h3>
-      <p>Mapa, estadísticas y búsqueda</p>
-    </div>
-    
-      <div class="icon">🏢</div>
-      <h3>Edificios</h3>
-      <p>Listado y edición</p>
-    </div>
+
+  <div
+    class="dashboardCard"
+    onclick="abrirVista('territorioView')"
+  >
+    <div class="icon">🗺</div>
+    <h3>Territorios</h3>
+    <p>Mapa, estadísticas y búsqueda</p>
+  </div>
+
+  <div
+    class="dashboardCard"
+    onclick="verListado()"
+  >
+    <div class="icon">🏢</div>
+    <h3>Edificios</h3>
+    <p>Listado y edición</p>
+  </div>
+
+  <div
+    class="dashboardCard"
+    onclick="abrirEditorEdificio()"
+  >
+    <div class="icon">➕</div>
+    <h3>Nuevo edificio</h3>
+    <p>Agregar rápidamente</p>
+  </div>
+
+  <div
+    class="dashboardCard"
+    onclick="abrirVista('problemasView')"
+  >
+    <div class="icon">⚠</div>
+    <h3>Problemas</h3>
+    <p>Reportes pendientes</p>
+  </div>
+
+</div>
     <div
       class="dashboardCard"
       onclick="abrirEditorEdificio()"
@@ -1007,12 +1029,16 @@ async function login() {
 }
 function iniciarApp() {
   loginScreen.style.display = "none";
-  mainDashboard.style.display = "block";
-  sidebar.style.display = "flex";
-  console.log("Usuario:", currentUser);
-  console.log("Rol:", currentRole);
+
   aplicarPermisos();
-  abrirVista("dashboardView");
+
+  if (currentRole === "predi") {
+    appContainer.style.display = "block";
+  } else {
+    mainDashboard.style.display = "block";
+    abrirVista("dashboardView");
+  }
+
   console.log("Sesión iniciada");
 }
   function logout() {
