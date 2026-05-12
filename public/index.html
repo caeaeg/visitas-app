@@ -288,7 +288,11 @@
   font-size:22px;
 }
 .statCard h2{
-  .statCard p{
+  color:white;
+  margin:10px 0 0;
+  font-size:28px;
+}
+.statCard p{
   color:#a8a8a8;
 }
   color:white;
@@ -462,12 +466,7 @@
   >
     🗺
   </button>
-  <button
-    class="sidebarBtn"
-    onclick="abrirVista('edificiosView')"
-  >
-    🏢
-  </button>
+ 
   <button
     class="sidebarBtn"
     onclick="abrirVista('problemasView')"
@@ -509,17 +508,14 @@
       <h3>Territorios</h3>
       <p>Mapa, estadísticas y búsqueda</p>
     </div>
-    <div
-      class="dashboardCard"
-      onclick="abrirVista('edificiosView')"
-    >
+    
       <div class="icon">🏢</div>
       <h3>Edificios</h3>
       <p>Listado y edición</p>
     </div>
     <div
       class="dashboardCard"
-      onclick="abrirVista('editarView')"
+      onclick="abrirEditorEdificio()"
     >
       <div class="icon">➕</div>
       <h3>Nuevo edificio</h3>
@@ -563,6 +559,51 @@
       style="border:0;"
     ></iframe>
   </div>
+  <div class="sectionCard" style="margin-top:20px;">
+  <h3>📋 Edificios</h3>
+  <select id="filtroOrden">
+    <option value="territorio">
+      Ordenar por territorio
+    </option>
+    <option value="masVisitados">
+      Más visitados
+    </option>
+    <option value="menosVisitados">
+      Menos visitados
+    </option>
+  </select>
+  <input
+    id="busquedaTerritorio"
+    placeholder="Buscar territorio"
+  >
+  <button
+    class="buscar"
+    onclick="cargarEdificios()"
+  >
+    Buscar
+  </button>
+  <div id="listaEdificios"></div>
+  <div
+    style="
+      display:flex;
+      gap:10px;
+      margin-top:15px;
+    "
+  >
+    <button
+      class="secondary"
+      onclick="paginaAnterior()"
+    >
+      ←
+    </button>
+    <button
+      class="secondary"
+      onclick="paginaSiguiente()"
+    >
+      →
+    </button>
+  </div>
+</div>
   <input
     id="territorioAdminInput"
     placeholder="Número de territorio"
@@ -575,7 +616,7 @@
   </button>
   <div id="territorioResultados"></div>
 </div>
-  <div id="edificiosView" class="view hidden"></div>
+
   <div id="editarView" class="view hidden"></div>
   <div id="problemasView" class="view hidden"></div>
 </div>
@@ -584,13 +625,6 @@
 <button id="reportBtn" onclick="abrirReporte()">🚨</button>
 <h2>📍 Visitas</h2>
  <button
-  id="adminBtn"
-  onclick="abrirPanelAdmin()"
-  style="display:none; margin-top:20px;"
->
-  ⚙
-</button>   
-<button
   class="secondary"
   onclick="logout()"
 >
@@ -651,6 +685,7 @@
 ➕ Agregar edificio
 </button>
 <script>
+let paginaActual = 1;
 let currentDept = null;
 let currentUser = null;
 let currentRole = null;
@@ -986,20 +1021,32 @@ function iniciarApp() {
   location.reload();
 }
   function aplicarPermisos() {
+  // reset
+  sidebar.style.display = "none";
   // ADMIN
-  if (tienePermiso(["admin"])) {
-    console.log("Modo admin");
+  if (currentRole === "admin") {
+    sidebar.style.display = "flex";
+    document
+      .querySelector(
+        '[onclick="abrirVista(\'problemasView\')"]'
+      ).style.display = "flex";
   }
   // CONDUCTOR
-  if (tienePermiso(["conductor"])) {
-    console.log("Modo conductor");
+  if (currentRole === "conductor") {
+    sidebar.style.display = "flex";
+    document
+      .querySelector(
+        '[onclick="abrirVista(\'problemasView\')"]'
+      ).style.display = "none";
   }
   // PREDI
-  if (tienePermiso(["predi"])) {
-    console.log("Modo predi");
+  if (currentRole === "predi") {
+    sidebar.style.display = "none";
+    mainDashboard.style.display = "none";
+    appContainer.style.display = "block";
   }
 }
-window.addEventListener("load", async () => {
+ window.addEventListener("load", async () => {
   const savedUser = localStorage.getItem("user");
   const savedRole = localStorage.getItem("role");
   if (savedUser && savedRole) {
@@ -1041,23 +1088,8 @@ window.addEventListener("load", async () => {
     verProblemas();
   }
 }
-function abrirPanelAdmin() {
-  const dashboard =
-    document.getElementById("mainDashboard");
-  if (dashboard.style.display === "block") {
-    dashboard.style.display = "none";
-  } else {
-    dashboard.style.display = "block";
-    abrirVista("dashboardView");
-  }
-}
-function aplicarPermisos() {
-  if (
-    tienePermiso(["admin", "conductor"])
-  ) {
-    adminBtn.style.display = "flex";
-  }
-}
+
+
   async function cargarDashboard() {
   const res = await apiFetch("/stats");
   const data = await res.json();
@@ -1065,6 +1097,52 @@ function aplicarPermisos() {
     data.totalEdificios;
   visitados.innerText =
     data.visitados;
+}
+  async function cargarEdificios() {
+  listaEdificios.innerHTML = `
+    <div class="card-container skeleton">
+      <div class="skeletonLine"></div>
+      <div class="skeletonLine"></div>
+      <div class="skeletonLine"></div>
+    </div>
+  `;
+  const filtro =
+    busquedaTerritorio.value;
+  const orden =
+    filtroOrden.value;
+  const res = await apiFetch(
+    `/admin/buildings?page=${paginaActual}&limit=20&territory=${filtro}&sort=${orden}`
+  );
+  const data = await res.json();
+  let html = "";
+  data.data.forEach(b => {
+    html += `
+      <div
+        class="card-container"
+        style="margin-top:12px;"
+      >
+        <b>${b.address}</b><br>
+        🗺 ${b.territory || "-"}<br><br>
+        <button
+          class="secondary"
+          onclick='abrirEditorEdificio(${JSON.stringify(b)})'
+        >
+          ✏ Editar
+        </button>
+      </div>
+    `;
+  });
+  listaEdificios.innerHTML = html;
+}
+function paginaAnterior() {
+  if (paginaActual > 1) {
+    paginaActual--;
+    cargarEdificios();
+  }
+}
+function paginaSiguiente() {
+  paginaActual++;
+  cargarEdificios();
 }
   async function verHistorial() {
   const dir = prompt("Dirección:");
