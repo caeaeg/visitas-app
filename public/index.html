@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Visitas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    input, button, select, textarea {
+      box-sizing: border-box;
+    }
+    .mapaBox {
+      overflow: hidden;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.12);
+      margin-top: 15px;
+    }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 19px;
+      line-height: 1.5;
+      letter-spacing: 0.3px;
+      padding: 15px;
+      padding-top: 30px;
+      background: #121212;
+      color: #e0e0e0;
+    }
+    h2 {
+      text-align: center;
+      font-size: 28px;
+      margin-bottom: 20px;
+      color: white;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      padding: 10px;
+    }
+    .card-container {
+      transition: .25s ease;
+      background: #1e1e1e;
+      border-radius: 18px;
+      padding: 15px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.45);
+    }
+    input, button, select, textarea {
+      width: 100%;
+      padding: 16px;
+      margin: 10px 0;
+      font-size: 18px;
+      border-radius: 12px;
+      background: #2a2a2a;
+      color: white;
+      border: 1px solid #444;
+      transition: background .2s ease, border .2s ease, transform .15s ease;
+    }
+    input::placeholder, textarea::placeholder {
+      color: #bdbdbd;
+    }
+    .buscar {
+      background: #2196F3;
+      color: white;
+      width: 100%;
+    }
+    .ok {
+      background: linear-gradient(135deg, #43a047, #2e7d32);
+      color: white;
+      width: 100%;
+      min-height: 68px;
+      font-size: 20px;
+      border-radius: 18px;
+      box-shadow: 0 10px 25px rgba(76,175,80,.25);
+    }
+    .no {
+      background: linear-gradient(135deg, #ef5350, #c62828);
+      color: white;
+      width: 100%;
+      min-height: 68px;
+      font-size: 20px;
+      border-radius: 18px;
+      box-shadow: 0 10px 25px rgba(244,67,54,.22);
+    }
+    .secondary {
+      background: #555;
+      color: white;
+      width: 100%;
+    }
+    #adminBtn {
+      position: fixed;
+      top: 12px;
+      right: 15px;
+      width: 48px;
+      height: 48px;
+      border: none;
+      border-radius: 14px;
+      background: #1f1f1f;
+      color: white;
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 999;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+      transition: all 0.2s ease;
+    }
+    #adminBtn:hover { transform: scale(1.05); }
+    #adminBtn:active { transform: scale(0.96); }
+
+    #modalReporte .modalContent {
+      background: #1f1f1f;
+      color: white;
+    }
+    #reportBtn {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ff9800;
+      color: white;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      font-size: 22px;
+      display: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+      transition: 0.3s;
+      z-index: 1000;
+    }
+    .alerta {
+      background: #f44336 !important;
+    }
+    #infoEdificio {
+      background: #1f1f1f;
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 10px;
+      display: none;
+      font-size: 14px;
+      border: 1px solid #333;
+    }
+    #listaTerritorio button {
+      width: 100%;
+      text-align: left;
+      background: #1f1f1f;
+      margin: 5px 0;
+      border: 1px solid #333;
+    }
+    .link {
+      color: #64b5ff;
+      cursor: pointer;
+      text-decoration: underline;
+      font-size: 15px;
+      text-align: center;
+      margin: 10px 0;
+    }
+    button {
+      cursor: pointer;
+      min-height: 55px;
+      font-weight: bold;
+      transition: all 0.2s ease;
+      border: none;
+    }
+    button:active {
+      transform: scale(0.97);
+    }
+    #loginScreen {
+      position: fixed;
+      inset: 0;
+      background: #121212;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .loginCard {
+      width: 100%;
+      max-width: 400px;
+      background: #1e1e1e;
+      padding: 28px;
+      border-radius: 22px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.45);
+    }
+    .loginCard h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: white;
+      font-size: 30px;
+    }
+    #loginMsg {
+      text-align: center;
+      margin-top: 10px;
+      color: #ff8a80;
+      min-height: 20px;
+    }
+    .view {
+      display: none;
+      animation: fade .25s ease;
+      margin-top: 20px;
+    }
+    .view.active {
+      display: block;
+    }
+    .dashboardGrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 20px;
+    }
+    .dashboardCard {
+      background: #1e1e1e;
+      border-radius: 20px;
+      padding: 22px;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(0,0,0,.08);
+      transition: .2s ease;
+    }
+    .dashboardCard:hover {
+      transform: translateY(-3px);
+    }
+    .dashboardCard .icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+    .dashboardCard h3 {
+      color: white;
+      margin: 0;
+      font-size: 18px;
+    }
+    .dashboardCard p {
+      color: gray;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+    @keyframes fade {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: none; }
+    }
+    .statsGrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .statCard {
+      background: #1e1e1e;
+      border: 1px solid #2d2d2d;
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 5px 15px rgba(0,0,0,.06);
+    }
+    .statCard span { font-size: 22px; }
+    .statCard h2 { color: white; margin: 10px 0 0; font-size: 28px; }
+    .statCard p { color: #a8a8a8; }
+    
+    .backModern {
+      width: auto;
+      padding: 12px 18px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+    .appShell {
+      max-width: 900px;
+      margin: auto;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 14px 18px;
+      background: #1b1b1b;
+      border: 1px solid #2b2b2b;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+    .topbarTitle { font-size: 22px; font-weight: bold; color: white; }
+    .topbarSub { font-size: 13px; color: #9e9e9e; margin-top: 2px; }
+    .topbarActions { display: flex; gap: 10px; }
+    
+    .miniBtn {
+      width: auto;
+      min-height: auto;
+      padding: 10px 16px;
+      border-radius: 12px;
+      background: #2b2b2b;
+      color: white;
+      border: 1px solid #3a3a3a;
+    }
+    .sectionCard {
+      background: #1b1b1b;
+      border: 1px solid #2b2b2b;
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: 0 10px 25px rgba(0,0,0,.22);
+    }
+    .sidebar {
+      position: fixed;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 999;
+    }
+    .sidebarBtn {
+      width: 58px;
+      height: 58px;
+      border-radius: 18px;
+      background: #1d1d1d;
+      border: 1px solid #2d2d2d;
+      color: white;
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(0,0,0,.35);
+      transition: .22s ease;
+    }
+    .sidebarBtn:hover { transform: translateY(-3px); background: #2b2b2b; }
+    .sidebarBtn.active { background: #2196F3; }
+
+    @media(max-width:700px){
+      .sidebar {
+        left: 50%;
+        bottom: 14px;
+        top: auto;
+        transform: translateX(-50%);
+        flex-direction: row;
+      }
+    }
+    .skeleton { position: relative; overflow: hidden; background: #242424; border-radius: 16px; }
+    .skeleton::after {
+      content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent);
+      animation: skeleton 1.2s infinite;
+    }
+    @keyframes skeleton { 100% { transform: translateX(100%); } }
+    .skeletonLine { height: 20px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="loginCard">
+    <h2>🔐 Acceso</h2>
+    <input id="loginUser" placeholder="Usuario" autocomplete="username">
+    <input id="loginPass" type="password" placeholder="Contraseña" autocomplete="current-password">
+    <button class="buscar" onclick="login()">Ingresar</button>
+    <p id="loginMsg"></p>
+  </div>
+</div>
+
+<div class="sidebar" id="sidebar" style="display:none;">
+  <button class="sidebarBtn" onclick="abrirVista('dashboardView')">🏠</button>
+  <button class="sidebarBtn" onclick="abrirVista('territorioView')">🗺</button>
+  <button class="sidebarBtn" onclick="abrirVista('problemasView')">⚠</button>
+</div>
+
+<div id="mainDashboard" class="appShell" style="display:none;">
+  <div class="topbar">
+    <div>
+      <div class="topbarTitle">📍 Visitas</div>
+      <div class="topbarSub">Sistema de territorios</div>
+    </div>
+    <div class="topbarActions">
+      <button class="miniBtn" onclick="logout()">Salir</button>
+    </div>
+  </div>
+
+  <div id="dashboardView" class="view active">
+    <h2>⚙ Panel Control</h2>
+    <div class="dashboardGrid">
+      <div class="dashboardCard" onclick="abrirVista('territorioView')">
+        <div class="icon">🗺</div>
+        <h3>Territorios</h3>
+        <p>Mapa, estadísticas y búsqueda</p>
+      </div>
+      <div class="dashboardCard" onclick="verListado()">
+        <div class="icon">🏢</div>
+        <h3>Edificios</h3>
+        <p>Listado y edición</p>
+      </div>
+      <div class="dashboardCard" onclick="abrirEditorEdificio()">
+        <div class="icon">➕</div>
+        <h3>Nuevo edificio</h3>
+        <p>Agregar rápidamente</p>
+      </div>
+      <div class="dashboardCard" onclick="abrirVista('problemasView')">
+        <div class="icon">⚠</div>
+        <h3>Problemas</h3>
+        <p>Reportes pendientes</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="territorioView" class="view">
+    <button class="secondary backModern" onclick="abrirVista('dashboardView')">← Volver</button>
+    <h2>🗺 Territorios</h2>
+    <div class="statsGrid">
+      <div class="statCard">
+        <span>🏢</span>
+        <h2 id="totalEdificios">-</h2>
+        <p>Edificios</p>
+      </div>
+      <div class="statCard">
+        <span>✅</span>
+        <h2 id="visitados">-</h2>
+        <p>Visitados</p>
+      </div>
+    </div>
+    
+    <div class="mapaBox">
+      <iframe src="https://maps.google.com/maps?q=Posadas,Misiones&t=&z=13&ie=UTF8&iwloc=&output=embed" width="100%" height="400" style="border:0;"></iframe>
+    </div>
+
+    <div class="sectionCard" style="margin-top:20px;">
+      <h3>📋 Edificios</h3>
+      <select id="filtroOrden">
+        <option value="territorio">Ordenar por territorio</option>
+        <option value="masVisitados">Más visitados</option>
+        <option value="menosVisitados">Menos visitados</option>
+      </select>
+      <input id="busquedaTerritorio" placeholder="Buscar territorio">
+      <button class="buscar" onclick="cargarEdificios()">Buscar</button>
+      
+      <div id="listaEdificios"></div>
+      
+      <div style="display:flex; gap:10px; margin-top:15px;">
+        <button class="secondary" onclick="paginaAnterior()">←</button>
+        <button class="secondary" onclick="paginaSiguiente()">→</button>
+      </div>
+    </div>
+
+    <div class="sectionCard" style="margin-top:20px;">
+      <h3>🛠 Administración</h3>
+      <input id="territorioAdminInput" placeholder="Número de territorio">
+      <button class="buscar" onclick="buscarTerritorioAdmin()">Buscar territorio</button>
+      <div id="territorioResultados"></div>
+    </div>
+  </div>
+
+  <div id="editarView" class="view"></div>
+  <div id="problemasView" class="view"></div>
+</div>
+
+<div class="container" id="appContainer" style="display:none;">
+  <div class="card-container">
+    <button id="reportBtn" onclick="abrirReporte()">🚨</button>
+    <h2>📍 Visitas (Móvil)</h2>
+    <button class="secondary" onclick="logout()" style="margin-bottom: 15px;">Cerrar sesión</button>
+    
+    <input id="buildingId" placeholder="Código o dirección" onkeypress="if(event.key==='Enter') buscar()">
+    <div class="link" onclick="buscarPorTerritorio()">Buscar por territorio</div>
+    
+    <p id="mensajeInicial" style="text-align:center;">Ingresá una dirección para comenzar</p>
+    <button class="buscar" onclick="buscar()">Buscar</button>
+    
+    <div id="infoEdificio"></div>
+    <div id="listaTerritorio"></div>
+    <h3 id="resultado" style="text-align:center;"></h3>
+    
+    <textarea id="nota" placeholder="Nota de la visita..." style="display:none;"></textarea>
+    
+    <button id="btnOk" class="ok" onclick="marcar('ATENDIO')" style="display:none;">✔ ATENDIÓ</button>
+    <button id="btnNo" class="no" onclick="marcar('NO_EN_CASA')" style="display:none;">✖ NO EN CASA</button>
+    <button id="btnSiguiente" class="secondary" onclick="siguiente()" style="display:none;">➡ Siguiente depto</button>
+    <button id="btnNuevoEdificio" class="secondary" onclick="crearEdificio()" style="display:none;">➕ Agregar edificio</button>
+  </div>
+</div>
+
+<div id="modalReporte" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index: 10000;">
+  <div class="modalContent" style="padding:20px; border-radius:18px; width:90%; max-width:400px; background: #1f1f1f; color: white;">
+    <h3>⚠ Reportar problema</h3>
+    <select id="tipoProblema">
+      <option value="ERROR_DATO">Dato incorrecto</option>
+      <option value="ACCESO">Problema de acceso</option>
+      <option value="OTRO">Otro</option>
+    </select>
+    <textarea id="descProblema" placeholder="Detalles del problema..."></textarea>
+    <button onclick="enviarReporte()" class="ok">Enviar</button>
+    <button onclick="cerrarReporte()" class="secondary">Cancelar</button>
+  </div>
+</div>
+
+<script>
+let paginaActual = 1;
+let currentDept = null;
+let currentUser = null;
+let currentRole = null;
+let currentBuildingId = null;
+
+async function apiFetch(url, options = {}) {
+  const headers = {
+    ...(options.headers || {}),
+    "x-user": currentUser,
+    "x-role": currentRole
+  };
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = headers["Content-Type"] || "application/json";
+  }
+  const response = await fetch(url, { ...options, headers });
+  if (response.status === 401) {
+    logout();
+    alert("Sesión expirada");
+  }
+  if (response.status === 403) {
+    alert("No tenés permisos");
+  }
+  return response;
+}
+
+function tienePermiso(roles) {
+  return roles.includes(currentRole);
+}
+
+async function buscar() {
+  limpiarVista();
+  const input = normalizarDireccion(buildingId.value);
+  if (!input) return;
+  mensajeInicial.style.display = "none";
+  const b = await apiFetch(`/building/${encodeURIComponent(input)}`);
+  const building = await b.json();
+  if (!building._id) {
+    resultado.innerText = "Edificio no encontrado";
+    btnNuevoEdificio.style.display = "block";
+    return;
+  }
+  currentBuildingId = building._id;
+  await cargarDepto();
+}
+
+async function buscarPorTerritorio() {
+  limpiarVista();
+  const territorio = prompt("Número de territorio:");
+  if (!territorio) return;
+  const res = await apiFetch(`/territory/${territorio}`);
+  const data = await res.json();
+  if (!data.length) {
+    listaTerritorio.innerHTML = "<p style='text-align:center;'>No hay edificios asignados</p>";
+    return;
+  }
+  listaTerritorio.innerHTML = "";
+  data.forEach(b => {
+    const btn = document.createElement("button");
+    btn.innerText = b.address;
+    btn.onclick = () => {
+      currentBuildingId = b._id;
+      cargarDepto();
+    };
+    listaTerritorio.appendChild(btn);
+  });
+}
+
+async function cargarDepto() {
+  const res = await apiFetch(`/next/${currentBuildingId}`);
+  const data = await res.json();
+  if (data.message === "NO_AVAILABLE") {
+    resultado.innerText = "No hay departamentos disponibles";
+    return;
+  }
+  currentDept = data.dept;
+  resultado.innerHTML = `
+    <div style="margin-top:18px; text-align:center;">
+      <div style="font-size:18px; color:#9e9e9e; margin-bottom:10px;">Departamento</div>
+      <div style="font-size:72px; font-weight:bold; color:white; line-height:1; text-shadow: 0 5px 20px rgba(0,0,0,.35);">${data.dept.number}</div>
+    </div>
+  `;
+  nota.style.display = "block";
+  btnOk.style.display = "block";
+  btnNo.style.display = "block";
+  reportBtn.style.display = "block";
+  btnOk.disabled = false;
+  btnNo.disabled = false;
+  await mostrarInfoEdificio();
+}
+
+async function mostrarInfoEdificio() {
+  const res = await apiFetch(`/building-info/${currentBuildingId}`);
+  const data = await res.json();
+  infoEdificio.style.display = "block";
+  infoEdificio.innerHTML = `
+    <div class="sectionCard">
+      <div style="display:flex; justify-content:space-between; items-start:flex-start; gap:10px;">
+        <div>
+          <div style="font-size:24px; font-weight:bold; color:white;">${data.building.address}</div>
+          <div style="color:#9e9e9e; margin-top:4px;">${data.building.address2 || ""}</div>
+        </div>
+        <div style="background:#2b2b2b; padding:8px 12px; border-radius:12px; font-size:13px;">🏢 ${data.building.name || "Edificio"}</div>
+      </div>
+      <div style="margin-top:18px; display:flex; gap:12px; flex-wrap:wrap;">
+        <div style="background:#222; padding:10px 14px; border-radius:14px;">🕒 ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString() : "Nunca"}</div>
+        ${data.issue ? `<div style="background:#3a1f1f; color:#ff8a80; padding:10px 14px; border-radius:14px;">⚠ ${data.issue.description || data.issue.type}</div>` : ""}
+      </div>
+    </div>
+  `;
+  if (data.issue) {
+    reportBtn.classList.add("alerta");
+  } else {
+    reportBtn.classList.remove("alerta");
+  }
+}
+
+async function marcar(status) {
+  if (!currentDept) return;
+  btnOk.disabled = true;
+  btnNo.disabled = true;
+  await apiFetch("/visit", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      departmentId: currentDept._id,
+      status,
+      note: nota.value
+    })
+  });
+  btnSiguiente.style.display = "block";
+}
+
+async function siguiente() {
+  nota.value = "";
+  await cargarDepto();
+}
+
+function abrirReporte() { modalReporte.style.display = "flex"; }
+function cerrarReporte() { modalReporte.style.display = "none"; }
+
+async function enviarReporte() {
+  await apiFetch("/issues", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      buildingId: currentBuildingId,
+      departmentId: currentDept?._id,
+      type: tipoProblema.value,
+      description: descProblema.value
+    })
+  });
+  cerrarReporte();
+}
+
+function crearEdificio() {
+  if (!tienePermiso(["admin", "conductor"])) {
+    alert("No tenés permisos");
+    return;
+  }
+  abrirEditorEdificio();
+}
+
+function normalizarDireccion(dir) {
+  return dir
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\bav\b|\bav\.\b/g, "avenida")
+    .replace(/\bgral\b/g, "general")
+    .replace(/\bdr\b|\bdr\.\b/g, "doctor")
+    .replace(/[^a-z0-9 ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function limpiarVista() {
+  listaTerritorio.innerHTML = "";
+  resultado.innerText = "";
+  infoEdificio.style.display = "none";
+  nota.style.display = "none";
+  btnOk.style.display = "none";
+  btnNo.style.display = "none";
+  btnSiguiente.style.display = "none";
+  btnNuevoEdificio.style.display = "none";
+  reportBtn.style.display = "none";
+}
+
+async function login() {
+  const username = loginUser.value.trim();
+  const password = loginPass.value.trim();
+  loginMsg.innerText = "";
+  if (!username || !password) {
+    loginMsg.innerText = "Completá usuario y contraseña";
+    return;
+  }
+  const res = await fetch("/login", {
+    method: "POST",
+    headers: { "Content-Type":"application/json" },
+    body: JSON.stringify({ username, password })
+  });
+  const data = await res.json();
+  if (!data.ok) {
+    loginMsg.innerText = "Usuario o contraseña incorrectos";
+    return;
+  }
+  currentUser = data.username;
+  currentRole = data.role;
+  localStorage.setItem("user", data.username);
+  localStorage.setItem("role", data.role);
+  iniciarApp();
+}
+
+function iniciarApp() {
+  loginScreen.style.display = "none";
+  aplicarPermisos();
+  
+  if (currentRole === "predi") {
+    appContainer.style.display = "block";
+    mainDashboard.style.display = "none";
+  } else {
+    mainDashboard.style.display = "block";
+    appContainer.style.display = "none";
+    abrirVista("dashboardView");
+  }
+}
+
+function logout() {
+  localStorage.removeItem("user");
+  localStorage.removeItem("role");
+  location.reload();
+}
+
+function aplicarPermisos() {
+  sidebar.style.display = "none";
+  const btnProblemas = document.querySelector('#dashboardView [onclick="abrirVista(\'problemasView\')"]');
+
+  if (currentRole === "admin") {
+    sidebar.style.display = "flex";
+    if (btnProblemas) btnProblemas.style.display = "block";
+  }
+  if (currentRole === "conductor") {
+    sidebar.style.display = "flex";
+    if (btnProblemas) btnProblemas.style.display = "none";
+  }
+  if (currentRole === "predi") {
+    sidebar.style.display = "none";
+  }
+}
+
+window.addEventListener("load", async () => {
+  const savedUser = localStorage.getItem("user");
+  const savedRole = localStorage.getItem("role");
+  if (savedUser && savedRole) {
+    currentUser = savedUser;
+    currentRole = savedRole;
+    iniciarApp();
+  }
+  const params = new URLSearchParams(window.location.search);
+  const buildingIdParam = params.get("building");
+  if (buildingIdParam) {
+    currentBuildingId = buildingIdParam;
+    mensajeInicial.style.display = "none";
+    await cargarDepto();
+  }
+});
+
+function abrirVista(id) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  const vistaObjetivo = document.getElementById(id);
+  if (vistaObjetivo) vistaObjetivo.classList.add("active");
+
+  if (id === "territorioView") {
+    cargarDashboard();
+  }
+  if (id === "edificiosView") {
+    verListado();
+  }
+  if (id === "problemasView") {
+    verProblemas();
+  }
+}
+
+async function cargarDashboard() {
+  const res = await apiFetch("/stats");
+  const data = await res.json();
+  totalEdificios.innerText = data.totalEdificios;
+  visitados.innerText = data.visitados;
+}
+
+async function cargarEdificios() {
+  listaEdificios.innerHTML = `
+    <div class="card-container skeleton">
+      <div class="skeletonLine"></div>
+      <div class="skeletonLine"></div>
+      <div class="skeletonLine"></div>
+    </div>
+  `;
+  const filtro = busquedaTerritorio.value;
+  const orden = filtroOrden.value;
+  const res = await apiFetch(`/admin/buildings?page=${paginaActual}&limit=20&territory=${filtro}&sort=${orden}`);
+  const data = await res.json();
+  let html = "";
+  data.data.forEach(b => {
+    html += `
+      <div class="card-container" style="margin-top:12px;">
+        <b>${b.address}</b><br>
+        🗺 ${b.territory || "-"}<br><br>
+        <button class="secondary" onclick='abrirEditorEdificio(${JSON.stringify(b)})'>✏ Editar</button>
+      </div>
+    `;
+  });
+  listaEdificios.innerHTML = html;
+}
+
+function paginaAnterior() {
+  if (paginaActual > 1) {
+    paginaActual--;
+    cargarEdificios();
+  }
+}
+function paginaSiguiente() {
+  paginaActual++;
+  cargarEdificios();
+}
+
+async function buscarTerritorioAdmin() {
+  const t = territorioAdminInput.value;
+  if (!t) return;
+  territorioResultados.innerHTML = `
+    <div class="card-container skeleton">
+      <div class="skeletonLine"></div>
+      <div class="skeletonLine"></div>
+    </div>
+  `;
+  const res = await apiFetch(`/territory/${t}`);
+  const data = await res.json();
+  let html = "";
+  data.forEach(b => {
+    html += `
+      <div class="card-container" style="margin-bottom:10px;">
+        <b>${b.address}</b><br>
+        🗺 ${b.territory || "-"}
+      </div>
+    `;
+  });
+  territorioResultados.innerHTML = html;
+}
+
+async function verListado() {
+  abrirVista("editarView"); // Redirecciona al contenedor dinámico
+  const res = await apiFetch("/admin/buildings");
+  const result = await res.json();
+  let html = "";
+  result.data.forEach(b => {
+    html += `
+      <div class="card-container" style="margin-bottom:10px;">
+        <b>${b.address}</b><br>
+        Territorio: ${b.territory || "-"}<br><br>
+        <button class="secondary" onclick='abrirEditorEdificio(${JSON.stringify(b)})'>✏ Editar</button>
+      </div>
+    `;
+  });
+  document.getElementById("editarView").innerHTML = `
+    <button class="secondary backModern" onclick="abrirVista('dashboardView')">← Volver</button>
+    <h2>🏢 Edificios</h2>
+    ${html}
+  `;
+}
+
+async function verProblemas() {
+  const res = await apiFetch("/issues");
+  const data = await res.json();
+  let html = "";
+  data.forEach(i => {
+    html += `
+      <div class="card-container" style="margin-bottom:10px;">
+        <b>${i.type}</b><br>
+        ${i.description || "-"}
+      </div>
+    `;
+  });
+  const probView = document.getElementById("problemasView");
+  probView.innerHTML = `
+    <button class="secondary backModern" onclick="abrirVista('dashboardView')">← Volver</button>
+    <h2>⚠ Problemas</h2>
+    ${html}
+  `;
+}
+
+function abrirEditorEdificio(building = null) {
+  abrirVista("editarView");
+  let html = `
+    <div class="card-container">
+      <h3>${building ? "✏ Editar edificio" : "➕ Nuevo edificio"}</h3>
+      <input id="edit_address" placeholder="Dirección" value="${building?.address || buildingId.value || ""}">
+      <input id="edit_address2" placeholder="Dirección 2" value="${building?.address2 || ""}">
+      <input id="edit_name" placeholder="Nombre" value="${building?.name || ""}">
+      <input id="edit_territory" placeholder="Territorio" value="${building?.territory || ""}">
+      <input id="edit_floors" type="number" placeholder="Pisos" value="${building?.floors || ""}">
+      <input id="edit_units" type="number" placeholder="Deptos por piso" value="${building?.unitsPerFloor || ""}">
+      <label><input type="checkbox" id="edit_pb" ${building?.hasGroundFloor ? "checked" : ""}> Planta baja</label>
+      <label><input type="checkbox" id="edit_portero" ${building?.hasDoorman ? "checked" : ""}> Portero</label>
+      <textarea id="edit_description" placeholder="Descripción">${building?.description || ""}</textarea>
+      <button class="ok" onclick='${building ? `guardarEdificio("${building._id}")` : `guardarEdificio()`}'>💾 Guardar</button>
+    </div>
+  `;
+  document.getElementById("editarView").innerHTML = `
+    <button class="secondary backModern" onclick="abrirVista('dashboardView')">← Volver</button>
+    ${html}
+  `;
+}
+
+async function guardarEdificio(id = null) {
+  const address = normalizarDireccion(edit_address.value);
+  const payload = {
+    address,
+    address2: edit_address2.value,
+    name: edit_name.value,
+    territory: edit_territory.value,
+    floors: Number(edit_floors.value),
+    unitsPerFloor: Number(edit_units.value),
+    hasGroundFloor: edit_pb.checked,
+    hasDoorman: edit_portero.checked,
+    description: edit_description.value
+  };
+  const res = await apiFetch(id ? `/building/${id}` : "/building", {
+    method: id ? "PUT" : "POST",
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (data.error) {
+    alert(data.error);
+    return;
+  }
+  alert("Guardado correctamente");
+  if (data.building?._id) {
+    currentBuildingId = data.building._id;
+    // Si es rol predi, va al depto. Si no, vuelve al panel.
+    if(currentRole === "predi") {
+      iniciarApp();
+      await cargarDepto();
+    } else {
+      abrirVista("dashboardView");
+    }
+  }
+}
+</script>
+</body>
+</html>
