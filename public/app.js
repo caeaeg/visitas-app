@@ -4,19 +4,26 @@
  */
 // --- FUNCIONES DE NAVEGACIÓN Y VISTAS ---
 
+// --- FUNCIONES DE NAVEGACIÓN Y VISTAS ---
 function abrirVista(id) {
   // Ocultar todas las vistas
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-  
-  // Activar la vista objetivo
+    // Activar la vista objetivo
   const vistaObjetivo = document.getElementById(id);
   if (vistaObjetivo) vistaObjetivo.classList.add("active");
-
   // Acciones específicas según la vista
   if (id === "territorioView") {
     cargarDashboard();
-    // Centrar mapa por defecto en Posadas al abrir territorios
-    inicializarMapaLeaflet(null, null, "Posadas");
+        // 🔥 EL TRUCO MÁGICO: Si el mapa ya existe, forzamos el re-cálculo para que aparezca.
+    // Si no existe, lo creamos de cero pasando coordenadas para que se dibuje el GeoJSON.
+    if (leafletMap) {
+      setTimeout(() => {
+        leafletMap.invalidateSize();
+      }, 100);
+    } else {
+      // Centrar mapa por defecto en Posadas (-27.36708, -55.89608) al abrir territorios de cero
+      inicializarMapaLeaflet(-27.36708, -55.89608, "Posadas");
+    }
   }
   if (id === "editarView") {
     // Si se abre vacía, es para listar o rellenar con el editor
