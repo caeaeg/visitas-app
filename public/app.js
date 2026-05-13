@@ -2,26 +2,38 @@
  * APP.JS - Lógica de Control y Conexión con la API
  * Sistema de Gestión de Territorios y Visitas
  */
-// --- FUNCIONES DE NAVEGACIÓN Y VISTAS ---
+// --- VARIABLES GLOBALES DEL NAVEGADOR ---
+let paginaActual = 1;
+let currentDept = null;
+let currentUser = null;
+let currentRole = null;
+let currentBuildingId = null;
+
+let leafletMap = null;
+let leafletMarker = null;
+
 
 // --- FUNCIONES DE NAVEGACIÓN Y VISTAS ---
+
 function abrirVista(id) {
   // Ocultar todas las vistas
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-    // Activar la vista objetivo
+  
+  // Activar la vista objetivo
   const vistaObjetivo = document.getElementById(id);
   if (vistaObjetivo) vistaObjetivo.classList.add("active");
+
   // Acciones específicas según la vista
   if (id === "territorioView") {
     cargarDashboard();
-        // 🔥 EL TRUCO MÁGICO: Si el mapa ya existe, forzamos el re-cálculo para que aparezca.
-    // Si no existe, lo creamos de cero pasando coordenadas para que se dibuje el GeoJSON.
+    
+    // Si el mapa ya existe, forzamos re-cálculo de tamaño para evitar el bug gris de Leaflet
     if (leafletMap) {
       setTimeout(() => {
         leafletMap.invalidateSize();
       }, 100);
     } else {
-      // Centrar mapa por defecto en Posadas (-27.36708, -55.89608) al abrir territorios de cero
+      // Centrar mapa por defecto en Posadas al abrir territorios de cero
       inicializarMapaLeaflet(-27.36708, -55.89608, "Posadas");
     }
   }
@@ -32,6 +44,34 @@ function abrirVista(id) {
     verProblemas();
   }
 }
+
+
+// --- FUNCIÓN CENTRAL DE PETICIONES HTTP (API FETCH NATIVA) ---
+
+async function apiFetch(url, options = {}) {
+  const headers = {
+    ...(options.headers || {}),
+    "x-user": currentUser,
+    "x-role": currentRole
+  };
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = headers["Content-Type"] || "application/json";
+  }
+  const response = await fetch(url, { ...options, headers });
+  if (response.status === 401) {
+    logout();
+    alert("Sesión expirada");
+  }
+  if (response.status === 403) {
+    alert("No tenés permisos");
+  }
+  return response;
+}
+
+function tienePermiso(roles) {
+  return roles.includes(currentRole);
+}
+
 
 // --- SISTEMA DE AUTENTICACIÓN (LOGIN / LOGOUT) ---
 
@@ -167,7 +207,7 @@ async function buscarPorTerritorio() {
   if (!territorio) return;
 
   try {
-    const res = await apiFetch(`/territory/${territorio}`);
+    const res = await apiFetch(`/territory/${territory}`);
     const data = await res.json();
     
     if (!data.length) {
@@ -195,7 +235,6 @@ async function cargarDepto() {
     const res = await apiFetch(`/next/${currentBuildingId}`);
     const data = await res.json();
     
-    // Limpiamos selectores de búsqueda visuales anteriores
     listaTerritorio.innerHTML = "";
 
     if (data.message === "NO_AVAILABLE" || !data.dept) {
@@ -216,14 +255,13 @@ async function cargarDepto() {
       </div>
     `;
     
-    // Mostrar controles de registro de visita
     nota.style.display = "block";
     btnOk.style.display = "block";
     btnNo.style.display = "block";
     reportBtn.style.display = "block";
     btnOk.disabled = false;
     btnNo.disabled = false;
-    btnSiguiente.style.display = "none"; // Ocultar hasta que marque
+    btnSiguiente.style.display = "none";
     
     await mostrarInfoEdificio();
   } catch (error) {
@@ -561,4 +599,128 @@ function limpiarVista() {
   btnSiguiente.style.display = "none";
   btnNuevoEdificio.style.display = "none";
   reportBtn.style.display = "none";
+}
+
+
+// 🗺️ FUNCIÓN ENCARGADA DE INYECTAR MAPAS Y CAPAS GEOJSON
+function inicializarMapaLeaflet(lat, lng, address = "Edificio") {
+  const defaultLat = -27.36708; // Posadas, Misiones
+  const defaultLng = -55.89608;
+  
+  const mapaLat = lat || defaultLat;
+  const mapaLng = lng || defaultLng;
+
+  if (leafletMap) {
+    leafletMap.remove();
+    leafletMap = null;
+    leafletMarker = null;
+  }
+
+  setTimeout(() => {
+    const mapDiv = document.getElementById('map');
+    if (!mapDiv) return;
+
+    leafletMap = L.map('map').setView([mapaLat, mapaLng], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(leafletMap);
+
+    // DIBUJAR LOS POLÍGONOS DE TERRITORIOS CARGADOS DESDE TERRITORIOS.JS
+    if (typeof misTerritoriosGeoJSON !== 'undefined') {
+      L.geoJSON(misTerritoriosGeoJSON, {
+        style: function(feature) {
+          return {
+            color: "#e67e22",       
+            weight: 2,              
+            opacity: 0.8,
+            fillColor: "#f39c12",   
+            fillOpacity: 0.2        
+          };
+        },
+        onEachFeature: function (feature, layer) {
+          if (feature.properties && feature.properties.Territorio_N) {
+            layer.bindPopup(`<b>Territorio N° ${feature.properties.Territorio_N}</b>`);
+          }
+          layer.on('mouseover', function () { this.setStyle({ fillOpacity: 0.5 }); });
+          layer.on('mouseout', function () { this.setStyle({ fillOpacity: 0.2 }); });
+        }
+      }).addTo(leafletMap);
+    }
+
+    // Agregar marcador único si se pasan coordenadas válidas
+    if (lat && lng) {
+      leafletMarker = L.marker([lat, lng]).addTo(leafletMap)
+        .bindPopup(`<b>${address}</b>`)
+        .openPopup();
+    }
+  }, 50);
+}
+
+
+// 📐 EDITOR DINÁMICO COMPLETO CON CAPTURA VISUAL DE COORDENADAS
+function abrirEditorEdificio(building = null) {
+  abrirVista("editarView");
+  
+  let html = `
+    <div class="card-container">
+      <h3>${building ? "✏ Editar edificio" : "➕ Nuevo edificio"}</h3>
+      <input id="edit_address" placeholder="Dirección" value="${building?.address || (document.getElementById('buildingId')?.value || '')}">
+      <input id="edit_address2" placeholder="Dirección 2" value="${building?.address2 || ''}">
+      <input id="edit_name" placeholder="Nombre" value="${building?.name || ''}">
+      <input id="edit_territory" placeholder="Territorio" value="${building?.territory || ''}">
+      <input id="edit_floors" type="number" placeholder="Pisos" value="${building?.floors || ''}">
+      <input id="edit_units" type="number" placeholder="Deptos por piso" value="${building?.unitsPerFloor || ''}">
+      <input type="hidden" id="edit_lat" value="${building?.latitude || ''}">
+      <input type="hidden" id="edit_lng" value="${building?.longitude || ''}">
+      <label><input type="checkbox" id="edit_pb" ${building?.hasGroundFloor ? 'checked' : ''}> Planta baja</label>
+      <label><input type="checkbox" id="edit_portero" ${building?.hasDoorman ? 'checked' : ''}> Portero</label>
+      <textarea id="edit_description" placeholder="Descripción">${building?.description || ''}</textarea>
+      <p style="font-size:14px; margin-top:10px; color:#bdbdbd;">📍 Tocá el mapa para ubicar o corregir el edificio:</p>
+      
+      <div id="map-editor" class="mapaBox" style="height:250px; margin-bottom:15px;"></div>
+      
+      <button class="ok" onclick='${building ? `guardarEdificio("${building._id}")` : `guardarEdificio()`}'>💾 Guardar</button>
+    </div>
+  `;
+  
+  document.getElementById("editarView").innerHTML = `
+    <button class="secondary backModern" onclick="abrirVista('dashboardView')">← Volver</button>
+    ${html}
+  `;
+
+  // Inicializar sub-mapa de coordenadas usando su contenedor propio
+  setTimeout(() => {
+    const defaultLat = -27.36708;
+    const defaultLng = -55.89608;
+    const initLat = building?.latitude || defaultLat;
+    const initLng = building?.longitude || defaultLng;
+
+    if (leafletMap) {
+      leafletMap.remove();
+      leafletMap = null;
+      leafletMarker = null;
+    }
+
+    leafletMap = L.map('map-editor').setView([initLat, initLng], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(leafletMap);
+
+    if (building?.latitude && building?.longitude) {
+      leafletMarker = L.marker([initLat, initLng]).addTo(leafletMap);
+    }
+
+    leafletMap.on('click', function(e) {
+      const lat = e.latlng.lat;
+      const lng = e.latlng.lng;
+      document.getElementById('edit_lat').value = lat;
+      document.getElementById('edit_lng').value = lng;
+      
+      if (leafletMarker) {
+        leafletMarker.setLatLng(e.latlng);
+      } else {
+        leafletMarker = L.marker(e.latlng).addTo(leafletMap);
+      }
+    });
+  }, 50);
 }
