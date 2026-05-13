@@ -3,6 +3,10 @@
 <head>
   <title>Visitas</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
   <style>
     * {
       box-sizing: border-box;
@@ -15,6 +19,13 @@
       border-radius: 20px;
       box-shadow: 0 10px 30px rgba(0,0,0,.12);
       margin-top: 15px;
+      height: 400px; /* Alto fijo necesario para Leaflet */
+      width: 100%;
+    }
+    /* Fix para evitar que Leaflet rompa la alineación de sus propios textos de mapa */
+    .leaflet-container {
+      text-align: left;
+      font-size: 12px;
     }
     body {
       font-family: Arial, Helvetica, sans-serif;
@@ -413,9 +424,7 @@
       </div>
     </div>
     
-    <div class="mapaBox">
-      <iframe src="https://maps.google.com/maps?q=Posadas,Misiones&t=&z=13&ie=UTF8&iwloc=&output=embed" width="100%" height="400" style="border:0;"></iframe>
-    </div>
+    <div class="mapaBox" id="map"></div>
 
     <div class="sectionCard" style="margin-top:20px;">
       <h3>📋 Edificios</h3>
@@ -492,6 +501,45 @@ let currentDept = null;
 let currentUser = null;
 let currentRole = null;
 let currentBuildingId = null;
+
+// Variables Globales para el Mapa
+let leafletMap = null;
+let leafletMarker = null;
+
+// 🗺️ FUNCIÓN CORE PARA INICIALIZAR O REFRESCAR EL MAPA
+function inicializarMapaLeaflet(lat, lng, address = "Edificio") {
+  const defaultLat = -27.36708; // Posadas, Misiones
+  const defaultLng = -55.89608;
+  
+  const mapaLat = lat || defaultLat;
+  const mapaLng = lng || defaultLng;
+
+  // Si ya existía una instancia del mapa, la destruimos para evitar errores de renderizado
+  if (leafletMap) {
+    leafletMap.remove();
+    leafletMap = null;
+    leafletMarker = null;
+  }
+
+  // Esperar un milisegundo para asegurar que el div "map" esté visible en el DOM
+  setTimeout(() => {
+    const mapDiv = document.getElementById('map');
+    if (!mapDiv) return;
+
+    leafletMap = L.map('map').setView([mapaLat, mapaLng], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(leafletMap);
+
+    if (lat && lng) {
+      leafletMarker = L.marker([lat, lng]).addTo(leafletMap)
+        .bindPopup(`<b>${address}</b>`)
+        .openPopup();
+    }
+  }, 50);
+}
 
 async function apiFetch(url, options = {}) {
   const headers = {
@@ -761,6 +809,8 @@ function abrirVista(id) {
 
   if (id === "territorioView") {
     cargarDashboard();
+    // Centrar mapa por defecto al abrir la vista de territorios
+    inicializarMapaLeaflet(null, null, "Posadas");
   }
   if (id === "edificiosView") {
     verListado();
@@ -790,12 +840,18 @@ async function cargarEdificios() {
   const res = await apiFetch(`/admin/buildings?page=${paginaActual}&limit=20&territory=${filtro}&sort=${orden}`);
   const data = await res.json();
   let html = "";
+  
   data.data.forEach(b => {
+    // Escapar strings de la dirección para pasar seguro por parámetro onclick
+    const addrEscaped = b.address.replace(/'/g, "\\'");
     html += `
       <div class="card-container" style="margin-top:12px;">
         <b>${b.address}</b><br>
         🗺 ${b.territory || "-"}<br><br>
-        <button class="secondary" onclick='abrirEditorEdificio(${JSON.stringify(b)})'>✏ Editar</button>
+        <div style="display:flex; gap:8px;">
+          <button class="buscar" style="min-height:40px; padding:8px;" onclick="inicializarMapaLeaflet(${b.latitude || null}, ${b.longitude || null}, '${addrEscaped}')">👁 Ver Mapa</button>
+          <button class="secondary" style="min-height:40px; padding:8px;" onclick='abrirEditorEdificio(${JSON.stringify(b)})'>✏ Editar</button>
+        </div>
       </div>
     `;
   });
@@ -826,18 +882,27 @@ async function buscarTerritorioAdmin() {
   const data = await res.json();
   let html = "";
   data.forEach(b => {
+    const addrEscaped = b.address.replace(/'/g, "\\'");
     html += `
-      <div class="card-container" style="margin-bottom:10px;">
-        <b>${b.address}</b><br>
-        🗺 ${b.territory || "-"}
+      <div class="card-container" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <b>${b.address}</b><br>
+          🗺 ${b.territory || "-"}
+        </div>
+        <button class="buscar" style="width:auto; min-height:40px; padding:10px;" onclick="inicializarMapaLeaflet(${b.latitude || null}, ${b.longitude || null}, '${addrEscaped}')">🗺️ Ver</button>
       </div>
     `;
   });
   territorioResultados.innerHTML = html;
+  
+  // Al buscar el territorio en administración, si tiene edificios, enfocar el primero en el mapa automáticamente
+  if (data.length > 0) {
+    inicializarMapaLeaflet(data[0].latitude, data[0].longitude, data[0].address);
+  }
 }
 
 async function verListado() {
-  abrirVista("editarView"); // Redirecciona al contenedor dinámico
+  abrirVista("editarView"); 
   const res = await apiFetch("/admin/buildings");
   const result = await res.json();
   let html = "";
@@ -877,6 +942,7 @@ async function verProblemas() {
   `;
 }
 
+// 📐 EDITOR DINÁMICO CON CAPTURA VISUAL DE COORDENADAS
 function abrirEditorEdificio(building = null) {
   abrirVista("editarView");
   let html = `
@@ -888,9 +954,17 @@ function abrirEditorEdificio(building = null) {
       <input id="edit_territory" placeholder="Territorio" value="${building?.territory || ""}">
       <input id="edit_floors" type="number" placeholder="Pisos" value="${building?.floors || ""}">
       <input id="edit_units" type="number" placeholder="Deptos por piso" value="${building?.unitsPerFloor || ""}">
+      
+      <input type="hidden" id="edit_lat" value="${building?.latitude || ""}">
+      <input type="hidden" id="edit_lng" value="${building?.longitude || ""}">
+
       <label><input type="checkbox" id="edit_pb" ${building?.hasGroundFloor ? "checked" : ""}> Planta baja</label>
       <label><input type="checkbox" id="edit_portero" ${building?.hasDoorman ? "checked" : ""}> Portero</label>
       <textarea id="edit_description" placeholder="Descripción">${building?.description || ""}</textarea>
+      
+      <p style="font-size:14px; margin-top:10px; color:#bdbdbd;">📍 Tocá el mapa para ubicar o corregir el edificio:</p>
+      <div id="map" class="mapaBox" style="height:250px; margin-bottom:15px;"></div>
+
       <button class="ok" onclick='${building ? `guardarEdificio("${building._id}")` : `guardarEdificio()`}'>💾 Guardar</button>
     </div>
   `;
@@ -898,42 +972,30 @@ function abrirEditorEdificio(building = null) {
     <button class="secondary backModern" onclick="abrirVista('dashboardView')">← Volver</button>
     ${html}
   `;
-}
 
-async function guardarEdificio(id = null) {
-  const address = normalizarDireccion(edit_address.value);
-  const payload = {
-    address,
-    address2: edit_address2.value,
-    name: edit_name.value,
-    territory: edit_territory.value,
-    floors: Number(edit_floors.value),
-    unitsPerFloor: Number(edit_units.value),
-    hasGroundFloor: edit_pb.checked,
-    hasDoorman: edit_portero.checked,
-    description: edit_description.value
-  };
-  const res = await apiFetch(id ? `/building/${id}` : "/building", {
-    method: id ? "PUT" : "POST",
-    body: JSON.stringify(payload)
-  });
-  const data = await res.json();
-  if (data.error) {
-    alert(data.error);
-    return;
-  }
-  alert("Guardado correctamente");
-  if (data.building?._id) {
-    currentBuildingId = data.building._id;
-    // Si es rol predi, va al depto. Si no, vuelve al panel.
-    if(currentRole === "predi") {
-      iniciarApp();
-      await cargarDepto();
-    } else {
-      abrirVista("dashboardView");
+  // Inicializar mapa de edición con coordenadas guardadas o centro de Posadas
+  setTimeout(() => {
+    const defaultLat = -27.36708;
+    const defaultLng = -55.89608;
+    const initLat = building?.latitude || defaultLat;
+    const initLng = building?.longitude || defaultLng;
+
+    leafletMap = L.map('map').setView([initLat, initLng], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(leafletMap);
+
+    if (building?.latitude && building?.longitude) {
+      leafletMarker = L.marker([initLat, initLng]).addTo(leafletMap);
     }
-  }
-}
-</script>
-</body>
-</html>
+
+    // Evento de captura al cliquear el mapa
+    leafletMap.on('click', (e) => {
+      const clickLat = e.latlng.lat;
+      const clickLng = e.latlng.lng;
+      
+      document.getElementById('edit_lat').value = clickLat;
+      document.getElementById('edit_lng').value = clickLng;
+
+      if (leafletMarker) {
+        leafletMarker.setLatLng(e.latlng);
+      } else {
+        leafletMarker = L.marker([clickLat, clickLng]).addTo(leafletMap);
