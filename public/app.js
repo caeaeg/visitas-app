@@ -602,7 +602,7 @@ function limpiarVista() {
 }
 
 
-// 🗺️ FUNCIÓN ENCARGADA DE INYECTAR MAPAS Y CAPAS GEOJSON
+// 🗺️ FUNCIÓN ENCARGADA DE INYECTAR MAPAS Y CAPAS GEOJSON (Actualizada con colores pasteles y nombres)
 function inicializarMapaLeaflet(lat, lng, address = "Edificio") {
   const defaultLat = -27.36708; // Posadas, Misiones
   const defaultLng = -55.89608;
@@ -627,24 +627,40 @@ function inicializarMapaLeaflet(lat, lng, address = "Edificio") {
       attribution: '© OpenStreetMap'
     }).addTo(leafletMap);
 
+    // Función auxiliar para generar un color pastel aleatorio en formato HEX
+    function generarColorPastelAleatorio() {
+      // Mezclamos un tono al azar (0-255) con blanco (255) sumando y dividiendo por 2
+      const r = Math.floor((Math.random() * 127) + 128).toString(16).padStart(2, '0');
+      const g = Math.floor((Math.random() * 127) + 128).toString(16).padStart(2, '0');
+      const b = Math.floor((Math.random() * 127) + 128).toString(16).padStart(2, '0');
+      return `#${r}${g}${b}`;
+    }
+
     // DIBUJAR LOS POLÍGONOS DE TERRITORIOS CARGADOS DESDE TERRITORIOS.JS
     if (typeof misTerritoriosGeoJSON !== 'undefined') {
       L.geoJSON(misTerritoriosGeoJSON, {
         style: function(feature) {
+          // Generamos un color pastel único para este polígono
+          const colorAleatorio = generarColorPastelAleatorio();
           return {
-            color: "#e67e22",       
-            weight: 2,              
-            opacity: 0.8,
-            fillColor: "#f39c12",   
-            fillOpacity: 0.2        
+            color: colorAleatorio,       // Color del borde
+            weight: 2,                   // Grosor del borde
+            opacity: 0.9,
+            fillColor: colorAleatorio,   // Color del relleno pastel
+            fillOpacity: 0.35            // Opacidad del relleno (un poco más visible para notar los pasteles)
           };
         },
         onEachFeature: function (feature, layer) {
-          if (feature.properties && feature.properties.Territorio_N) {
-            layer.bindPopup(`<b>Territorio N° ${feature.properties.Territorio_N}</b>`);
+          // Modificado para leer 'name' o 'Territorio_N' por las dudas de que varíe el origen
+          const numeroTerritorio = feature.properties && (feature.properties.name || feature.properties.Territorio_N);
+          
+          if (numeroTerritorio) {
+            layer.bindPopup(`<b>Territorio N° ${numeroTerritorio}</b>`);
           }
-          layer.on('mouseover', function () { this.setStyle({ fillOpacity: 0.5 }); });
-          layer.on('mouseout', function () { this.setStyle({ fillOpacity: 0.2 }); });
+          
+          // Efecto visual al pasar el mouse por encima
+          layer.on('mouseover', function () { this.setStyle({ fillOpacity: 0.60 }); });
+          layer.on('mouseout', function () { this.setStyle({ fillOpacity: 0.35 }); });
         }
       }).addTo(leafletMap);
     }
@@ -657,7 +673,6 @@ function inicializarMapaLeaflet(lat, lng, address = "Edificio") {
     }
   }, 50);
 }
-
 
 // 📐 EDITOR DINÁMICO COMPLETO CON CAPTURA VISUAL DE COORDENADAS
 function abrirEditorEdificio(building = null) {
