@@ -925,7 +925,39 @@ async function verListado() {
     ${html}
   `;
 }
+function inicializarMapaLeaflet() {
+    // Tu inicialización de mapa común...
+    const leafletMap = L.map('map').setView([-27.367, -55.896], 13);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(leafletMap);
 
+    // DIBUJAR TUS TERRITORIOS EXPORTADOS
+    if (typeof misTerritoriosGeoJSON !== 'undefined') {
+        L.geoJSON(misTerritoriosGeoJSON, {
+            style: function(feature) {
+                return {
+                    color: "#e67e22",       // Un color naranja lindo para los bordes
+                    weight: 2,              // Grosor de la línea
+                    opacity: 0.8,
+                    fillColor: "#f39c12",   // Relleno naranja más claro
+                    fillOpacity: 0.2        // Transparencia cómoda para ver las calles de fondo
+                };
+            },
+            onEachFeature: function (feature, layer) {
+                // Si el territorio tiene número asignado, genera el cartel al hacer clic
+                if (feature.properties && feature.properties.Territorio_N) {
+                    layer.bindPopup(`<b>Territorio N° ${feature.properties.Territorio_N}</b>`);
+                }
+                
+                // Efecto visual: Resaltar cuando pasás el mouse por arriba
+                layer.on('mouseover', function () { this.setStyle({ fillOpacity: 0.5 }); });
+                layer.on('mouseout', function () { this.setStyle({ fillOpacity: 0.2 }); });
+            }
+        }).addTo(leafletMap);
+    }
+}
 async function verProblemas() {
   const res = await apiFetch("/issues");
   const data = await res.json();
