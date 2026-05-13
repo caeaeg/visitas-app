@@ -590,7 +590,8 @@ function inicializarMapaLeaflet(lat, lng, address = "Edificio") {
   }, 50);
 }
 
-// 📐 EDITOR DINÁMICO COMPLETO CON CAPTURA VISUAL DE COORDENADAS
+
+// 📐 EDITOR DINÁMICO COMPLETO CON CAPTURA VISUAL DE COORDENADAS (Corregido ID de mapa)
 function abrirEditorEdificio(building = null) {
   abrirVista("editarView");
   
@@ -609,7 +610,9 @@ function abrirEditorEdificio(building = null) {
       <label><input type="checkbox" id="edit_portero" ${building?.hasDoorman ? 'checked' : ''}> Portero</label>
       <textarea id="edit_description" placeholder="Descripción">${building?.description || ''}</textarea>
       <p style="font-size:14px; margin-top:10px; color:#bdbdbd;">📍 Tocá el mapa para ubicar o corregir el edificio:</p>
-      <div id="map" class="mapaBox" style="height:250px; margin-bottom:15px;"></div>
+      
+      <div id="map-editor" class="mapaBox" style="height:250px; margin-bottom:15px;"></div>
+      
       <button class="ok" onclick='${building ? `guardarEdificio("${building._id}")` : `guardarEdificio()`}'>💾 Guardar</button>
     </div>
   `;
@@ -619,7 +622,7 @@ function abrirEditorEdificio(building = null) {
     ${html}
   `;
 
-  // Inicializar sub-mapa de coordenadas relativas
+  // Inicializar sub-mapa de coordenadas usando su contenedor propio
   setTimeout(() => {
     const defaultLat = -27.36708;
     const defaultLng = -55.89608;
@@ -632,14 +635,14 @@ function abrirEditorEdificio(building = null) {
       leafletMarker = null;
     }
 
-    leafletMap = L.map('map').setView([initLat, initLng], 15);
+    // Inicializamos apuntando a 'map-editor'
+    leafletMap = L.map('map-editor').setView([initLat, initLng], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(leafletMap);
 
     if (building?.latitude && building?.longitude) {
       leafletMarker = L.marker([initLat, initLng]).addTo(leafletMap);
     }
 
-    // Capturador interactivo de clicks sobre el mapa para setear lat/lng
     leafletMap.on('click', function(e) {
       const lat = e.latlng.lat;
       const lng = e.latlng.lng;
