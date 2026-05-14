@@ -475,13 +475,25 @@ async function verDetalleEdificioAdmin(buildingId) {
     // Reutilizamos tu ruta de información que ya trae datos del edificio y problemas
     const res = await apiFetch(`/building-info/${buildingId}`);
     const data = await res.json();
-    
     const b = data.building;
     const addrEscaped = b.address.replace(/'/g, "\\'");
 
-    // Centramos automáticamente el mapa principal en el edificio seleccionado
-    if (b.latitude && b.longitude) {
-      inicializarMapaLeaflet(b.latitude, b.longitude, addrEscaped);
+    // --- MAPA DINÁMICO POR TERRITORIO EN ADMIN ---
+    if (b.territory) {
+      // Intentamos buscar el polígono del territorio en territorios.js
+      // (Asumiendo que tu archivo tiene un array global llamado 'territorios' o similar)
+      const terrData = typeof territorios !== 'undefined' 
+        ? territorios.find(t => String(t.numero) === String(b.territory)) 
+        : null;
+
+      if (terrData && terrData.poligono) {
+        // Si tiene polígono, creamos un objeto bounds de Leaflet y centramos el mapa ahí
+        const bounds = L.latLngBounds(terrData.poligono);
+        leafletMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+      } else if (b.latitude && b.longitude) {
+        // Si no encuentra el territorio pero hay coordenadas del edificio, cae acá por defecto
+        inicializarMapaLeaflet(b.latitude, b.longitude, addrEscaped);
+      }
     }
 
     // Comprobar si hay alertas de problemas activos
