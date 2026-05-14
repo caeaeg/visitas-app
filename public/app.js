@@ -8,7 +8,7 @@ let currentDept = null;
 let currentUser = null;
 let currentRole = null;
 let currentBuildingId = null;
-
+let prediMiniMap = null; 
 let leafletMap = null;
 let leafletMarker = null;
 
@@ -296,7 +296,6 @@ async function mostrarInfoEdificio() {
   try {
     const res = await apiFetch(`/building-info/${currentBuildingId}`);
     const data = await res.json();
-    
     infoEdificio.style.display = "block";
     infoEdificio.innerHTML = `
       <div class="sectionCard">
@@ -307,17 +306,65 @@ async function mostrarInfoEdificio() {
           </div>
           <div style="background:#2b2b2b; padding:8px 12px; border-radius:12px; font-size:13px;">🏢 ${data.building.name || "Edificio"}</div>
         </div>
+        
+        <div id="miniMapaPredi" class="mapaBox" style="display:none; height: 160px; margin-top:15px; border-radius:12px; pointer-events: none;"></div>
+
         <div style="margin-top:18px; display:flex; gap:12px; flex-wrap:wrap;">
           <div style="background:#222; padding:10px 14px; border-radius:14px;">🕒 Última visita: ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString() : "Nunca"}</div>
           ${data.issue ? `<div style="background:#3a1f1f; color:#ff8a80; padding:10px 14px; border-radius:14px;">⚠ ${data.issue.description || data.issue.type}</div>` : ""}
         </div>
       </div>
     `;
-    
-    if (data.issue) {
+     if (data.issue) {
       reportBtn.classList.add("alerta");
     } else {
       reportBtn.classList.remove("alerta");
+    }
+    // --- ENCIANDE EL MINI MAPA FIJO PARA EL PREDICADOR ---
+    const miniMapaDiv = document.getElementById("miniMapaPredi");
+        if (data.building && data.building.latitude && data.building.longitude) {
+      miniMapaDiv.style.display = "block";
+      // Limpieza por si quedó un mapa previo abierto
+      if (prediMiniMap) {
+        prediMiniMap.remove();
+        prediMiniMap = null;
+      }
+      // Inicializar el mapa bloqueando arrastres o clicks
+      prediMiniMap = L.map('miniMapaPredi', {
+        zoomControl: false,
+        dragging: false,
+        touchZoom: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false
+      }).setView([data.building.latitude, data.building.longitude], 16);
+      // Renderizar calles de OpenStreetMap
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19
+      }).addTo(prediMiniMap);
+      // Colocar el marcador del edificio
+      L.marker([data.building.latitude, data.building.longitude]).addTo(prediMiniMap);
+            // Si el archivo 'territorios.js' tiene cargada la variable global 'misTerritoriosGeoJSON'
+      // filtramos y dibujamos el polígono de su territorio asignado
+      if (data.building.territory && typeof misTerritoriosGeoJSON !== 'undefined') {
+        L.geoJSON(misTerritoriosGeoJSON, {
+          filter: function(feature) {
+            const numeroTerritorio = feature.properties && (feature.properties.name || feature.properties.Territorio_N);
+            return String(numeroTerritorio) === String(data.building.territory);
+          },
+          style: function() {
+            return {
+              color: '#2196F3',
+              weight: 2,
+              fillColor: '#2196F3',
+              fillOpacity: 0.15
+            };
+          }
+        }).addTo(prediMiniMap);
+      }
+      // Corrección de tamaño asíncrona para evitar fallos de renderizado en móviles
+      setTimeout(() => { if(prediMiniMap) prediMiniMap.invalidateSize(); }, 60);
+    } else {
+      miniMapaDiv.style.display = "none";
     }
   } catch (error) {
     console.error(error);
@@ -694,6 +741,12 @@ function limpiarVista() {
   btnSiguiente.style.display = "none";
   btnNuevoEdificio.style.display = "none";
   reportBtn.style.display = "none";
+  const miniMapaDiv = document.getElementById("miniMapaPredi");
+  if (miniMapaDiv) miniMapaDiv.style.display = "none";
+  if (prediMiniMap) {
+    prediMiniMap.remove();
+    prediMiniMap = null;
+  }
 }
 
 
@@ -752,14 +805,12 @@ function inicializarMapaLeaflet(lat, lng, address = "Edificio") {
           if (numeroTerritorio) {
             layer.bindPopup(`<b>Territorio N° ${numeroTerritorio}</b>`);
           }
-          
           // Efecto visual al pasar el mouse por encima
           layer.on('mouseover', function () { this.setStyle({ fillOpacity: 0.60 }); });
           layer.on('mouseout', function () { this.setStyle({ fillOpacity: 0.35 }); });
         }
       }).addTo(leafletMap);
     }
-
     // Agregar marcador único si se pasan coordenadas válidas
     if (lat && lng) {
       leafletMarker = L.marker([lat, lng]).addTo(leafletMap)
@@ -768,15 +819,12 @@ function inicializarMapaLeaflet(lat, lng, address = "Edificio") {
     }
   }, 50);
 }
-
 // 📐 EDITOR DINÁMICO COMPLETO CON CAPTURA VISUAL DE COORDENADAS
 function abrirEditorEdificio(building = null) {
   abrirVista("editarView");
-  
-  // --- CORRECCIÓN DEFINITIVA DE CANCELAR ---
+    // --- CORRECCIÓN DEFINITIVA DE CANCELAR ---
   // Si el rol es predi, el destino SIEMPRE debe ser volver al buscador móvil
   const funcionCancelar = (currentRole === "predi") ? "cancelarEdificioMovil()" : "abrirVista('dashboardView')";
-
   let html = `
     <div class="card-container">
       <h3>${building ? "✏ Editar edificio" : "➕ Nuevo edificio"}</h3>
@@ -792,46 +840,38 @@ function abrirEditorEdificio(building = null) {
       <label><input type="checkbox" id="edit_portero" ${building?.hasDoorman ? 'checked' : ''}> Portero</label>
       <textarea id="edit_description" placeholder="Descripción">${building?.description || ''}</textarea>
       <p style="font-size:14px; margin-top:10px; color:#bdbdbd;">📍 Tocá el mapa para ubicar o corregir el edificio:</p>
-      
       <div id="map-editor" class="mapaBox" style="height:250px; margin-bottom:15px;"></div>
-      
       <button class="ok" onclick='${building ? `guardarEdificio("${building._id}")` : `guardarEdificio()`}'>💾 Guardar</button>
       <button class="secondary" style="margin-top: 10px;" onclick="${funcionCancelar}">❌ Cancelar</button>
     </div>
   `;
-  
   document.getElementById("editarView").innerHTML = `
     <button class="secondary backModern" onclick="${funcionCancelar}">← Volver</button>
     ${html}
   `;
-
   // Inicializar sub-mapa de coordenadas usando su contenedor propio
   setTimeout(() => {
     const defaultLat = -27.36708;
     const defaultLng = -55.89608;
     const initLat = building?.latitude || defaultLat;
     const initLng = building?.longitude || defaultLng;
-
     if (leafletMap) {
       leafletMap.remove();
       leafletMap = null;
       leafletMarker = null;
     }
-
     leafletMap = L.map('map-editor').setView([initLat, initLng], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(leafletMap);
 
     if (building?.latitude && building?.longitude) {
       leafletMarker = L.marker([initLat, initLng]).addTo(leafletMap);
     }
-
     leafletMap.on('click', function(e) {
       const lat = e.latlng.lat;
       const lng = e.latlng.lng;
       document.getElementById('edit_lat').value = lat;
       document.getElementById('edit_lng').value = lng;
-      
-      if (leafletMarker) {
+     if (leafletMarker) {
         leafletMarker.setLatLng(e.latlng);
       } else {
         leafletMarker = L.marker(e.latlng).addTo(leafletMap);
@@ -844,11 +884,9 @@ function cancelarEdificioMovil() {
   // Ocultamos la vista del editor y apagamos el contenedor del dashboard
   document.getElementById("editarView").classList.remove("active");
   document.getElementById("mainDashboard").style.display = "none";
-  
-  // Volvemos a hacer visible el contenedor original de la app móvil
+    // Volvemos a hacer visible el contenedor original de la app móvil
   document.getElementById("appContainer").style.display = "block";
-  
-  // Limpiamos los textos para dejar la app lista para otra búsqueda
+    // Limpiamos los textos para dejar la app lista para otra búsqueda
   limpiarVista();
   mensajeInicial.style.display = "block";
 }
