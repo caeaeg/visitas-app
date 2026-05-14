@@ -863,6 +863,22 @@ function inicializarMapaLeaflet(lat, lng, address = null) {
         .bindPopup(`<b>${address}</b>`)
         .openPopup(); // Este sí se abre porque es un edificio seleccionado real
     }
+    // --- DETECTOR DINÁMICO DE ZOOM PARA LOS NÚMEROS DE TERRITORIO ---
+    leafletMap.on('zoomend', function() {
+      const zoomActual = leafletMap.getZoom();
+      // Buscamos todos los cartelitos de territorio en la pantalla
+      const elementosEtiqueta = document.querySelectorAll('.texto-territorio-elegante');
+      
+      elementosEtiqueta.forEach(elemento => {
+        if (zoomActual >= 15) {
+          // Si está cerca, le ponemos la ropa elegante de gala
+          elemento.classList.add('vista-cerca');
+        } else {
+          // Si se aleja, le quitamos el fondo y lo achicamos
+          elemento.classList.remove('vista-cerca');
+        }
+      });
+    });
   }, 50);
 }
 // 📐 EDITOR DINÁMICO COMPLETO CON CAPTURA VISUAL DE COORDENADAS
