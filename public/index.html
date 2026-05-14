@@ -357,19 +357,28 @@
     @keyframes skeleton { 100% { transform: translateX(100%); } }
     .skeletonLine { height: 20px; margin-bottom: 12px; }
     /* Estilo moderno para los números de territorio en el mapa */
+/* 1. Estado base (VISTA ALEJADA): Solo el número flotando, ultra minimalista */
 .texto-territorio-elegante {
-  background: rgba(0, 0, 0, 0.6) !important; /* Fondo negro sutil semi-transparente */
-  border: 1px solid rgba(33, 150, 243, 0.4) !important; /* Borde azulcito neón muy fino */
-  color: #ffffff !important; /* Número blanco brillante */
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-  font-weight: 700 !important; /* Negrita imponente */
-  font-size: 14px !important;  /* Tamaño ideal para celular y pc */
-  padding: 4px 8px !important;
-  border-radius: 8px !important; /* Bordes redondeados modernos */
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important; /* Sombra suave para que flote */
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.8); /* Sombra al texto para máxima lectura */
+  background: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-family: 'Segoe UI', Roboto, sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 11px !important; /* Más chico para que no sature */
+  box-shadow: none !important;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.9), -1px -1px 3px rgba(0,0,0,0.9); /* Sombra fuerte para que se lea sobre cualquier color */
+  transition: all 0.2s ease-in-out; /* Animación suave al cambiar de tamaño */
 }
-/* Oculta la flechita por defecto que Leaflet le pone a los cartelitos */
+/* 2. Estado activo (VISTA DE CERCA): Se activa mediante JavaScript */
+.texto-territorio-elegante.vista-cerca {
+  background: rgba(0, 0, 0, 0.75) !important; /* Fondo oscuro elegante */
+  border: 1px solid rgba(33, 150, 243, 0.5) !important; /* Bordecito azul */
+  font-size: 14px !important; /* Tamaño más grande y legible */
+  padding: 3px 6px !important;
+  border-radius: 6px !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4) !important;
+}
+/* Ocultar siempre la flechita nativa de Leaflet */
 .texto-territorio-elegante::before {
   display: none !important;
 }
