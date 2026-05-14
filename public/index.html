@@ -392,13 +392,8 @@
     <div class="dashboardGrid">
       <div class="dashboardCard" onclick="abrirVista('territorioView')">
         <div class="icon">🗺</div>
-        <h3>Territorios</h3>
-        <p>Mapa, estadísticas y búsqueda</p>
-      </div>
-      <div class="dashboardCard" onclick="verListado()">
-        <div class="icon">🏢</div>
-        <h3>Edificios</h3>
-        <p>Listado y edición</p>
+        <h3>Territorios y Edificios</h3>
+        <p>Mapa, estadísticas, filtros e historial</p>
       </div>
       <div class="dashboardCard" onclick="abrirEditorEdificio()">
         <div class="icon">➕</div>
@@ -413,66 +408,51 @@
     </div>
   </div>
 
-<div id="territorioView" class="view">
-  <button class="secondary backModern" onclick="abrirVista('dashboardView')">← Volver al Panel</button>
-  <h2>🗺️ Gestión de Territorios y Edificios</h2>
-  <div class="statsGrid" style="margin-bottom: 20px;">
-    <div class="statCard">
-      <span>🏢</span>
-      <h2 id="totalEdificios">-</h2>
-      <p>Edificios Totales</p>
-    </div>
-    <div class="statCard">
-      <span>✅</span>
-      <h2 id="visitados">-</h2>
-      <p>Visitados Hoy</p>
-    </div>
-  </div>
- <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
-    <div class="sectionCard" style="flex: 1; min-width: 320px; margin-top:0;">
-      <h3>📋 Filtros y Listado</h3>
-      <select id="filtroOrden" onchange="cargarEdificios()">
-        <option value="territorio">Ordenar por territorio</option>
-        <option value="masVisitados">Más visitados</option>
-        <option value="menosVisitados">Menos visitados</option>
-        <option value="ultimosVisitados">Últimos visitados</option>
-      </select>
-      <input id="busquedaTerritorio" placeholder="Filtrar por número de territorio" onkeyup="if(event.key==='Enter') cargarEdificios()">
-      <button class="buscar" onclick="cargarEdificios()">🔍 Aplicar Filtros</button>
-      <div id="listaEdificios" style="margin-top: 15px; max-height: 500px; overflow-y: auto;"></div>
-       <div style="display:flex; gap:10px; margin-top:15px;">
-        <button class="secondary" style="min-height:40px;" onclick="paginaAnterior()">← Ant.</button>
-        <button class="secondary" style="min-height:40px;" onclick="paginaSiguiente()">Sig. →</button>
-      </div>
-    </div>
-    <div style="flex: 1.4; min-width: 320px; display: flex; flex-direction: column; gap: 20px;">
-      <div class="mapaBox" id="map" style="margin-top:0; height: 350px;"></div>
-        <div id="panelDetalleEdificio" class="sectionCard" style="display: none; background: #1e1e1e; border: 1px solid #333;">
-        <p style="color: gray; text-align: center; margin: 0;">Seleccioná un edificio de la lista para ver su historial y detalles</p>
-      </div>
-    </div>
-  </div>
-</div>
+  <div id="territorioView" class="view">
+    <button class="secondary backModern" onclick="abrirVista('dashboardView')">← Volver al Panel</button>
+    <h2>🗺️ Gestión de Territorios y Edificios</h2>
     
-    <div class="mapaBox" id="map"></div>
-
-    <div class="sectionCard" style="margin-top:20px;">
-      <h3>📋 Edificios</h3>
-      <select id="filtroOrden">
-        <option value="territorio">Ordenar por territorio</option>
-        <option value="masVisitados">Más visitados</option>
-        <option value="menosVisitados">Menos visitados</option>
-      </select>
-      <input id="busquedaTerritorio" placeholder="Buscar territorio">
-      <button class="buscar" onclick="cargarEdificios()">Buscar</button>
-      
-      <div id="listaEdificios"></div>
-      
-      <div style="display:flex; gap:10px; margin-top:15px;">
-        <button class="secondary" onclick="paginaAnterior()">←</button>
-        <button class="secondary" onclick="paginaSiguiente()">→</button>
+    <div class="statsGrid" style="margin-bottom: 20px;">
+      <div class="statCard">
+        <span>🏢</span>
+        <h2 id="totalEdificios">-</h2>
+        <p>Edificios Totales</p>
+      </div>
+      <div class="statCard">
+        <span>✅</span>
+        <h2 id="visitados">-</h2>
+        <p>Visitados Hoy</p>
       </div>
     </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+      <div class="sectionCard" style="flex: 1; min-width: 320px; margin-top:0;">
+        <h3>📋 Filtros y Listado</h3>
+        <select id="filtroOrden" onchange="cargarEdificios()">
+          <option value="territorio">Ordenar por territorio</option>
+          <option value="masVisitados">Más visitados</option>
+          <option value="menosVisitados">Menos visitados</option>
+          <option value="ultimosVisitados">Últimos visitados</option>
+        </select>
+        <input id="busquedaTerritorio" placeholder="Filtrar por número de territorio" onkeyup="if(event.key==='Enter') cargarEdificios()">
+        <button class="buscar" onclick="cargarEdificios()">🔍 Aplicar Filtros</button>
+        
+        <div id="listaEdificios" style="margin-top: 15px; max-height: 500px; overflow-y: auto;"></div>
+        
+        <div style="display:flex; gap:10px; margin-top:15px;">
+          <button class="secondary" style="min-height:40px;" onclick="paginaAnterior()">← Ant.</button>
+          <button class="secondary" style="min-height:40px;" onclick="paginaSiguiente()">Sig. →</button>
+        </div>
+      </div>
+      
+      <div style="flex: 1.4; min-width: 320px; display: flex; flex-direction: column; gap: 20px;">
+        <div class="mapaBox" id="map" style="margin-top:0; height: 350px;"></div>
+        <div id="panelDetalleEdificio" class="sectionCard" style="display: none; background: #1e1e1e; border: 1px solid #333;">
+          <p style="color: gray; text-align: center; margin: 0;">Seleccioná un edificio de la lista para ver su historial y detalles</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
     <div class="sectionCard" style="margin-top:20px;">
       <h3>🛠 Administración</h3>
