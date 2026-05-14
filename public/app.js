@@ -304,9 +304,7 @@ async function mostrarInfoEdificio() {
           </div>
           <div style="background:#2b2b2b; padding:8px 12px; border-radius:12px; font-size:13px;">🏢 ${data.building.name || "Edificio"}</div>
         </div>
-        
         <div id="miniMapaPredi" class="mapaBox" style="display:none; height: 160px; margin-top:15px; border-radius:12px; pointer-events: none;"></div>
-
         <div style="margin-top:18px; display:flex; gap:12px; flex-wrap:wrap;">
           <div style="background:#222; padding:10px 14px; border-radius:14px;">🕒 Última visita: ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString() : "Nunca"}</div>
           ${data.issue ? `<div style="background:#3a1f1f; color:#ff8a80; padding:10px 14px; border-radius:14px;">⚠ ${data.issue.description || data.issue.type}</div>` : ""}
@@ -318,50 +316,73 @@ async function mostrarInfoEdificio() {
     } else {
       reportBtn.classList.remove("alerta");
     }
-    // --- ENCIANDE EL MINI MAPA FIJO PARA EL PREDICADOR ---
+    // --- ENCIENDE EL MINI MAPA FIJO PARA EL PREDICADOR ---
     const miniMapaDiv = document.getElementById("miniMapaPredi");
-        if (data.building) {
+    const b = data.building;
+
+    // Se enciende si tiene territorio O si tiene coordenadas
+    if (b && (b.territory || (b.latitude && b.longitude))) {
       miniMapaDiv.style.display = "block";
-      // Limpieza por si quedó un mapa previo abierto
+
+      // Limpieza de mapas previos
       if (prediMiniMap) {
         prediMiniMap.remove();
         prediMiniMap = null;
       }
-      // Inicializar el mapa bloqueando arrastres o clicks
+
+      // Inicializar el mapa de solo lectura (sin interacción)
       prediMiniMap = L.map('miniMapaPredi', {
         zoomControl: false,
         dragging: false,
         touchZoom: false,
         scrollWheelZoom: false,
         doubleClickZoom: false
-      }).setView([data.building.latitude, data.building.longitude], 16);
-      // Renderizar calles de OpenStreetMap
+      });
+      // Capa base de calles
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19
       }).addTo(prediMiniMap);
-      // Colocar el marcador del edificio
-      L.marker([data.building.latitude, data.building.longitude]).addTo(prediMiniMap);
-            // Si el archivo 'territorios.js' tiene cargada la variable global 'misTerritoriosGeoJSON'
-      // filtramos y dibujamos el polígono de su territorio asignado
-      if (data.building.territory && typeof misTerritoriosGeoJSON !== 'undefined') {
-        L.geoJSON(misTerritoriosGeoJSON, {
+      let centradoExitoso = false;
+      // 1. INTENTAR DIBUJAR Y CENTRAR EN EL TERRITORIO
+      if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined') {
+        let capaGeoJSON = L.geoJSON(misTerritoriosGeoJSON, {
           filter: function(feature) {
             const numeroTerritorio = feature.properties && (feature.properties.name || feature.properties.Territorio_N);
-            return String(numeroTerritorio) === String(data.building.territory);
+            return String(numeroTerritorio) === String(b.territory);
           },
           style: function() {
             return {
               color: '#2196F3',
               weight: 2,
               fillColor: '#2196F3',
-              fillOpacity: 0.15
+              fillOpacity: 0.18
             };
           }
         }).addTo(prediMiniMap);
+        // Si encontramos el polígono del territorio, adaptamos el mapa a sus límites
+        if (capaGeoJSON.getLayers().length > 0) {
+          prediMiniMap.fitBounds(capaGeoJSON.getBounds(), { padding: [10, 10] });
+          centradoExitoso = true;
+        }
       }
-      // Corrección de tamaño asíncrona para evitar fallos de renderizado en móviles
-      setTimeout(() => { if(prediMiniMap) prediMiniMap.invalidateSize(); }, 150);
+      // 2. AGREGAR MARCADOR ESPECÍFICO (Si existen coordenadas)
+      if (b.latitude && b.longitude) {
+        L.marker([b.latitude, b.longitude]).addTo(prediMiniMap);
+         // Si no se pudo centrar por territorio (porque no tenía o no se encontró el polígono), centra en el marcador
+        if (!centradoExitoso) {
+          prediMiniMap.setView([b.latitude, b.longitude], 16);
+          centradoExitoso = true;
+        }
+      }
+      // 3. CASO DE EMERGENCIA: Si falló todo lo anterior, centro por defecto en Posadas
+      if (!centradoExitoso) {
+        prediMiniMap.setView([-27.36708, -55.89608], 14);
+      }
+     setTimeout(() => { 
+        if (prediMiniMap) prediMiniMap.invalidateSize(); 
+      }, 150);
     } else {
+      // Si no tiene absolutamente ningún dato geográfico, se oculta
       miniMapaDiv.style.display = "none";
     }
   } catch (error) {
