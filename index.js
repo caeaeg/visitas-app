@@ -119,7 +119,7 @@ app.get(
 app.post(
   "/building",
   requireLogin,
-  requireRole(["admin", "conductor"]),
+  requireRole(["admin", "conductor", "predi"]),
   async (req, res) => {
     try {
       let { address, floors, unitsPerFloor, hasGroundFloor, hasDoorman, latitude, longitude, territory } = req.body;
@@ -338,7 +338,7 @@ app.put(
 app.get(
   "/stats",
   requireLogin,
-  requireRole(["admin"]),
+  requireRole(["admin", "conductor"]),
   async (req, res) => {
     try {
       const buildings = await Building.countDocuments();
