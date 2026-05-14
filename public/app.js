@@ -544,22 +544,43 @@ async function verDetalleEdificioAdmin(buildingId) {
     const b = data.building;
     const addrEscaped = b.address.replace(/'/g, "\\'");
 
-    // --- MAPA DINÁMICO POR TERRITORIO EN ADMIN ---
-    if (b.territory) {
-      // Intentamos buscar el polígono del territorio en territorios.js
-      // (Asumiendo que tu archivo tiene un array global llamado 'territorios' o similar)
-      const terrData = typeof territorios !== 'undefined' 
-        ? territorios.find(t => String(t.numero) === String(b.territory)) 
-        : null;
+    // --- 🗺️ CENTRADO INTELIGENTE EN EL MAPA PRINCIPAL (ADMIN/CONDUCTOR) ---
+    if (leafletMap) {
+      let centradoAdminExitoso = false;
 
-      if (terrData && terrData.poligono) {
-        // Si tiene polígono, creamos un objeto bounds de Leaflet y centramos el mapa ahí
-        const bounds = L.latLngBounds(terrData.poligono);
-        leafletMap.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
-      } else if (b.latitude && b.longitude) {
-        // Si no encuentra el territorio pero hay coordenadas del edificio, cae acá por defecto
-        inicializarMapaLeaflet(b.latitude, b.longitude, addrEscaped);
+      // 1. Intentar buscar el polígono del territorio en el archivo GeoJSON global
+      if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined') {
+        let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
+          filter: function(feature) {
+            const numeroTerritorio = feature.properties && (feature.properties.name || feature.properties.Territorio_N);
+            return String(numeroTerritorio) === String(b.territory);
+          }
+        });
+
+        // Si encontramos las fronteras del territorio, encuadramos el mapa ahí
+        if (capaGeoJSONAdmin.getLayers().length > 0) {
+          leafletMap.fitBounds(capaGeoJSONAdmin.getBounds(), { padding: [50, 50], maxZoom: 16 });
+          centradoAdminExitoso = true;
+        }
       }
+
+      // 2. Si el edificio tiene coordenadas exactas, inicializamos el marcador y centramos la cámara
+      if (b.latitude && b.longitude) {
+        // Inicializar o mover el marcador con tu función existente
+        inicializarMapaLeaflet(b.latitude, b.longitude, addrEscaped);
+        
+        // Forzamos un zoom un poquito más cerrado sobre el marcador para verlo en detalle
+        leafletMap.setView([b.latitude, b.longitude], 16);
+        centradoAdminExitoso = true;
+      }
+
+      // 3. Si no tiene absolutamente ningún dato geográfico, centramos por defecto en Posadas
+      if (!centradoAdminExitoso) {
+        leafletMap.setView([-27.36708, -55.89608], 13);
+      }
+
+      // Pequeño delay para recalcular tamaño y evitar bugs visuales en el mapa
+      setTimeout(() => { leafletMap.invalidateSize(); }, 100);
     }
 
     // Comprobar si hay alertas de problemas activos
@@ -595,7 +616,7 @@ async function verDetalleEdificioAdmin(buildingId) {
       <div style="font-size:14px; background:#181818; padding:10px; border-radius:10px; max-height:180px; overflow-y:auto; border:1px solid #2b2b2b;">
         <p style="margin:0; color:#bdbdbd;">Última visita registrada: ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString() : "Nunca"}</p>
         ${b.description ? `<p style="margin-top:8px; color:gray;"><b>Descripción interna:</b> ${b.description}</p>` : ""}
-        </div>
+      </div>
     `;
   } catch (error) {
     console.error("Error al cargar detalles del edificio:", error);
