@@ -357,37 +357,31 @@
     @keyframes skeleton { 100% { transform: translateX(100%); } }
     .skeletonLine { height: 20px; margin-bottom: 12px; }
     /* Estilo moderno para los números de territorio en el mapa */
-/* 1. Estado base (VISTA ALEJADA): Solo el número flotando, ultra minimalista */
+/* 1. Estado base (VISTA DE CERCA): Compacto, elegante y adaptado al polígono */
 .texto-territorio-elegante {
-  background: transparent !important;
-  border: none !important;
+  background: rgba(0, 0, 0, 0.75) !important; /* Fondo oscuro sutil */
+  border: 1px solid rgba(33, 150, 243, 0.4) !important; /* Bordecito azul fino */
   color: #ffffff !important;
   font-family: 'Segoe UI', Roboto, sans-serif !important;
   font-weight: 700 !important;
-  font-size: 11px !important; /* Más chico para que no sature */
-  box-shadow: none !important;
-  text-shadow: 1px 1px 3px rgba(0,0,0,0.9), -1px -1px 3px rgba(0,0,0,0.9); /* Sombra fuerte para que se lea sobre cualquier color */
-  transition: all 0.2s ease-in-out; /* Animación suave al cambiar de tamaño */
-  /* --- NUEVAS REGLAS PARA EVITAR DESBORDE --- */
-  padding: 2px 6px !important; /* Un poco menos de espacio */
+  font-size: 12px !important; /* Un toque más chico para que no desborde */
+  padding: 2px 5px !important; /* Margen interno más ajustado */
   border-radius: 6px !important;
-  max-width: 40px !important; /* Limita el ancho de la caja */
-  text-align: center; /* Centra el número en la cajita */
-  overflow: hidden; /* Corta cualquier cosa que intente salir */
-  white-space: nowrap; /* Evita que el número salte de línea */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4) !important;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+  white-space: nowrap !important;
+  transition: opacity 0.2s ease-in-out; /* Transición suave al aparecer/desaparecer */
 }
-/* 2. Estado activo (VISTA DE CERCA): Se activa mediante JavaScript */
-.texto-territorio-elegante.vista-cerca {
-  background: rgba(0, 0, 0, 0.75) !important; /* Fondo oscuro elegante */
-  border: 1px solid rgba(33, 150, 243, 0.5) !important; /* Bordecito azul */
-  font-size: 14px !important; /* Tamaño más grande y legible */
-  padding: 3px 6px !important;
-  border-radius: 6px !important;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4) !important;
-}
-/* Ocultar siempre la flechita nativa de Leaflet */
+
+/* Ocultar la flechita nativa de Leaflet siempre */
 .texto-territorio-elegante::before {
   display: none !important;
+}
+
+/* 2. Estado oculto para cuando el mapa está muy alejado (Evita el enjambre) */
+.texto-territorio-elegante.zoom-alejado {
+  opacity: 0 !important;
+  pointer-events: none !important; /* Evita que estorbe al hacer clics */
 }
   </style>
 </head>
