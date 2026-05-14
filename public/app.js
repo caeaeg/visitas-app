@@ -172,7 +172,6 @@ window.addEventListener("load", async () => {
 });
 
 
-// --- MÓDULO PREDICADORES (VISTA MÓVIL) ---
 async function buscar() {
   limpiarVista();
   const input = normalizarDireccion(buildingId.value);
@@ -180,24 +179,41 @@ async function buscar() {
   
   mensajeInicial.style.display = "none";
   resultado.innerText = "Buscando...";
+
   try {
     const b = await apiFetch(`/building/${encodeURIComponent(input)}`);
+    
+    // --- NUEVA VALIDACIÓN ADAPTADA PARA MANEJAR EL 404 DEL SERVIDOR ---
+    if (!b.ok) {
+      if (b.status === 404) {
+        resultado.innerText = "Edificio no encontrado";
+        btnNuevoEdificio.style.display = "block";
+        btnNuevoEdificio.onclick = function() {
+          crearEdificio();
+        };
+        return;
+      }
+      throw new Error(`Error en servidor: ${b.status}`);
+    }
     const building = await b.json();
-        if (!building || !building._id) {
+    if (!building || !building._id) {
       resultado.innerText = "Edificio no encontrado";
-            // 1. Mostramos el botón para todos los roles
       btnNuevoEdificio.style.display = "block";
-            // 2. Nos aseguramos de que al hacerle clic ejecute crearEdificio() sin importar el rol
       btnNuevoEdificio.onclick = function() {
         crearEdificio();
       };
-            return;
+      return;
     }
-        currentBuildingId = building._id;
+    currentBuildingId = building._id;
     await cargarDepto();
-  } catch (error) {
-    console.error(error);
-    resultado.innerText = "Error al buscar el edificio";
+    } catch (error) {
+    console.error("Detalle del error en buscar:", error);
+    // Si la API falló con 404 pero saltó al catch por el fetch nativo, también le damos la opción de crear
+    resultado.innerText = "Edificio no encontrado o error de red";
+    btnNuevoEdificio.style.display = "block";
+    btnNuevoEdificio.onclick = function() {
+      crearEdificio();
+    };
   }
 }
 
