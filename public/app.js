@@ -938,6 +938,21 @@ function abrirEditorEdificio(building = null) {
       } else {
         leafletMarker = L.marker(e.latlng).addTo(leafletMap);
       }
+   // --- DETECTOR DINÁMICO DE ZOOM PARA LOS NÚMEROS DE TERRITORIO (Quita el enjambre) ---
+    leafletMap.on('zoomend', function() {
+      const zoomActual = leafletMap.getZoom();
+      const etiquetas = document.querySelectorAll('.texto-territorio-elegante');
+      
+      etiquetas.forEach(etiqueta => {
+        // En zoom 13 o menos (como en tu foto que se ve todo Encarnación y Posadas), se ocultan.
+        // En zoom 14 o más (cuando ya te acercás a las avenidas), aparecen impecables.
+        if (zoomActual <= 13) {
+          etiqueta.classList.add('zoom-alejado');
+        } else {
+          etiqueta.classList.remove('zoom-alejado');
+        }
+      });
+    }); 
     });
   }, 50);
 }
