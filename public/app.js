@@ -172,27 +172,21 @@ window.addEventListener("load", async () => {
 
 
 // --- MÓDULO PREDICADORES (VISTA MÓVIL) ---
-
 async function buscar() {
   limpiarVista();
   const input = normalizarDireccion(buildingId.value);
   if (!input) return;
-  
   mensajeInicial.style.display = "none";
   resultado.innerText = "Buscando...";
-
   try {
     const b = await apiFetch(`/building/${encodeURIComponent(input)}`);
     const building = await b.json();
-    
     if (!building || !building._id) {
       resultado.innerText = "Edificio no encontrado";
-      if (tienePermiso(["admin", "conductor"])) {
-        btnNuevoEdificio.style.display = "block";
-      }
+      // QUITAMOS LA RESTRICCIÓN: Ahora todos los roles (incluido predi) pueden ver el botón
+      btnNuevoEdificio.style.display = "block";
       return;
     }
-    
     currentBuildingId = building._id;
     await cargarDepto();
   } catch (error) {
@@ -566,10 +560,6 @@ async function guardarEdificio(id = null) {
 }
 
 function crearEdificio() {
-  if (!tienePermiso(["admin", "conductor"])) {
-    alert("No tenés permisos");
-    return;
-  }
   abrirEditorEdificio();
 }
 
@@ -678,6 +668,11 @@ function inicializarMapaLeaflet(lat, lng, address = "Edificio") {
 function abrirEditorEdificio(building = null) {
   abrirVista("editarView");
   
+  // Determinamos a dónde tiene que volver el botón Cancelar/Volver
+  // Si el panel de administración está visible, vuelve al dashboard. Si no, vuelve a la vista móvil.
+  const esAdminView = document.getElementById("mainDashboard").style.display !== "none";
+  const funcionCancelar = esAdminView ? "abrirVista('dashboardView')" : "cancelarEdificioMovil()";
+
   let html = `
     <div class="card-container">
       <h3>${building ? "✏ Editar edificio" : "➕ Nuevo edificio"}</h3>
@@ -697,11 +692,12 @@ function abrirEditorEdificio(building = null) {
       <div id="map-editor" class="mapaBox" style="height:250px; margin-bottom:15px;"></div>
       
       <button class="ok" onclick='${building ? `guardarEdificio("${building._id}")` : `guardarEdificio()`}'>💾 Guardar</button>
+      <button class="secondary" style="margin-top: 10px;" onclick="${funcionCancelar}">❌ Cancelar</button>
     </div>
   `;
   
   document.getElementById("editarView").innerHTML = `
-    <button class="secondary backModern" onclick="abrirVista('dashboardView')">← Volver</button>
+    <button class="secondary backModern" onclick="${funcionCancelar}">← Volver</button>
     ${html}
   `;
 
@@ -739,3 +735,14 @@ function abrirEditorEdificio(building = null) {
     });
   }, 50);
 }
+// Función auxiliar para cuando el usuario móvil cancela la creación
+function cancelarEdificioMovil() {
+  // Ocultamos la vista del editor
+  document.getElementById("editarView").classList.remove("active");
+  // Volvemos a hacer visible el contenedor de la app móvil
+  document.getElementById("appContainer").style.display = "block";
+  // Limpiamos los textos para dejar la app lista para otra búsqueda
+  limpiarVista();
+  mensajeInicial.style.display = "block";
+}
+
