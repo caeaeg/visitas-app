@@ -20,7 +20,6 @@ function abrirVista(id) {
   // Activar la sub-vista objetivo
   const vistaObjetivo = document.getElementById(id);
   if (vistaObjetivo) vistaObjetivo.classList.add("active");
-
   // --- SOLUCIÓN DE FLUJO DE CONTENEDORES ---
   if (id === "editarView" && currentRole === "predi") {
     // Si el predi va a editar/crear, ocultamos su buscador móvil
@@ -30,11 +29,10 @@ function abrirVista(id) {
     const topbar = document.querySelector(".topbar");
     if (topbar) topbar.style.display = "none"; 
   }
-
   // Acciones específicas según la vista
   if (id === "territorioView") {
     cargarDashboard();
-    
+    cargarEdificios(); 
     // Si el mapa ya existe, forzamos re-cálculo de tamaño para evitar el bug gris de Leaflet
     if (leafletMap) {
       setTimeout(() => {
@@ -42,7 +40,7 @@ function abrirVista(id) {
       }, 100);
     } else {
       // Centrar mapa por defecto en Posadas al abrir territorios de cero
-      inicializarMapaLeaflet(-27.36708, -55.89608, "Posadas");
+      inicializarMapaLeaflet(-27.36708, -55.89608);
     }
   }
   if (id === "problemasView") {
@@ -322,7 +320,7 @@ async function mostrarInfoEdificio() {
     }
     // --- ENCIANDE EL MINI MAPA FIJO PARA EL PREDICADOR ---
     const miniMapaDiv = document.getElementById("miniMapaPredi");
-        if (data.building && data.building.latitude && data.building.longitude) {
+        if (data.building) {
       miniMapaDiv.style.display = "block";
       // Limpieza por si quedó un mapa previo abierto
       if (prediMiniMap) {
@@ -362,7 +360,7 @@ async function mostrarInfoEdificio() {
         }).addTo(prediMiniMap);
       }
       // Corrección de tamaño asíncrona para evitar fallos de renderizado en móviles
-      setTimeout(() => { if(prediMiniMap) prediMiniMap.invalidateSize(); }, 60);
+      setTimeout(() => { if(prediMiniMap) prediMiniMap.invalidateSize(); }, 150);
     } else {
       miniMapaDiv.style.display = "none";
     }
