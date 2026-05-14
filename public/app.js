@@ -176,18 +176,23 @@ async function buscar() {
   limpiarVista();
   const input = normalizarDireccion(buildingId.value);
   if (!input) return;
+  
   mensajeInicial.style.display = "none";
   resultado.innerText = "Buscando...";
   try {
     const b = await apiFetch(`/building/${encodeURIComponent(input)}`);
     const building = await b.json();
-    if (!building || !building._id) {
+        if (!building || !building._id) {
       resultado.innerText = "Edificio no encontrado";
-      // QUITAMOS LA RESTRICCIÓN: Ahora todos los roles (incluido predi) pueden ver el botón
+            // 1. Mostramos el botón para todos los roles
       btnNuevoEdificio.style.display = "block";
-      return;
+            // 2. Nos aseguramos de que al hacerle clic ejecute crearEdificio() sin importar el rol
+      btnNuevoEdificio.onclick = function() {
+        crearEdificio();
+      };
+            return;
     }
-    currentBuildingId = building._id;
+        currentBuildingId = building._id;
     await cargarDepto();
   } catch (error) {
     console.error(error);
