@@ -790,8 +790,8 @@ function limpiarVista() {
 }
 
 
-// 🗺️ FUNCIÓN ENCARGADA DE INYECTAR MAPAS Y CAPAS GEOJSON (Actualizada con colores pasteles y nombres)
-function inicializarMapaLeaflet(lat, lng, address = "Edificio") {
+// 🗺️ FUNCIÓN ENCARGADA DE INYECTAR MAPAS Y CAPAS GEOJSON (Corregida sin carteles molestos y con números elegantes)
+function inicializarMapaLeaflet(lat, lng, address = null) {
   const defaultLat = -27.36708; // Posadas, Misiones
   const defaultLng = -55.89608;
   
@@ -817,7 +817,6 @@ function inicializarMapaLeaflet(lat, lng, address = "Edificio") {
 
     // Función auxiliar para generar un color pastel aleatorio en formato HEX
     function generarColorPastelAleatorio() {
-      // Mezclamos un tono al azar (0-255) con blanco (255) sumando y dividiendo por 2
       const r = Math.floor((Math.random() * 127) + 128).toString(16).padStart(2, '0');
       const g = Math.floor((Math.random() * 127) + 128).toString(16).padStart(2, '0');
       const b = Math.floor((Math.random() * 127) + 128).toString(16).padStart(2, '0');
@@ -828,22 +827,28 @@ function inicializarMapaLeaflet(lat, lng, address = "Edificio") {
     if (typeof misTerritoriosGeoJSON !== 'undefined') {
       L.geoJSON(misTerritoriosGeoJSON, {
         style: function(feature) {
-          // Generamos un color pastel único para este polígono
           const colorAleatorio = generarColorPastelAleatorio();
           return {
             color: colorAleatorio,       // Color del borde
             weight: 2,                   // Grosor del borde
             opacity: 0.9,
             fillColor: colorAleatorio,   // Color del relleno pastel
-            fillOpacity: 0.35            // Opacidad del relleno (un poco más visible para notar los pasteles)
+            fillOpacity: 0.35            
           };
         },
         onEachFeature: function (feature, layer) {
-          // Modificado para leer 'name' o 'Territorio_N' por las dudas de que varíe el origen
           const numeroTerritorio = feature.properties && (feature.properties.name || feature.properties.Territorio_N);
           
           if (numeroTerritorio) {
+            // 1. Popup normal al hacerle clic al polígono
             layer.bindPopup(`<b>Territorio N° ${numeroTerritorio}</b>`);
+
+            // 2. 💎 NÚMERO ELEGANTE Y PERMANENTE EN EL CENTRO DE CADA POLÍGONO
+            layer.bindTooltip(String(numeroTerritorio), {
+              permanent: true,        // Se queda fijo en el mapa
+              direction: 'center',    // Centrado geométrico
+              className: 'texto-territorio-elegante' // Clase CSS personalizada
+            });
           }
           // Efecto visual al pasar el mouse por encima
           layer.on('mouseover', function () { this.setStyle({ fillOpacity: 0.60 }); });
@@ -851,11 +856,12 @@ function inicializarMapaLeaflet(lat, lng, address = "Edificio") {
         }
       }).addTo(leafletMap);
     }
-    // Agregar marcador único si se pasan coordenadas válidas
-    if (lat && lng) {
+
+    // AGREGAR MARCADOR ÚNICO (Solo si te pasaron una dirección real, no al abrir de cero)
+    if (lat && lng && address) {
       leafletMarker = L.marker([lat, lng]).addTo(leafletMap)
         .bindPopup(`<b>${address}</b>`)
-        .openPopup();
+        .openPopup(); // Este sí se abre porque es un edificio seleccionado real
     }
   }, 50);
 }
