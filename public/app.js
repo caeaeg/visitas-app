@@ -13,31 +13,35 @@ let leafletMap = null;
 let leafletMarker = null;
 
 
-// --- FUNCIONES DE NAVEGACIÓN Y VISTAS ---
-
 function abrirVista(id) {
-  // Ocultar todas las vistas internas
+  // Ocultar todas las sub-vistas internas
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
   
-  // Activar la vista objetivo
+  // Activar la sub-vista objetivo
   const vistaObjetivo = document.getElementById(id);
   if (vistaObjetivo) vistaObjetivo.classList.add("active");
 
-  // --- CORRECCIÓN DE FLUJO MÓVIL ---
-  // Si entra al editor desde el celular, ocultamos el buscador para que no lo tape
+  // --- SOLUCIÓN DE FLUJO DE CONTENEDORES ---
   if (id === "editarView" && currentRole === "predi") {
+    // Si el predi va a editar/crear, ocultamos su buscador móvil
     document.getElementById("appContainer").style.display = "none";
+    // Y mostramos temporalmente el contenedor padre del editor, ocultando su barra superior de admin
+    document.getElementById("mainDashboard").style.display = "block";
+    const topbar = document.querySelector(".topbar");
+    if (topbar) topbar.style.display = "none"; 
   }
 
   // Acciones específicas según la vista
   if (id === "territorioView") {
     cargarDashboard();
     
+    // Si el mapa ya existe, forzamos re-cálculo de tamaño para evitar el bug gris de Leaflet
     if (leafletMap) {
       setTimeout(() => {
         leafletMap.invalidateSize();
       }, 100);
     } else {
+      // Centrar mapa por defecto en Posadas al abrir territorios de cero
       inicializarMapaLeaflet(-27.36708, -55.89608, "Posadas");
     }
   }
@@ -122,6 +126,8 @@ function iniciarApp() {
     mainDashboard.style.display = "none";
   } else {
     mainDashboard.style.display = "block";
+    const topbar = document.querySelector(".topbar");
+    if (topbar) topbar.style.display = "flex"; // Nos aseguramos de restaurarla para el admin
     appContainer.style.display = "none";
     abrirVista("dashboardView");
   }
@@ -571,7 +577,12 @@ async function guardarEdificio(id = null) {
     
     if(res.ok) {
       alert("Edificio guardado exitosamente");
-      abrirVista("dashboardView");
+      // Si es predi, simula una cancelación para regresar limpio a la vista móvil, sino va al dashboard
+      if (currentRole === "predi") {
+        cancelarEdificioMovil();
+      } else {
+        abrirVista("dashboardView");
+      }
     } else {
       alert("Error: " + data.message);
     }
@@ -759,10 +770,13 @@ function abrirEditorEdificio(building = null) {
 }
 // Función auxiliar para cuando el usuario móvil cancela la creación
 function cancelarEdificioMovil() {
-  // Ocultamos la vista del editor
+  // Ocultamos la vista del editor y apagamos el contenedor del dashboard
   document.getElementById("editarView").classList.remove("active");
-  // Volvemos a hacer visible el contenedor de la app móvil
+  document.getElementById("mainDashboard").style.display = "none";
+  
+  // Volvemos a hacer visible el contenedor original de la app móvil
   document.getElementById("appContainer").style.display = "block";
+  
   // Limpiamos los textos para dejar la app lista para otra búsqueda
   limpiarVista();
   mensajeInicial.style.display = "block";
