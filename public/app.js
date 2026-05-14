@@ -16,29 +16,30 @@ let leafletMarker = null;
 // --- FUNCIONES DE NAVEGACIÓN Y VISTAS ---
 
 function abrirVista(id) {
-  // Ocultar todas las vistas
+  // Ocultar todas las vistas internas
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
   
   // Activar la vista objetivo
   const vistaObjetivo = document.getElementById(id);
   if (vistaObjetivo) vistaObjetivo.classList.add("active");
 
+  // --- CORRECCIÓN DE FLUJO MÓVIL ---
+  // Si entra al editor desde el celular, ocultamos el buscador para que no lo tape
+  if (id === "editarView" && currentRole === "predi") {
+    document.getElementById("appContainer").style.display = "none";
+  }
+
   // Acciones específicas según la vista
   if (id === "territorioView") {
     cargarDashboard();
     
-    // Si el mapa ya existe, forzamos re-cálculo de tamaño para evitar el bug gris de Leaflet
     if (leafletMap) {
       setTimeout(() => {
         leafletMap.invalidateSize();
       }, 100);
     } else {
-      // Centrar mapa por defecto en Posadas al abrir territorios de cero
       inicializarMapaLeaflet(-27.36708, -55.89608, "Posadas");
     }
-  }
-  if (id === "editarView") {
-    // Si se abre vacía, es para listar o rellenar con el editor
   }
   if (id === "problemasView") {
     verProblemas();
