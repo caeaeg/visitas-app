@@ -368,6 +368,13 @@
   box-shadow: none !important;
   text-shadow: 1px 1px 3px rgba(0,0,0,0.9), -1px -1px 3px rgba(0,0,0,0.9); /* Sombra fuerte para que se lea sobre cualquier color */
   transition: all 0.2s ease-in-out; /* Animación suave al cambiar de tamaño */
+  /* --- NUEVAS REGLAS PARA EVITAR DESBORDE --- */
+  padding: 2px 6px !important; /* Un poco menos de espacio */
+  border-radius: 6px !important;
+  max-width: 40px !important; /* Limita el ancho de la caja */
+  text-align: center; /* Centra el número en la cajita */
+  overflow: hidden; /* Corta cualquier cosa que intente salir */
+  white-space: nowrap; /* Evita que el número salte de línea */
 }
 /* 2. Estado activo (VISTA DE CERCA): Se activa mediante JavaScript */
 .texto-territorio-elegante.vista-cerca {
