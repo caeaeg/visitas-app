@@ -701,10 +701,9 @@ function inicializarMapaLeaflet(lat, lng, address = "Edificio") {
 function abrirEditorEdificio(building = null) {
   abrirVista("editarView");
   
-  // Determinamos a dónde tiene que volver el botón Cancelar/Volver
-  // Si el panel de administración está visible, vuelve al dashboard. Si no, vuelve a la vista móvil.
-  const esAdminView = document.getElementById("mainDashboard").style.display !== "none";
-  const funcionCancelar = esAdminView ? "abrirVista('dashboardView')" : "cancelarEdificioMovil()";
+  // --- CORRECCIÓN DEFINITIVA DE CANCELAR ---
+  // Si el rol es predi, el destino SIEMPRE debe ser volver al buscador móvil
+  const funcionCancelar = (currentRole === "predi") ? "cancelarEdificioMovil()" : "abrirVista('dashboardView')";
 
   let html = `
     <div class="card-container">
