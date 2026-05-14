@@ -423,16 +423,16 @@ async function cargarDashboard() {
   }
 }
 
+// Modificación para listar edificios y habilitar la selección interactiva
 async function cargarEdificios() {
   listaEdificios.innerHTML = `
     <div class="card-container skeleton">
       <div class="skeletonLine"></div>
       <div class="skeletonLine"></div>
-      <div class="skeletonLine"></div>
     </div>
   `;
   
-  const filtro = busquedaTerritorio.value;
+  const filtro = busquedaTerritorio.value.trim();
   const orden = filtroOrden.value;
   
   try {
@@ -446,14 +446,14 @@ async function cargarEdificios() {
     }
     
     data.data.forEach(b => {
-      const addrEscaped = b.address.replace(/'/g, "\\'");
       html += `
-        <div class="card-container" style="margin-top:12px;">
-          <b>${b.address}</b><br>
-          🗺 Territorio: ${b.territory || "-"}<br><br>
-          <div style="display:flex; gap:8px;">
-            <button class="buscar" style="min-height:40px; padding:8px;" onclick="inicializarMapaLeaflet(${b.latitude || null}, ${b.longitude || null}, '${addrEscaped}')">👁 Ver Mapa</button>
-            <button class="secondary" style="min-height:40px; padding:8px;" onclick='abrirEditorEdificio(${JSON.stringify(b)})'>✏ Editar</button>
+        <div class="card-container" style="margin-top:10px; cursor:pointer; border-left: 4px solid #2196F3;" onclick="verDetalleEdificioAdmin('${b._id}')">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <b style="color:white; font-size:16px;">${b.address}</b><br>
+              <small style="color:gray;">🗺️ Territorio: ${b.territory || "-"}</small>
+            </div>
+            <span style="font-size:14px;">👁️ Ver</span>
           </div>
         </div>
       `;
@@ -462,6 +462,66 @@ async function cargarEdificios() {
   } catch (error) {
     console.error(error);
     listaEdificios.innerHTML = "<p style='color:red;'>Error al cargar el listado.</p>";
+  }
+}
+
+// Nueva función centralizada para auditar un edificio (Detalles, Alertas, Historial y Editar)
+async function verDetalleEdificioAdmin(buildingId) {
+  const panel = document.getElementById("panelDetalleEdificio");
+  panel.style.display = "block";
+  panel.innerHTML = `<p style="text-align:center; color:gray;">Cargando historial y detalles...</p>`;
+
+  try {
+    // Reutilizamos tu ruta de información que ya trae datos del edificio y problemas
+    const res = await apiFetch(`/building-info/${buildingId}`);
+    const data = await res.json();
+    
+    const b = data.building;
+    const addrEscaped = b.address.replace(/'/g, "\\'");
+
+    // Centramos automáticamente el mapa principal en el edificio seleccionado
+    if (b.latitude && b.longitude) {
+      inicializarMapaLeaflet(b.latitude, b.longitude, addrEscaped);
+    }
+
+    // Comprobar si hay alertas de problemas activos
+    let alertaHtml = "";
+    if (data.issue) {
+      alertaHtml = `
+        <div style="background:#3a1f1f; border: 1px solid #f44336; color:#ff8a80; padding:12px; border-radius:12px; margin-bottom:15px; font-size:15px;">
+          ⚠️ <b>Problema Reportado (${data.issue.type}):</b> ${data.issue.description || "Sin descripción adicional"}
+        </div>
+      `;
+    }
+
+    // Renderizamos todo el bloque consolidado
+    panel.innerHTML = `
+      ${alertaHtml}
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
+        <div>
+          <h3 style="margin:0; color:white; font-size:22px;">${b.address}</h3>
+          <p style="color:gray; margin:2px 0;">${b.address2 || ""}</p>
+        </div>
+        <button class="secondary" style="width:auto; min-height:38px; padding:6px 12px; font-size:14px; border-radius:8px;" onclick='abrirEditorEdificio(${JSON.stringify(b)})'>✏️ Editar</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; font-size:14px; background:#252525; padding:12px; border-radius:12px; margin-bottom:15px;">
+        <div>🏢 <b>Nombre:</b> ${b.name || "-"}</div>
+        <div>🗺️ <b>Territorio:</b> ${b.territory || "-"}</div>
+        <div>🔢 <b>Pisos:</b> ${b.floors || 0}</div>
+        <div>🚪 <b>Deptos/Piso:</b> ${b.unitsPerFloor || 0}</div>
+        <div>🌱 <b>Planta Baja:</b> ${b.hasGroundFloor ? "Sí" : "No"}</div>
+        <div>🛎️ <b>Portero:</b> ${b.hasDoorman ? "Sí" : "No"}</div>
+      </div>
+      <h4 style="margin:10px 0 5px; color:#2196F3; font-size:16px;">🕒 Historial de Visitas e Información</h4>
+      <div style="font-size:14px; background:#181818; padding:10px; border-radius:10px; max-height:180px; overflow-y:auto; border:1px solid #2b2b2b;">
+        <p style="margin:0; color:#bdbdbd;">Última visita registrada: ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString() : "Nunca"}</p>
+        ${b.description ? `<p style="margin-top:8px; color:gray;"><b>Descripción interna:</b> ${b.description}</p>` : ""}
+        </div>
+    `;
+  } catch (error) {
+    console.error("Error al cargar detalles del edificio:", error);
+    panel.innerHTML = `<p style="color:red; text-align:center;">Error al conectar con los detalles del edificio.</p>`;
   }
 }
 
