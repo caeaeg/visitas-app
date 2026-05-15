@@ -22,10 +22,9 @@
       border-radius: 20px;
       box-shadow: 0 10px 30px rgba(0,0,0,.12);
       margin-top: 15px;
-      height: 400px; /* Alto fijo necesario para Leaflet */
+      height: 400px; 
       width: 100%;
     }
-    /* Fix para evitar que Leaflet rompa la alineación de sus propios textos de mapa */
     .leaflet-container {
       text-align: left;
       font-size: 12px;
@@ -153,8 +152,6 @@
       display: none;
       font-size: 14px;
       border: 1px solid #333;
-      <div id="infoEdificio"></div>
-    <div id="miniMapaPredi" class="mapaBox" style="display:none; height: 160px; margin-top: 10px; pointer-events: none;"></div>
     }
     #listaTerritorio button {
       width: 100%;
@@ -347,7 +344,17 @@
         transform: translateX(-50%);
         flex-direction: row;
       }
+      .filtros-grid { grid-template-columns: 1fr !important; }
     }
+    
+    /* Estilo para los filtros del admin */
+    .filtros-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
     .skeleton { position: relative; overflow: hidden; background: #242424; border-radius: 16px; }
     .skeleton::after {
       content: ""; position: absolute; inset: 0; transform: translateX(-100%);
@@ -356,33 +363,19 @@
     }
     @keyframes skeleton { 100% { transform: translateX(100%); } }
     .skeletonLine { height: 20px; margin-bottom: 12px; }
-    /* Estilo moderno para los números de territorio en el mapa */
-/* 1. Estado base (VISTA DE CERCA): Compacto, elegante y adaptado al polígono */
-.texto-territorio-elegante {
-  background: rgba(0, 0, 0, 0.75) !important; /* Fondo oscuro sutil */
-  border: 1px solid rgba(33, 150, 243, 0.4) !important; /* Bordecito azul fino */
-  color: #ffffff !important;
-  font-family: 'Segoe UI', Roboto, sans-serif !important;
-  font-weight: 700 !important;
-  font-size: 12px !important; /* Un toque más chico para que no desborde */
-  padding: 2px 5px !important; /* Margen interno más ajustado */
-  border-radius: 6px !important;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.4) !important;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-  white-space: nowrap !important;
-  transition: opacity 0.2s ease-in-out; /* Transición suave al aparecer/desaparecer */
-}
 
-/* Ocultar la flechita nativa de Leaflet siempre */
-.texto-territorio-elegante::before {
-  display: none !important;
-}
-
-/* 2. Estado oculto para cuando el mapa está muy alejado (Evita el enjambre) */
-.texto-territorio-elegante.zoom-alejado {
-  opacity: 0 !important;
-  pointer-events: none !important; /* Evita que estorbe al hacer clics */
-}
+    .texto-territorio-elegante {
+      background: rgba(0, 0, 0, 0.75) !important;
+      border: 1px solid rgba(33, 150, 243, 0.4) !important;
+      color: #ffffff !important;
+      font-family: sans-serif !important;
+      font-weight: 700 !important;
+      font-size: 12px !important;
+      padding: 2px 5px !important;
+      border-radius: 6px !important;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4) !important;
+      white-space: nowrap !important;
+    }
   </style>
 </head>
 <body>
@@ -413,14 +406,7 @@
       <button class="miniBtn" onclick="logout()">Salir</button>
     </div>
   </div>
-  <div class="filtros-box" style="display:flex; gap:10px; margin-bottom:15px;">
-  <input type="text" id="busquedaDireccionAdmin" placeholder="Buscar por dirección..." oninput="cargarEdificios()">
-  
-  <select id="filtroOrden" onchange="cargarEdificios()">
-    <option value="address">Orden Alfabético</option>
-    <option value="recent">Recién Agregados</option> <option value="territory">Por Territorio</option>
-  </select>
-</div>
+
   <div id="dashboardView" class="view active">
     <h2>⚙ Panel Control</h2>
     <div class="dashboardGrid">
@@ -441,19 +427,7 @@
       </div>
     </div>
   </div>
-<div class="filtros-container" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:15px;">
-  
-  <input type="text" id="busquedaDireccionAdmin" placeholder="🔍 Buscar dirección..." oninput="cargarEdificios()">
 
-  <input type="number" id="busquedaTerritorio" placeholder="🗺️ Territorio" oninput="cargarEdificios()">
-
-  <select id="filtroOrden" onchange="cargarEdificios()">
-    <option value="address">🔤 Nombre (A-Z)</option>
-    <option value="recent">🆕 Recién agregados</option>
-    <option value="territory">📍 Por Territorio</option>
-  </select>
-
-</div>
   <div id="territorioView" class="view">
     <button class="secondary backModern" onclick="abrirVista('dashboardView')">← Volver al Panel</button>
     <h2>🗺️ Gestión de Territorios y Edificios</h2>
@@ -471,18 +445,19 @@
       </div>
     </div>
 
+    <div class="filtros-grid">
+      <input type="text" id="busquedaDireccionAdmin" placeholder="🔍 Buscar dirección..." oninput="cargarEdificios()">
+      <input type="number" id="busquedaTerritorio" placeholder="🗺️ Territorio" oninput="cargarEdificios()">
+      <select id="filtroOrden" onchange="cargarEdificios()">
+        <option value="address">🔤 Orden Alfabético</option>
+        <option value="recent">🆕 Recién Agregados</option> 
+        <option value="territory">📍 Por Territorio</option>
+      </select>
+    </div>
+
     <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
-      <div class="sectionCard" style="flex: 1; min-width: 320px; margin-top:0;">
-        <h3>📋 Filtros y Listado</h3>
-        <select id="filtroOrden" onchange="cargarEdificios()">
-          <option value="territorio">Ordenar por territorio</option>
-          <option value="masVisitados">Más visitados</option>
-          <option value="menosVisitados">Menos visitados</option>
-          <option value="ultimosVisitados">Últimos visitados</option>
-        </select>
-        <input id="busquedaTerritorio" placeholder="Filtrar por número de territorio" onkeyup="if(event.key==='Enter') cargarEdificios()">
-        <button class="buscar" onclick="cargarEdificios()">🔍 Aplicar Filtros</button>
-        
+      <div class="sectionCard" style="flex: 1; min-width: 320px;">
+        <h3>📋 Listado de Edificios</h3>
         <div id="listaEdificios" style="margin-top: 15px; max-height: 500px; overflow-y: auto;"></div>
         
         <div style="display:flex; gap:10px; margin-top:15px;">
@@ -494,15 +469,16 @@
       <div style="flex: 1.4; min-width: 320px; display: flex; flex-direction: column; gap: 20px;">
         <div class="mapaBox" id="map" style="margin-top:0; height: 350px;"></div>
         <div id="panelDetalleEdificio" class="sectionCard" style="display: none; background: #1e1e1e; border: 1px solid #333;">
-          <p style="color: gray; text-align: center; margin: 0;">Seleccioná un edificio de la lista para ver su historial y detalles</p>
-        </div>
+          </div>
       </div>
     </div>
   </div>
-  </div>
 
-  <div id="editarView" class="view"></div>
-  <div id="problemasView" class="view"></div>
+  <div id="editarView" class="view">
+    </div>
+
+  <div id="problemasView" class="view">
+    </div>
 </div>
 
 <div class="container" id="appContainer" style="display:none;">
@@ -517,7 +493,9 @@
     <p id="mensajeInicial" style="text-align:center;">Ingresá una dirección para comenzar</p>
     <button class="buscar" onclick="buscar()">Buscar</button>
     
-    <div id="infoEdificio"></div>
+    <div id="infoEdificio">
+      </div>
+    
     <div id="listaTerritorio"></div>
     <h3 id="resultado" style="text-align:center;"></h3>
     
