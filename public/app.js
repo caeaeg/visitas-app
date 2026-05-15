@@ -556,20 +556,17 @@ async function verDetalleEdificioAdmin(buildingId) {
             return String(numeroTerritorio) === String(b.territory);
           }
         });
-
         // Si encontramos las fronteras del territorio, encuadramos el mapa ahí
         if (capaGeoJSONAdmin.getLayers().length > 0) {
           leafletMap.fitBounds(capaGeoJSONAdmin.getBounds(), { padding: [50, 50], maxZoom: 16 });
           centradoAdminExitoso = true;
         }
       }
-
       // 2. Si el edificio tiene coordenadas exactas, inicializamos el marcador y centramos la cámara
       if (b.latitude && b.longitude) {
         // Inicializar o mover el marcador con tu función existente
         inicializarMapaLeaflet(b.latitude, b.longitude, addrEscaped);
-        
-        // Forzamos un zoom un poquito más cerrado sobre el marcador para verlo en detalle
+   // Forzamos un zoom un poquito más cerrado sobre el marcador para verlo en detalle
         leafletMap.setView([b.latitude, b.longitude], 16);
         centradoAdminExitoso = true;
       }
@@ -582,7 +579,6 @@ async function verDetalleEdificioAdmin(buildingId) {
       // Pequeño delay para recalcular tamaño y evitar bugs visuales en el mapa
       setTimeout(() => { leafletMap.invalidateSize(); }, 100);
     }
-
     // Comprobar si hay alertas de problemas activos
     let alertaHtml = "";
     if (data.issue) {
@@ -592,7 +588,6 @@ async function verDetalleEdificioAdmin(buildingId) {
         </div>
       `;
     }
-
     // Renderizamos todo el bloque consolidado
     panel.innerHTML = `
       ${alertaHtml}
@@ -724,7 +719,7 @@ async function guardarEdificio(id = null) {
     description: document.getElementById("edit_description").value
   };
 
-  const url = id ? `/admin/building/${id}` : "/admin/building";
+  const url = id ? `/building/${id}` : "/building";
   const method = id ? "PUT" : "POST";
 
   try {
