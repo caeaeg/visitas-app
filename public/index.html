@@ -413,6 +413,14 @@
       <button class="miniBtn" onclick="logout()">Salir</button>
     </div>
   </div>
+  <div class="filtros-box" style="display:flex; gap:10px; margin-bottom:15px;">
+  <input type="text" id="busquedaDireccionAdmin" placeholder="Buscar por dirección..." oninput="cargarEdificios()">
+  
+  <select id="filtroOrden" onchange="cargarEdificios()">
+    <option value="address">Orden Alfabético</option>
+    <option value="recent">Recién Agregados</option> <option value="territory">Por Territorio</option>
+  </select>
+</div>
   <div id="dashboardView" class="view active">
     <h2>⚙ Panel Control</h2>
     <div class="dashboardGrid">
