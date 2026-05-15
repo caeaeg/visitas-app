@@ -948,7 +948,7 @@ function abrirEditorEdificio(building = null) {
       });
     }); 
     });
-  }, 50);
+  }, 200);
 }
 // Función auxiliar para cuando el usuario móvil cancela la creación
 function cancelarEdificioMovil() {
