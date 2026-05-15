@@ -264,9 +264,9 @@ app.put(
   async (req, res) => {
     try {
       await Building.findByIdAndUpdate(req.params.id, req.body);
-      res.send("Edificio actualizado");
+      res.json({ message: "Edificio actualizado" });
     } catch (err) {
-      res.status(500).send("Error actualizando");
+      res.status(500).json({ error: "Error actualizando" });
     }
   }
 );
