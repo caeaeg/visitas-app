@@ -441,7 +441,19 @@
       </div>
     </div>
   </div>
+<div class="filtros-container" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:15px;">
+  
+  <input type="text" id="busquedaDireccionAdmin" placeholder="🔍 Buscar dirección..." oninput="cargarEdificios()">
 
+  <input type="number" id="busquedaTerritorio" placeholder="🗺️ Territorio" oninput="cargarEdificios()">
+
+  <select id="filtroOrden" onchange="cargarEdificios()">
+    <option value="address">🔤 Nombre (A-Z)</option>
+    <option value="recent">🆕 Recién agregados</option>
+    <option value="territory">📍 Por Territorio</option>
+  </select>
+
+</div>
   <div id="territorioView" class="view">
     <button class="secondary backModern" onclick="abrirVista('dashboardView')">← Volver al Panel</button>
     <h2>🗺️ Gestión de Territorios y Edificios</h2>
