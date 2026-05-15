@@ -294,43 +294,40 @@ async function mostrarInfoEdificio() {
   try {
     const res = await apiFetch(`/building-info/${currentBuildingId}`);
     const data = await res.json();
+    const b = data.building;
+
     infoEdificio.style.display = "block";
     infoEdificio.innerHTML = `
       <div class="sectionCard">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
           <div>
-            <div style="font-size:24px; font-weight:bold; color:white;">${data.building.address}</div>
-            <div style="color:#9e9e9e; margin-top:4px;">${data.building.address2 || ""}</div>
+            <div style="font-size:24px; font-weight:bold; color:white;">${b.address}</div>
+            <div style="color:#9e9e9e; margin-top:4px;">${b.address2 || ""}</div>
           </div>
-          <div style="background:#2b2b2b; padding:8px 12px; border-radius:12px; font-size:13px;">🏢 ${data.building.name || "Edificio"}</div>
+          <div style="background:#2b2b2b; padding:8px 12px; border-radius:12px; font-size:13px;">🏢 ${b.name || "Edificio"}</div>
         </div>
-        <div id="miniMapaPredi" class="mapaBox" style="display:none; height: 160px; margin-top:15px; border-radius:12px; pointer-events: none;"></div>
+        <div id="miniMapaPredi" class="mapaBox" style="display:none; height: 160px; margin-top:15px; border-radius:12px; pointer-events: none; border: 1px solid #333;"></div>
         <div style="margin-top:18px; display:flex; gap:12px; flex-wrap:wrap;">
           <div style="background:#222; padding:10px 14px; border-radius:14px;">🕒 Última visita: ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString() : "Nunca"}</div>
           ${data.issue ? `<div style="background:#3a1f1f; color:#ff8a80; padding:10px 14px; border-radius:14px;">⚠ ${data.issue.description || data.issue.type}</div>` : ""}
         </div>
       </div>
     `;
-     if (data.issue) {
-      reportBtn.classList.add("alerta");
-    } else {
-      reportBtn.classList.remove("alerta");
-    }
-    // --- ENCIENDE EL MINI MAPA FIJO PARA EL PREDICADOR ---
-    const miniMapaDiv = document.getElementById("miniMapaPredi");
-    const b = data.building;
 
-    // Se enciende si tiene territorio O si tiene coordenadas
+    // Manejo del botón de reporte
+    if (data.issue) reportBtn.classList.add("alerta");
+    else reportBtn.classList.remove("alerta");
+
+    const miniMapaDiv = document.getElementById("miniMapaPredi");
+
     if (b && (b.territory || (b.latitude && b.longitude))) {
       miniMapaDiv.style.display = "block";
 
-      // Limpieza de mapas previos
       if (prediMiniMap) {
         prediMiniMap.remove();
         prediMiniMap = null;
       }
 
-      // Inicializar el mapa de solo lectura (sin interacción)
       prediMiniMap = L.map('miniMapaPredi', {
         zoomControl: false,
         dragging: false,
@@ -338,55 +335,49 @@ async function mostrarInfoEdificio() {
         scrollWheelZoom: false,
         doubleClickZoom: false
       });
-      // Capa base de calles
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19
-      }).addTo(prediMiniMap);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(prediMiniMap);
+
       let centradoExitoso = false;
-      // 1. INTENTAR DIBUJAR Y CENTRAR EN EL TERRITORIO
+
+      // 1. DIBUJAR TERRITORIO (Como fondo)
       if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined') {
         let capaGeoJSON = L.geoJSON(misTerritoriosGeoJSON, {
-          filter: function(feature) {
-            const numeroTerritorio = feature.properties && (feature.properties.name || feature.properties.Territorio_N);
-            return String(numeroTerritorio) === String(b.territory);
-          },
-          style: function() {
-            return {
-              color: '#2196F3',
-              weight: 2,
-              fillColor: '#2196F3',
-              fillOpacity: 0.18
-            };
-          }
+          filter: (f) => String(f.properties.name || f.properties.Territorio_N) === String(b.territory),
+          style: { color: '#2196F3', weight: 2, fillColor: '#2196F3', fillOpacity: 0.15 }
         }).addTo(prediMiniMap);
-        // Si encontramos el polígono del territorio, adaptamos el mapa a sus límites
+
         if (capaGeoJSON.getLayers().length > 0) {
-          prediMiniMap.fitBounds(capaGeoJSON.getBounds(), { padding: [10, 10] });
+          prediMiniMap.fitBounds(capaGeoJSON.getBounds(), { padding: [20, 20] });
           centradoExitoso = true;
         }
       }
-      // 2. AGREGAR MARCADOR ESPECÍFICO (Si existen coordenadas)
+
+      // 2. AGREGAR MARCADOR (Con validación y re-centrado)
       if (b.latitude && b.longitude) {
-        L.marker([b.latitude, b.longitude]).addTo(prediMiniMap);
-         // Si no se pudo centrar por territorio (porque no tenía o no se encontró el polígono), centra en el marcador
-        if (!centradoExitoso) {
-          prediMiniMap.setView([b.latitude, b.longitude], 16);
+        const lat = parseFloat(b.latitude);
+        const lng = parseFloat(b.longitude);
+        
+        if (!isNaN(lat) && !isNaN(lng)) {
+          L.marker([lat, lng]).addTo(prediMiniMap);
+          
+          // Si hay marcador, forzamos la vista sobre él, incluso si hay territorio
+          // Esto asegura que el punto sea el protagonista
+          prediMiniMap.setView([lat, lng], 16); 
           centradoExitoso = true;
         }
       }
-      // 3. CASO DE EMERGENCIA: Si falló todo lo anterior, centro por defecto en Posadas
+
       if (!centradoExitoso) {
         prediMiniMap.setView([-27.36708, -55.89608], 14);
       }
-     setTimeout(() => { 
-        if (prediMiniMap) prediMiniMap.invalidateSize(); 
-      }, 150);
+
+      setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 200);
     } else {
-      // Si no tiene absolutamente ningún dato geográfico, se oculta
       miniMapaDiv.style.display = "none";
     }
   } catch (error) {
-    console.error(error);
+    console.error("Error en mostrarInfoEdificio:", error);
   }
 }
 
@@ -489,7 +480,6 @@ async function cargarDashboard() {
   }
 }
 
-// Modificación para listar edificios y habilitar la selección interactiva
 async function cargarEdificios() {
   listaEdificios.innerHTML = `
     <div class="card-container skeleton">
@@ -498,36 +488,45 @@ async function cargarEdificios() {
     </div>
   `;
   
-  const filtro = busquedaTerritorio.value.trim();
+  // 1. Capturamos todos los filtros disponibles
+  const filtroTerritorio = busquedaTerritorio.value.trim();
   const orden = filtroOrden.value;
   
+  // 2. Capturamos el nuevo buscador por dirección (asegúrate de que el ID coincida con tu HTML)
+  const inputDireccion = document.getElementById("busquedaDireccionAdmin");
+  const filtroDireccion = inputDireccion ? inputDireccion.value.trim() : "";
+  
   try {
-    const res = await apiFetch(`/admin/buildings?page=${paginaActual}&limit=20&territory=${filtro}&sort=${orden}`);
+    // 3. Enviamos TODO al servidor: territorio, búsqueda por nombre/dirección y el orden
+    const res = await apiFetch(`/admin/buildings?page=${paginaActual}&limit=20&territory=${filtroTerritorio}&search=${encodeURIComponent(filtroDireccion)}&sort=${orden}`);
     const data = await res.json();
     let html = "";
-    
+
     if(!data.data || data.data.length === 0) {
-      listaEdificios.innerHTML = "<p style='color:gray; text-align:center;'>No se encontraron edificios.</p>";
+      listaEdificios.innerHTML = "<p style='color:gray; text-align:center; padding:20px;'>No se encontraron edificios con esos filtros.</p>";
       return;
     }
-    
+
     data.data.forEach(b => {
+      // Usamos una lógica de color para resaltar si es nuevo (opcional)
+      const colorBorde = (orden === 'recent') ? '#4CAF50' : '#2196F3';
+      
       html += `
-        <div class="card-container" style="margin-top:10px; cursor:pointer; border-left: 4px solid #2196F3;" onclick="verDetalleEdificioAdmin('${b._id}')">
+        <div class="card-container" style="margin-top:10px; cursor:pointer; border-left: 4px solid ${colorBorde};" onclick="verDetalleEdificioAdmin('${b._id}')">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <div>
               <b style="color:white; font-size:16px;">${b.address}</b><br>
               <small style="color:gray;">🗺️ Territorio: ${b.territory || "-"}</small>
             </div>
-            <span style="font-size:14px;">👁️ Ver</span>
+            <span style="font-size:14px; color:#2196F3;">👁️ Ver</span>
           </div>
         </div>
       `;
     });
     listaEdificios.innerHTML = html;
   } catch (error) {
-    console.error(error);
-    listaEdificios.innerHTML = "<p style='color:red;'>Error al cargar el listado.</p>";
+    console.error("Error en cargarEdificios:", error);
+    listaEdificios.innerHTML = "<p style='color:red; text-align:center;'>Error al cargar el listado.</p>";
   }
 }
 
