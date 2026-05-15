@@ -62,36 +62,39 @@ app.get(
   }
 );
 
-// 🔹 ADMIN BUILDINGS (Con protección contra caídas)
-app.get(
-  "/admin/buildings",
-  requireLogin,
-  requireRole(["admin", "conductor"]),
-  async (req, res) => {
-    try {
-      const page = Number(req.query.page) || 1;
-      const limit = 20;
-      const skip = (page - 1) * limit;
-      const sort = req.query.sort;
-      
-      let query = Building.find();
-      if (sort === "territory") query = query.sort({ territory: 1 });
-      if (sort === "recent") query = query.sort({ updatedAt: -1 });
-      
-      const buildings = await query.skip(skip).limit(limit);
-      const total = await Building.countDocuments();
-      
-      res.json({
-        data: buildings,
-        total,
-        page,
-        totalPages: Math.ceil(total / limit)
-      });
-    } catch (err) {
-      res.status(500).send("Error obteniendo edificios");
-    }
+// 🔹 ADMIN BUILDINGS (Actualizado)
+app.get("/admin/buildings", requireLogin, requireRole(["admin", "conductor"]), async (req, res) => {
+  try {
+    const page = Number(req.query.page) || 1;
+    const limit = 20;
+    const skip = (page - 1) * limit;
+    const { territory, sort, search } = req.query; // Agregamos search
+
+    let filter = {};
+    if (territory) filter.territory = territory;
+    // Si hay búsqueda, filtramos por dirección (case insensitive)
+    if (search) filter.address = new RegExp(search, "i");
+
+    let query = Building.find(filter);
+
+    // Lógica de ordenamiento
+    if (sort === "territory") query = query.sort({ territory: 1 });
+    else if (sort === "recent") query = query.sort({ createdAt: -1 }); // "Recién agregados"
+    else query = query.sort({ address: 1 });
+
+    const buildings = await query.skip(skip).limit(limit);
+    const total = await Building.countDocuments(filter);
+
+    res.json({
+      data: buildings,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    });
+  } catch (err) {
+    res.status(500).send("Error obteniendo edificios");
   }
-);
+});
 
 // 🔹 BUSCAR BUILDING
 app.get(
