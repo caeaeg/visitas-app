@@ -257,7 +257,7 @@ app.get(
 app.put(
   "/building/:id",
   requireLogin,
-  requireRole(["admin", "conductor"]),
+  requireRole(["admin", "conductor", "predi"]),
   async (req, res) => {
     try {
       await Building.findByIdAndUpdate(req.params.id, req.body);
