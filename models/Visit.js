@@ -41,4 +41,4 @@ const issueSchema = new mongoose.Schema({
   timestamps: true // Esto crea 'createdAt' (fecha de reporte) y 'updatedAt' (fecha de resolución)
 });
 
-module.exports = mongoose.model("Issue", issueSchema);
+module.exports = mongoose.models.Visit || mongoose.model("Visit", visitSchema);
