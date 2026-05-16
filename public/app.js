@@ -416,22 +416,40 @@ function abrirReporte() { modalReporte.style.display = "flex"; }
 function cerrarReporte() { modalReporte.style.display = "none"; }
 
 async function enviarReporte() {
+  // 1. Validar que el usuario haya escrito algo antes de enviar
+  const descripcion = descProblema.value.trim();
+  if (!descripcion) {
+    alert("Por favor, escribe los detalles del problema antes de enviar.");
+    return;
+  }
+
   try {
-    await apiFetch("/issues", {
+    // Apuntamos a la ruta "/issues" que ya tenías definida
+    const res = await apiFetch("/issues", {
       method: "POST",
       body: JSON.stringify({
         buildingId: currentBuildingId,
-        departmentId: currentDept?._id,
+        departmentId: currentDept?._id || null, // Aseguramos un null si no hay depto
         type: tipoProblema.value,
-        description: descProblema.value
+        description: descripcion
       })
     });
-    cerrarReporte();
-    descProblema.value = "";
-    alert("Reporte enviado con éxito");
-    await mostrarInfoEdificio();
+
+    // 2. Controlar si el servidor realmente aceptó el reporte
+    if (res.ok) {
+      cerrarReporte();
+      descProblema.value = "";
+      alert("Reporte enviado con éxito");
+      await mostrarInfoEdificio();
+    } else {
+      // Intentamos leer el mensaje de error del servidor si existe
+      const errorData = await res.json().catch(() => ({}));
+      alert("No se pudo enviar el reporte: " + (errorData.error || "Error en el servidor"));
+    }
+
   } catch (error) {
-    console.error(error);
+    console.error("Error crítico al enviar reporte:", error);
+    alert("Error crítico de comunicación. Revisa tu conexión.");
   }
 }
 
