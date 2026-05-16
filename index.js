@@ -287,23 +287,21 @@ app.get(
 );
 
 // 🔹 RUTA UNIFICADA PARA REPORTAR PROBLEMAS
-app.post("/admin/issues", requireLogin, async (req, res) => {
+app.post("/issues", requireLogin, async (req, res) => {
   try {
-    const { buildingId, type, description, departmentId } = req.body;
-    
+    const { buildingId, departmentId, type, description } = req.body;
     const nuevoIssue = new Issue({
       buildingId,
       departmentId,
-      user: req.user.username, // Capturamos automáticamente quién reporta
+      user: req.user?.username || "Predicador", // Captura el usuario logueado
       type,
-      description,
-      status: "PENDIENTE"
+      description
     });
-
     await nuevoIssue.save();
-    res.json({ message: "Reporte enviado con éxito. El administrador lo revisará." });
+    res.status(201).json({ message: "Reporte guardado con éxito" });
   } catch (err) {
-    res.status(500).json({ error: "Error al enviar el reporte" });
+    console.error(err);
+    res.status(500).json({ error: "No se pudo procesar el reporte en la base de datos" });
   }
 });
 
