@@ -19,5 +19,5 @@ const issueSchema = new mongoose.Schema({
   }
 });
 
-module.exports = mongoose.model("Issue", issueSchema);
+module.exports = mongoose.models.Issue || mongoose.model("Issue", issueSchema);
 
