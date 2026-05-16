@@ -27,6 +27,6 @@ const BuildingSchema = new mongoose.Schema({
   timestamps: true // Esto añade automáticamente createdAt y updatedAt (útil para el filtro de "Recién agregados")
 });
 
-module.exports = mongoose.model("Building", BuildingSchema);
+module.exports = mongoose.models.Building || mongoose.model("Building", BuildingSchema);
 
 
