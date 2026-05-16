@@ -2,7 +2,7 @@ const Issue = require("./models/Issue");
 const Building = require("./models/Building");
 const Department = require("./models/Department");
 const Visit = require("./models/Visit");
-const Report = require("./models/Report");
+
 const express = require("express");
 const {
   auth,
