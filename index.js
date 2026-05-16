@@ -286,24 +286,26 @@ app.get(
   }
 );
 
-// 🔹 ISSUES
-app.post(
-  "/issues",
-  requireLogin,
-  requireRole(["admin","conductor","predi"]),
-  async (req, res) => {
-    try {
-      const { buildingId, departmentId, type, description } = req.body;
-      if (!buildingId || !type) return res.status(400).send("Datos incompletos");
-      
-      const issue = new Issue({ buildingId, departmentId, type, description });
-      await issue.save();
-      res.json(issue);
-    } catch (err) {
-      res.status(500).send("Error creando issue");
-    }
+// 🔹 RUTA UNIFICADA PARA REPORTAR PROBLEMAS
+app.post("/admin/issues", requireLogin, async (req, res) => {
+  try {
+    const { buildingId, type, description, departmentId } = req.body;
+    
+    const nuevoIssue = new Issue({
+      buildingId,
+      departmentId,
+      user: req.user.username, // Capturamos automáticamente quién reporta
+      type,
+      description,
+      status: "PENDIENTE"
+    });
+
+    await nuevoIssue.save();
+    res.json({ message: "Reporte enviado con éxito. El administrador lo revisará." });
+  } catch (err) {
+    res.status(500).json({ error: "Error al enviar el reporte" });
   }
-);
+});
 
 app.get(
   "/issues",
