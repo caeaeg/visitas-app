@@ -2,7 +2,6 @@ const Issue = require("./models/Issue");
 const Building = require("./models/Building");
 const Department = require("./models/Department");
 const Visit = require("./models/Visit");
-
 const express = require("express");
 const {
   auth,
@@ -263,9 +262,21 @@ app.put(
   requireRole(["admin", "conductor", "predi"]),
   async (req, res) => {
     try {
-      await Building.findByIdAndUpdate(req.params.id, req.body);
-      res.json({ message: "Edificio actualizado" });
+      // 🕵️‍♂️ ESPÍA 1: Ver qué manda el navegador
+      console.log("👉 Datos recibidos del frontend en BODY:", req.body);
+
+      const actualizado = await Building.findByIdAndUpdate(
+        req.params.id, 
+        { $set: req.body }, 
+        { new: true }
+      );
+      
+      // 🕵️‍♂️ ESPÍA 2: Ver qué guardó MongoDB realmente
+      console.log("💾 Guardado real en MongoDB:", actualizado);
+
+      res.json({ message: "Edificio actualizado", data: actualizado });
     } catch (err) {
+      console.error("Error en PUT /building:", err);
       res.status(500).json({ error: "Error actualizando" });
     }
   }
