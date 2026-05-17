@@ -619,10 +619,9 @@ async function verDetalleEdificioAdmin(buildingId) {
         const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
 
        if (tieneCoordenadas) {
-          // 📍 CASO A: EL EDIFICIO TIENE PUNTO EXACTO (Inyección dinámica del mini-mapa)
-          console.log(`📍 Inicializando mini-mapa dedicado para: ${latValida}, ${lngValida}`);
+          // 📍 CASO A: EL EDIFICIO TIENE PUNTO EXACTO (Mini-mapa 100% Estático y Visual)
+          console.log(`📍 Inicializando mini-mapa estático para: ${latValida}, ${lngValida}`);
           
-          // 1. Limpiamos cualquier instancia de mapa secundaria que haya quedado abierta antes
           if (miniMapaAdminInstance !== null) {
             try {
               miniMapaAdminInstance.remove();
@@ -630,14 +629,11 @@ async function verDetalleEdificioAdmin(buildingId) {
             } catch (e) { console.warn("Error limpiando mapa anterior:", e); }
           }
 
-          // 2. Buscamos el panel de detalles que se acaba de dibujar en la pantalla
           const panelDetalle = document.getElementById("panelDetalleEdificio");
           if (panelDetalle) {
-            // Eliminamos si ya existía un contenedor de mapa viejo para que no se duplique
             const mapaViejo = document.getElementById("miniMapaDetalle");
             if (mapaViejo) mapaViejo.remove();
 
-            // 3. Le pegamos el cuadradito del mapa abajo de todo el contenido de la ficha técnica
             const contenedorMapaHTML = document.createElement("div");
             contenedorMapaHTML.id = "miniMapaDetalle";
             contenedorMapaHTML.style.width = "100%";
@@ -649,26 +645,27 @@ async function verDetalleEdificioAdmin(buildingId) {
             panelDetalle.appendChild(contenedorMapaHTML);
           }
 
-          // 4. Esperamos un mini instante (100ms) a que el navegador asimile el nuevo div en la pantalla
           setTimeout(() => {
             try {
-              // 5. Inicializamos el mapa independiente clavado en el edificio
+              // 🔒 MAPA BLOQUEADO: Desactivamos arrastre, doble clic, zoom con rueda, etc.
               miniMapaAdminInstance = L.map('miniMapaDetalle', {
                 center: [latValida, lngValida],
                 zoom: 17,
-                zoomControl: false,      // Limpio, sin botones molestos de + y -
-                attributionControl: false // Sin los textos largos de créditos abajo
+                zoomControl: false,
+                attributionControl: false,
+                dragging: false,           // 🚫 No se puede arrastrar
+                touchZoom: false,          // 🚫 No zoom con dos dedos
+                doubleClickZoom: false,    // 🚫 No zoom con doble clic
+                scrollWheelZoom: false,    // 🚫 No zoom con la ruedita del mouse
+                boxZoom: false,            // 🚫 No zoom por selección de caja
+                keyboard: false            // 🚫 No mover con flechas del teclado
               });
 
-              // 6. Cargamos las calles de OpenStreetMap
               L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMapaAdminInstance);
-
-              // 7. Le clavamos el marcador justo en el medio (sin popups ni carteles)
               L.marker([latValida, lngValida]).addTo(miniMapaAdminInstance);
 
-              // 8. Forzamos el redibujado para que ocupe todo el espacio asignado
               miniMapaAdminInstance.invalidateSize();
-              console.log("🟢 Mini-mapa del edificio acoplado y renderizado con éxito absoluto.");
+              console.log("🟢 Mini-mapa estático renderizado con éxito.");
 
             } catch (miniMapError) {
               console.error("Error creando el mini-mapa independiente:", miniMapError);
@@ -676,7 +673,7 @@ async function verDetalleEdificioAdmin(buildingId) {
           }, 100);
 
         } else if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
-          // 🗺️ CASO B: NO TIENE COORDENADAS (Ir al territorio con zoom más cercano)
+          // 🗺️ CASO B: NO TIENE COORDENADAS (Ir al territorio con vista MUCHO más cercana)
           try {
             let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
               filter: function(feature) {
@@ -686,12 +683,12 @@ async function verDetalleEdificioAdmin(buildingId) {
             });
 
             if (capaGeoJSONAdmin.getLayers().length > 0) {
-              console.log(`🗺️ [Territorio] Encuadrando de cerca en el Territorio ${b.territory}`);
+              console.log(`🗺️ [Territorio] Encuadrando BIEN DE CERCA en el Territorio ${b.territory}`);
               
-              // Modificamos el padding a 15 para que el mapa se pegue bien a los bordes del barrio y se vea más cerca
+              // 👁️ Bajamos el padding a 5 píxeles para que se ajuste al límite del barrio y subimos el maxZoom a 16
               miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { 
-                padding: [15, 15], 
-                maxZoom: 16 // Forzamos un zoom 16 para que no quede alejado de fondo
+                padding: [5, 5], 
+                maxZoom: 16  // Obliga al mapa grande a meter un buen zoom sobre el territorio
               });
             }
           } catch (geoError) {
@@ -699,9 +696,9 @@ async function verDetalleEdificioAdmin(buildingId) {
           }
         } else {
           // 🏙️ CASO C: SIN NINGÚN DATO (Posadas General)
-          miMapaReal.setView([-27.36708, -55.89608], 14);
+          miMapaReal.setView([-27.36708, -55.89608], 16);
         }
-
+          
       } else {
         console.warn("⚠️ No se encontró la variable del mapa.");
       }
