@@ -617,11 +617,17 @@ async function verDetalleEdificioAdmin(buildingId) {
         // ¿Tiene coordenadas reales y válidas?
         const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
 
-        if (tieneCoordenadas) {
-          // 📍 CASO A: EL EDIFICIO TIENE PUNTO EXACTO (Solución definitiva al bug de _leaflet_pos)
-          console.log(`📍 Ejecutando marcador para: ${latValida}, ${lngValida}`);
+       if (tieneCoordenadas) {
+          // 📍 CASO A: EL EDIFICIO TIENE PUNTO EXACTO (Electroshock al DOM para evitar bug de _leaflet_pos)
+          console.log(`📍 [Electroshock] Despertando contenedor del mapa para: ${latValida}, ${lngValida}`);
           
-          // 1. Primero colocamos el pin en el mapa
+          try {
+            // 1. Forzamos al mapa a recalcular sus dimensiones reales en la pantalla AHORA MISMO
+            // Esto repara el panel interno antes de que explote el '_leaflet_pos'
+            miMapaReal.invalidateSize({ animate: false });
+          } catch (e) { console.warn(e); }
+
+          // 2. Con el mapa ya despierto y con tamaño real en el navegador, metemos el marcador
           if (typeof inicializarMapaLeaflet === 'function') {
             try {
               inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
@@ -630,32 +636,38 @@ async function verDetalleEdificioAdmin(buildingId) {
             }
           }
 
-          // 2. Esperamos un instante a que el DOM se estabilice
+          // 3. Dejamos una pequeña ventana de tiempo para que la animación fluya limpia
           setTimeout(() => {
             try {
-              console.log("🚀 Forzando encuadre seguro mediante fitBounds...");
+              console.log("🚀 Aplicando movimiento seguro...");
               
-              // Despierta los gráficos del mapa de forma obligatoria
+              // Volvemos a asegurar el tamaño por las dudas
               miMapaReal.invalidateSize({ animate: false });
               
-              // 🛠️ Creamos un micro-cuadrado súper cerrado alrededor del edificio de Corrientes 2223
-              // Usamos un margen bien pequeño para que el zoom quede bien cerca (estilo Zoom 18)
-              const margenMilimetrico = 0.0005; 
+              // Usamos el micro-cuadrado que te da la cercanía perfecta que buscás (Estilo Zoom 18)
+              const margenMilimetrico = 0.0004; 
               const sudoeste = [latValida - margenMilimetrico, lngValida - margenMilimetrico];
               const nordeste = [latValida + margenMilimetrico, lngValida + margenMilimetrico];
               const microAreaEdificio = L.latLngBounds(sudoeste, nordeste);
 
-              // Usamos fitBounds que NO requiere '_leaflet_pos' y es inmune al bug del panel oculto
-              miMapaReal.fitBounds(microAreaEdificio, { 
+              miMapaReal.fitBounds(microAreaArea || microAreaEdificio, { 
                 animate: true, 
-                padding: [10, 10],
-                maxZoom: 18 // Forzamos a que clave la cámara bien encima
+                padding: [15, 15],
+                maxZoom: 18 
               });
 
             } catch (boundsError) {
               console.error("Error al aplicar fitBounds en el edificio:", boundsError);
+              
+              // PLAN DE EMERGENCIA EXTREMO: Si todo lo demás falla, usamos el setView clásico 
+              // pero envuelto para que si falla no congele la pantalla
+              try {
+                miMapaReal.setView([latValida, lngValida], 17);
+              } catch (criticalError) {
+                console.error("Fallo crítico total en Leaflet:", criticalError);
+              }
             }
-          }, 150); // Le damos 150ms para que Leaflet dibuje los paneles antes de mover la cámara
+          }, 100);
 
         } else if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
           // 🗺️ CASO B: NO TIENE COORDENADAS (Ir al territorio con zoom más cercano)
