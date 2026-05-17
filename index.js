@@ -255,25 +255,35 @@ app.get(
   }
 );
 
-// 🔹 EDITAR BUILDING (Soporta latitud/longitud para el mapa)
+// 🔹 EDITAR BUILDING (Soporta latitud/longitud para el mapa y normaliza datos)
 app.put(
   "/building/:id",
   requireLogin,
   requireRole(["admin", "conductor", "predi"]),
   async (req, res) => {
     try {
-      // 🕵️‍♂️ ESPÍA 1: Ver qué manda el navegador
-      console.log("👉 Datos recibidos del frontend en BODY:", req.body);
+      // Clonamos el body para no alterar el objeto original directamente
+      const datosActualizados = { ...req.body };
+
+      // 🚨 NORMALIZACIÓN CLAVE: Si modifican la dirección, la pasamos a minúsculas igual que en el POST
+      if (datosActualizados.address) {
+        datosActualizados.address = datosActualizados.address.trim().toLowerCase();
+        datosActualizados.code = datosActualizados.address; // Mantenemos el código sincronizado
+      }
+
+      // Aseguramos conversión limpia de tipos de datos antes de enviar a Mongo
+      if (datosActualizados.latitude) datosActualizados.latitude = parseFloat(datosActualizados.latitude);
+      if (datosActualizados.longitude) datosActualizados.longitude = parseFloat(datosActualizados.longitude);
+      if (datosActualizados.territory) datosActualizados.territory = Number(datosActualizados.territory);
+
+      console.log("👉 Datos normalizados listos para guardar:", datosActualizados);
 
       const actualizado = await Building.findByIdAndUpdate(
         req.params.id, 
-        { $set: req.body }, 
+        { $set: datosActualizados }, 
         { new: true }
       );
-      
-      // 🕵️‍♂️ ESPÍA 2: Ver qué guardó MongoDB realmente
       console.log("💾 Guardado real en MongoDB:", actualizado);
-
       res.json({ message: "Edificio actualizado", data: actualizado });
     } catch (err) {
       console.error("Error en PUT /building:", err);
