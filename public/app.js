@@ -607,7 +607,7 @@ async function verDetalleEdificioAdmin(buildingId) {
       if (miMapaReal) {
         let camaraMovida = false;
 
-        // 🚨 PRIORIDAD 1: Si hay coordenadas exactas, vamos directo al grano
+       // 🚨 PRIORIDAD 1: Si hay coordenadas exactas, vamos directo al grano
         try {
           const latValida = parseFloat(b.latitude);
           const lngValida = parseFloat(b.longitude);
@@ -615,13 +615,19 @@ async function verDetalleEdificioAdmin(buildingId) {
           if (!isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0) {
             console.log(`📍 Centrando mapa real en el edificio: ${latValida}, ${lngValida}`);
             
-            // Movemos la cámara con un zoom bien cerrado (17) para que se note el acercamiento
-            miMapaReal.setView([latValida, lngValida], 17);
-            
-            // Si tenés la función para mover el marcador azul, la llamamos
-            if (typeof inicializarMapaLeaflet === 'function') {
-              inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
-            }
+            // 1. DESPERTADOR 1: Le avisamos al mapa que recalcule su tamaño real en la pantalla ya mismo
+            miMapaReal.invalidateSize({ animate: false });
+
+            // 2. Movemos la cámara con un pequeño delay interno para que los gráficos se acomoden al vuelo
+            setTimeout(() => {
+              miMapaReal.setView([latValida, lngValida], 16);
+              
+              // Abrimos o movemos el marcador para que se note el cambio
+              if (typeof inicializarMapaLeaflet === 'function') {
+                inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
+              }
+            }, 50);
+
             camaraMovida = true;
           }
         } catch (setViewError) {
