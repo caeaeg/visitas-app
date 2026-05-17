@@ -598,41 +598,65 @@ async function verDetalleEdificioAdmin(buildingId) {
     `;
 
     // --- 🗺️ CORRECCIÓN: CENTRADO INTELIGENTE CON DELAY PARA EVITAR EL BUG DE LEAFLET ---
-    // --- 🗺️ CORRECCIÓN: CENTRADO INTELIGENTE CON DELAY Y VALIDACIÓN REAL DE COORDENADAS ---
+    // --- 🗺️ CENTRADO ULTRA SEGURO SIN ROMPER LA CONSOLA ---
     setTimeout(() => {
-      if (leafletMap) {
+      // 1. Verificar primero si la variable del mapa existe y no es null o undefined
+      if (typeof leafletMap !== 'undefined' && leafletMap !== null) {
         let centradoAdminExitoso = false;
-        // 1. Intentar buscar el polígono del territorio en el archivo GeoJSON global
-        if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined') {
-          let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
-            filter: function(feature) {
-              const numeroTerritorio = feature.properties && (feature.properties.name || feature.properties.Territorio_N);
-              return String(numeroTerritorio) === String(b.territory);
+
+        // Intentar buscar el polígono del territorio en el archivo GeoJSON global
+        if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
+          try {
+            let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
+              filter: function(feature) {
+                const numeroTerritorio = feature.properties && (feature.properties.name || feature.properties.Territorio_N);
+                return String(numeroTerritorio) === String(b.territory);
+              }
+            });
+            // Si encontramos las fronteras del territorio, encuadramos el mapa ahí
+            if (capaGeoJSONAdmin.getLayers().length > 0) {
+              leafletMap.fitBounds(capaGeoJSONAdmin.getBounds(), { padding: [50, 50], maxZoom: 16 });
+              centradoAdminExitoso = true;
             }
-          });
-          // Si encontramos las fronteras del territorio, encuadramos el mapa ahí
-          if (capaGeoJSONAdmin.getLayers().length > 0) {
-            leafletMap.fitBounds(capaGeoJSONAdmin.getBounds(), { padding: [50, 50], maxZoom: 16 });
-            centradoAdminExitoso = true;
+          } catch (geoError) {
+            console.warn("No se pudo filtrar el GeoJSON:", geoError);
           }
         }
-        // 2. CORRECCIÓN CLAVE: Verificar que lat y lng sean números reales y no null/undefined
-        const latValida = parseFloat(b.latitude);
-        const lngValida = parseFloat(b.longitude);
 
-        if (!isNaN(latValida) && !isNaN(lngValida)) {
-          // Inicializar o mover el marcador con tu función existente
-          inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
-          // Ahora sí pasamos variables que sabemos 100% que son números
-          leafletMap.setView([latValida, lngValida], 16);
-          centradoAdminExitoso = true;
+        // 2. Centrado por coordenadas exactas del edificio (Corrientes 2223)
+        try {
+          const latValida = parseFloat(b.latitude);
+          const lngValida = parseFloat(b.longitude);
+
+          if (!isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0) {
+            // Mover la cámara del mapa grande que tenés en pantalla
+            leafletMap.setView([latValida, lngValida], 16);
+            
+            // Si tenés la función para clavarle el marcador azul, la llamamos de forma segura
+            if (typeof inicializarMapaLeaflet === 'function') {
+              inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
+            }
+            centradoAdminExitoso = true;
+          }
+        } catch (setViewError) {
+          console.error("❌ Error interno de Leaflet al usar setView:", setViewError);
         }
-        // 3. Si no tiene absolutamente ningún dato geográfico, centramos por defecto en Posadas
+
+        // 3. Si no se pudo centrar por ningún método anterior, va a la vista general de Posadas
         if (!centradoAdminExitoso) {
-          leafletMap.setView([-27.36708, -55.89608], 13);
+          try {
+            leafletMap.setView([-27.36708, -55.89608], 13);
+          } catch (e) { }
         }
-        // Forzar recálculo de tamaño final para que los tiles no aparezcan grises
-        leafletMap.invalidateSize();
+
+        // Forzar recálculo de tamaño final para evitar bugs visuales
+        try {
+          leafletMap.invalidateSize();
+        } catch (e) { }
+
+      } else {
+        // Si entra acá, significa que 'leafletMap' es null en esta vista del admin
+        console.warn("⚠️ 'leafletMap' no está disponible o no se ha inicializado todavía en esta pantalla.");
       }
     }, 150);
 
