@@ -598,10 +598,10 @@ async function verDetalleEdificioAdmin(buildingId) {
     `;
 
     // --- 🗺️ CORRECCIÓN: CENTRADO INTELIGENTE CON DELAY PARA EVITAR EL BUG DE LEAFLET ---
+    // --- 🗺️ CORRECCIÓN: CENTRADO INTELIGENTE CON DELAY Y VALIDACIÓN REAL DE COORDENADAS ---
     setTimeout(() => {
       if (leafletMap) {
         let centradoAdminExitoso = false;
-
         // 1. Intentar buscar el polígono del territorio en el archivo GeoJSON global
         if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined') {
           let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
@@ -616,25 +616,25 @@ async function verDetalleEdificioAdmin(buildingId) {
             centradoAdminExitoso = true;
           }
         }
+        // 2. CORRECCIÓN CLAVE: Verificar que lat y lng sean números reales y no null/undefined
+        const latValida = parseFloat(b.latitude);
+        const lngValida = parseFloat(b.longitude);
 
-        // 2. Si el edificio tiene coordenadas exactas, inicializamos el marcador y centramos la cámara
-        if (b.latitude && b.longitude) {
+        if (!isNaN(latValida) && !isNaN(lngValida)) {
           // Inicializar o mover el marcador con tu función existente
-          inicializarMapaLeaflet(b.latitude, b.longitude, addrEscaped);
-          // Forzamos un zoom un poquito más cerrado sobre el marcador para verlo en detalle
-          leafletMap.setView([b.latitude, b.longitude], 16);
+          inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
+          // Ahora sí pasamos variables que sabemos 100% que son números
+          leafletMap.setView([latValida, lngValida], 16);
           centradoAdminExitoso = true;
         }
-
         // 3. Si no tiene absolutamente ningún dato geográfico, centramos por defecto en Posadas
         if (!centradoAdminExitoso) {
           leafletMap.setView([-27.36708, -55.89608], 13);
         }
-
         // Forzar recálculo de tamaño final para que los tiles no aparezcan grises
         leafletMap.invalidateSize();
       }
-    }, 150); // 150ms es el tiempo ideal para que la interfaz se acomode
+    }, 150);
 
   } catch (error) {
     console.error("Error al cargar detalles del edificio:", error);
