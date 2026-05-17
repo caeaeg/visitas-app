@@ -618,10 +618,10 @@ async function verDetalleEdificioAdmin(buildingId) {
         const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
 
         if (tieneCoordenadas) {
-          // 📍 CASO A: EL EDIFICIO TIENE PUNTO EXACTO
-          console.log(`📍 Ejecutando marcador y vuelo para: ${latValida}, ${lngValida}`);
+          // 📍 CASO A: EL EDIFICIO TIENE PUNTO EXACTO (Solución definitiva al bug de _leaflet_pos)
+          console.log(`📍 Ejecutando marcador para: ${latValida}, ${lngValida}`);
           
-          // 1. Primero llamamos a tu función para que ponga el pin en el mapa de forma segura
+          // 1. Primero colocamos el pin en el mapa
           if (typeof inicializarMapaLeaflet === 'function') {
             try {
               inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
@@ -630,21 +630,32 @@ async function verDetalleEdificioAdmin(buildingId) {
             }
           }
 
-          // 2. Esperamos 100 milisegundos a que tu función termine de tocar el mapa...
+          // 2. Esperamos un instante a que el DOM se estabilice
           setTimeout(() => {
             try {
-              console.log("🚀 Disparando vuelo final con Zoom 18...");
-              miMapaReal.invalidateSize();
+              console.log("🚀 Forzando encuadre seguro mediante fitBounds...");
               
-              // ...y ahí le clavamos el zoomazo definitivo sin que nada lo pise
-              miMapaReal.flyTo([latValida, lngValida], 18, {
-                animate: true,
-                duration: 0.6
+              // Despierta los gráficos del mapa de forma obligatoria
+              miMapaReal.invalidateSize({ animate: false });
+              
+              // 🛠️ Creamos un micro-cuadrado súper cerrado alrededor del edificio de Corrientes 2223
+              // Usamos un margen bien pequeño para que el zoom quede bien cerca (estilo Zoom 18)
+              const margenMilimetrico = 0.0005; 
+              const sudoeste = [latValida - margenMilimetrico, lngValida - margenMilimetrico];
+              const nordeste = [latValida + margenMilimetrico, lngValida + margenMilimetrico];
+              const microAreaEdificio = L.latLngBounds(sudoeste, nordeste);
+
+              // Usamos fitBounds que NO requiere '_leaflet_pos' y es inmune al bug del panel oculto
+              miMapaReal.fitBounds(microAreaEdificio, { 
+                animate: true, 
+                padding: [10, 10],
+                maxZoom: 18 // Forzamos a que clave la cámara bien encima
               });
-            } catch (flyError) {
-              console.error("Error en el flyTo diferido:", flyError);
+
+            } catch (boundsError) {
+              console.error("Error al aplicar fitBounds en el edificio:", boundsError);
             }
-          }, 100);
+          }, 150); // Le damos 150ms para que Leaflet dibuje los paneles antes de mover la cámara
 
         } else if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
           // 🗺️ CASO B: NO TIENE COORDENADAS (Ir al territorio con zoom más cercano)
