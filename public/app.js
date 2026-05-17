@@ -618,54 +618,58 @@ async function verDetalleEdificioAdmin(buildingId) {
         const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
 
        if (tieneCoordenadas) {
-          // 📍 CASO A: EL EDIFICIO TIENE PUNTO EXACTO (Versión corregida y limpia)
-          console.log(`📍 [Electroshock] Despertando contenedor del mapa para: ${latValida}, ${lngValida}`);
+          // 📍 CASO A: EL EDIFICIO TIENE PUNTO EXACTO (Estrategia de Marcador Existente)
+          console.log(`📍 Buscando marcador nativo en el mapa para: ${latValida}, ${lngValida}`);
           
-          try {
-            // Forzamos al mapa a recalcular sus dimensiones reales ya mismo
-            miMapaReal.invalidateSize({ animate: false });
-          } catch (e) { console.warn(e); }
+          let centradoPorMarcadorExitoso = false;
 
-          // Colocamos el pin en el mapa
-          if (typeof inicializarMapaLeaflet === 'function') {
-            try {
-              inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
-            } catch (e) {
-              console.warn("Aviso en inicializarMapaLeaflet:", e);
-            }
+          // 1. Recorremos todas las capas del mapa buscando el marcador que coincida con la dirección o las coordenadas
+          try {
+            miMapaReal.eachLayer((layer) => {
+              // Si es un marcador y tiene coordenadas asignadas
+              if (layer instanceof L.Marker || (layer.getLatLng && layer.getPopup)) {
+                const pos = layer.getLatLng();
+                // Verificamos si la posición coincide (con un pequeño margen por decimales)
+                if (pos && Math.abs(pos.lat - latValida) < 0.0001 && Math.abs(pos.lng - lngValida) < 0.0001) {
+                  console.log("🎯 ¡Marcador encontrado en el mapa! Forzando centrado y apertura...");
+                  
+                  // Despertamos el tamaño por si acaso
+                  miMapaReal.invalidateSize({ animate: false });
+
+                  // Abrimos el cartelito (Popup) que ya tiene asociado. ¡Esto en Leaflet obliga al mapa a centrarse automáticamente sin romper el _leaflet_pos!
+                  layer.openPopup();
+                  
+                  // Si tiene un método para obtener el punto, hacemos que la cámara lo mire
+                  miMapaReal.panTo(pos);
+                  
+                  centradoPorMarcadorExitoso = true;
+                }
+              }
+            });
+          } catch (layerError) {
+            console.warn("Error recorriendo capas del mapa:", layerError);
           }
 
-          // Esperamos un instante a que el marcador se asiente
-          setTimeout(() => {
-            try {
-              console.log("🚀 Aplicando movimiento seguro mediante fitBounds limpito...");
-              
-              miMapaReal.invalidateSize({ animate: false });
-              
-              // Creamos el micro-cuadrado súper cerrado alrededor del edificio
-              const margenMilimetrico = 0.0004; 
-              const sudoeste = [latValida - margenMilimetrico, lngValida - margenMilimetrico];
-              const nordeste = [latValida + margenMilimetrico, lngValida + margenMilimetrico];
-              const microAreaEdificio = L.latLngBounds(sudoeste, nordeste);
-
-              // 🚨 CORRECCIÓN: Usamos SOLO microAreaEdificio y desactivamos animaciones para evitar el bug del DOM
-              miMapaReal.fitBounds(microAreaEdificio, { 
-                animate: false, // En seco para que no busque posiciones intermedias rotas
-                padding: [15, 15],
-                maxZoom: 18 
-              });
-
-            } catch (boundsError) {
-              console.error("Error al aplicar fitBounds en el edificio:", boundsError);
-              
-              // Último recurso en seco si fitBounds falla
+          // 2. PLAN B EXTREMO: Si el marcador no estaba dibujado todavía, usamos tu función nativa con un delay más largo
+          if (!centradoPorMarcadorExitoso) {
+            console.log("⚠️ No se encontró un marcador previo. Usando inicialización forzada...");
+            
+            if (typeof inicializarMapaLeaflet === 'function') {
               try {
-                miMapaReal.setView([latValida, lngValida], 17, { animate: false });
-              } catch (criticalError) {
-                console.error("Fallo crítico total en Leaflet:", criticalError);
-              }
+                inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
+              } catch (e) { console.warn(e); }
             }
-          }, 120);
+
+            // Un delay generoso de 200ms para que Leaflet asimile el nuevo marcador antes de pedirle que se mueva con panTo (que es más suave y seguro que setView)
+            setTimeout(() => {
+              try {
+                miMapaReal.invalidateSize({ animate: false });
+                miMapaReal.panTo([latValida, lngValida]);
+              } catch (criticalError) {
+                console.error("Fallo definitivo en plan B:", criticalError);
+              }
+            }, 200);
+          }
 
         } else if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
           // 🗺️ CASO B: NO TIENE COORDENADAS (Ir al territorio con zoom más cercano)
