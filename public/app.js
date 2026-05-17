@@ -696,7 +696,7 @@ async function verDetalleEdificioAdmin(buildingId) {
           }
         } else {
           // 🏙️ CASO C: SIN NINGÚN DATO (Posadas General)
-          miMapaReal.setView([-27.36708, -55.89608], 16);
+          miMapaReal.setView([-27.36708, -55.89608], 14);
         }
           
       } else {
