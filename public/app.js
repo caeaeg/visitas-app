@@ -11,7 +11,7 @@ let currentBuildingId = null;
 let prediMiniMap = null; 
 let leafletMap = null;
 let leafletMarker = null;
-
+let miTemporizadorMapa = null; // Guardián para que no se pisen los clics de los edificios
 
 function abrirVista(id) {
   // Ocultar todas las sub-vistas internas
@@ -597,20 +597,44 @@ async function verDetalleEdificioAdmin(buildingId) {
       </div>
     `;
 
-    // --- 🗺️ CORRECCIÓN: CENTRADO INTELIGENTE CON DELAY PARA EVITAR EL BUG DE LEAFLET ---
- // --- 🗺️ MOVIMIENTO DE CÁMARA EN CADENA (TERRITORIO ➔ COORDENADAS) ---
-    setTimeout(() => {
+   // --- 🗺️ MOVIMIENTO DE CÁMARA INTELIGENTE, CERCANO Y ANTI-SOLAPAMIENTO ---
+    // Frenamos cualquier animación o movimiento que haya quedado colgado del clic anterior
+    if (miTemporizadorMapa) {
+      clearTimeout(miTemporizadorMapa);
+    }
+
+    miTemporizadorMapa = setTimeout(() => {
       const miMapaReal = (typeof leafletMap !== 'undefined' && leafletMap !== null) ? leafletMap : 
                          (typeof map !== 'undefined' && map !== null) ? map : null;
 
       if (miMapaReal) {
-        // Forzamos el redibujado de los cuadraditos por si acaso
-        miMapaReal.invalidateSize();
+        // Despertamos los cuadraditos del mapa
+        miMapaReal.invalidateSize({ animate: false });
 
-        let paso1TerritorioExitoso = false;
+        const latValida = parseFloat(b.latitude);
+        const lngValida = parseFloat(b.longitude);
+        
+        // ¿Tiene coordenadas reales y válidas?
+        const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
 
-        // 🗺️ PASO 1: Primero obligamos al mapa a ir al territorio (la vieja confiable que sí funciona)
-        if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
+        if (tieneCoordenadas) {
+          // 📍 CASO A: EL EDIFICIO TIENE PUNTO EXACTO (Prioridad Absoluta)
+          console.log(`📍 [Directo] Volando al edificio con zoom cerrado: ${latValida}, ${lngValida}`);
+          
+          // Rompemos cualquier restricción de Leaflet usando un flyTo limpio y directo
+          // Un zoom de 18 o 19 te lo va a dejar bien cerquita, viendo la manzana perfecta
+          miMapaReal.flyTo([latValida, lngValida], 18, {
+            animate: true,
+            duration: 0.8 // duración del vuelo en segundos (rápido y firme)
+          });
+
+          // Movemos o abrimos el marcador en el mapa
+          if (typeof inicializarMapaLeaflet === 'function') {
+            inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
+          }
+
+        } else if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
+          // 🗺️ CASO B: NO TIENE COORDENADAS (Ir al territorio con zoom más cercano)
           try {
             let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
               filter: function(feature) {
@@ -620,54 +644,26 @@ async function verDetalleEdificioAdmin(buildingId) {
             });
 
             if (capaGeoJSONAdmin.getLayers().length > 0) {
-              console.log(`🗺️ [Paso 1] Moviendo primero al Territorio ${b.territory}`);
-              miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { padding: [40, 40], maxZoom: 15 });
-              paso1TerritorioExitoso = true;
+              console.log(`🗺️ [Territorio] Encuadrando de cerca en el Territorio ${b.territory}`);
+              
+              // Modificamos el padding a 15 para que el mapa se pegue bien a los bordes del barrio y se vea más cerca
+              miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { 
+                padding: [15, 15], 
+                maxZoom: 16 // Forzamos un zoom 16 para que no quede alejado de fondo
+              });
             }
           } catch (geoError) {
-            console.warn("No se pudo encuadrar el territorio en el Paso 1:", geoError);
+            console.warn("Fallo al encuadrar territorio:", geoError);
           }
+        } else {
+          // 🏙️ CASO C: SIN NINGÚN DATO (Posadas General)
+          miMapaReal.setView([-27.36708, -55.89608], 14);
         }
-
-        // Si no tenía territorio pero sí coordenadas, o si falló el GeoJSON, fijamos Posadas como base inicial
-        if (!paso1TerritorioExitoso) {
-          try {
-            miMapaReal.setView([-27.36708, -55.89608], 14);
-          } catch (e) { }
-        }
-
-        // 📍 PASO 2: Esperamos a que el mapa llegue al territorio y ahí disparamos el zoom al punto exacto
-        setTimeout(() => {
-          try {
-            const latValida = parseFloat(b.latitude);
-            const lngValida = parseFloat(b.longitude);
-
-            if (!isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0) {
-              console.log(`📍 [Paso 2] Intentando zoom final en el edificio: ${latValida}, ${lngValida}`);
-              
-              // Aplicamos el truco del micro-área usando fitBounds que es más fuerte que setView
-              const margen = 0.0008; 
-              const sudoeste = [latValida - margen, lngValida - margen];
-              const nordeste = [latValida + margen, lngValida + margen];
-              const miMicroArea = L.latLngBounds(sudoeste, nordeste);
-
-              // Forzamos el encuadre final bien de cerca
-              miMapaReal.fitBounds(miMicroArea, { animate: true, maxZoom: 17 });
-              
-              // Colocamos o movemos el marcador e info
-              if (typeof inicializarMapaLeaflet === 'function') {
-                inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
-              }
-            }
-          } catch (errorPaso2) {
-            console.error("Fallo en el Paso 2 de zoom detallado:", errorPaso2);
-          }
-        }, 250); // 250ms de espera para darle tiempo al mapa de reaccionar al Paso 1
 
       } else {
         console.warn("⚠️ No se encontró la variable del mapa.");
       }
-    }, 150);
+    }, 100); // Bajamos el delay a 100ms porque al limpiar el anterior ya no hace falta esperar tanto
 
   } catch (error) {
     console.error("Error al cargar detalles del edificio:", error);
