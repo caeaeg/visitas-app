@@ -598,14 +598,38 @@ async function verDetalleEdificioAdmin(buildingId) {
     `;
 
     // --- 🗺️ CORRECCIÓN: CENTRADO INTELIGENTE CON DELAY PARA EVITAR EL BUG DE LEAFLET ---
-    // --- 🗺️ CENTRADO ULTRA SEGURO SIN ROMPER LA CONSOLA ---
+    // --- 🗺️ MOVIMIENTO DE CÁMARA OPTIMIZADO Y PRIORITARIO ---
     setTimeout(() => {
-      // 1. Verificar primero si la variable del mapa existe y no es null o undefined
-      if (typeof leafletMap !== 'undefined' && leafletMap !== null) {
-        let centradoAdminExitoso = false;
+      // Intentamos detectar si el mapa está guardado con otro nombre común en tu código
+      const miMapaReal = (typeof leafletMap !== 'undefined' && leafletMap !== null) ? leafletMap : 
+                         (typeof map !== 'undefined' && map !== null) ? map : null;
 
-        // Intentar buscar el polígono del territorio en el archivo GeoJSON global
-        if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
+      if (miMapaReal) {
+        let camaraMovida = false;
+
+        // 🚨 PRIORIDAD 1: Si hay coordenadas exactas, vamos directo al grano
+        try {
+          const latValida = parseFloat(b.latitude);
+          const lngValida = parseFloat(b.longitude);
+
+          if (!isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0) {
+            console.log(`📍 Centrando mapa real en el edificio: ${latValida}, ${lngValida}`);
+            
+            // Movemos la cámara con un zoom bien cerrado (17) para que se note el acercamiento
+            miMapaReal.setView([latValida, lngValida], 17);
+            
+            // Si tenés la función para mover el marcador azul, la llamamos
+            if (typeof inicializarMapaLeaflet === 'function') {
+              inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
+            }
+            camaraMovida = true;
+          }
+        } catch (setViewError) {
+          console.error("Error al mover la cámara al edificio:", setViewError);
+        }
+
+        // 🗺️ PRIORIDAD 2: Si no tenía coordenadas exactas, intentamos encuadrar el territorio
+        if (!camaraMovida && b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
           try {
             let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
               filter: function(feature) {
@@ -613,50 +637,31 @@ async function verDetalleEdificioAdmin(buildingId) {
                 return String(numeroTerritorio) === String(b.territory);
               }
             });
-            // Si encontramos las fronteras del territorio, encuadramos el mapa ahí
+
             if (capaGeoJSONAdmin.getLayers().length > 0) {
-              leafletMap.fitBounds(capaGeoJSONAdmin.getBounds(), { padding: [50, 50], maxZoom: 16 });
-              centradoAdminExitoso = true;
+              console.log(`🗺️ Encuadrando mapa en las fronteras del Territorio ${b.territory}`);
+              miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { padding: [50, 50], maxZoom: 16 });
+              camaraMovida = true;
             }
           } catch (geoError) {
-            console.warn("No se pudo filtrar el GeoJSON:", geoError);
+            console.warn("No se pudo aplicar el filtro GeoJSON:", geoError);
           }
         }
 
-        // 2. Centrado por coordenadas exactas del edificio (Corrientes 2223)
-        try {
-          const latValida = parseFloat(b.latitude);
-          const lngValida = parseFloat(b.longitude);
-
-          if (!isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0) {
-            // Mover la cámara del mapa grande que tenés en pantalla
-            leafletMap.setView([latValida, lngValida], 16);
-            
-            // Si tenés la función para clavarle el marcador azul, la llamamos de forma segura
-            if (typeof inicializarMapaLeaflet === 'function') {
-              inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
-            }
-            centradoAdminExitoso = true;
-          }
-        } catch (setViewError) {
-          console.error("❌ Error interno de Leaflet al usar setView:", setViewError);
-        }
-
-        // 3. Si no se pudo centrar por ningún método anterior, va a la vista general de Posadas
-        if (!centradoAdminExitoso) {
+        // 🏙️ PLAN C: Si falló todo, centramos la vista general en Posadas
+        if (!camaraMovida) {
           try {
-            leafletMap.setView([-27.36708, -55.89608], 13);
+            miMapaReal.setView([-27.36708, -55.89608], 13);
           } catch (e) { }
         }
 
-        // Forzar recálculo de tamaño final para evitar bugs visuales
+        // Forzar el redibujado de los cuadraditos del mapa
         try {
-          leafletMap.invalidateSize();
+          miMapaReal.invalidateSize();
         } catch (e) { }
 
       } else {
-        // Si entra acá, significa que 'leafletMap' es null en esta vista del admin
-        console.warn("⚠️ 'leafletMap' no está disponible o no se ha inicializado todavía en esta pantalla.");
+        console.warn("⚠️ No se encontró ninguna variable de mapa válida ('leafletMap' o 'map') en esta pantalla.");
       }
     }, 150);
 
