@@ -618,20 +618,33 @@ async function verDetalleEdificioAdmin(buildingId) {
         const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
 
         if (tieneCoordenadas) {
-          // 📍 CASO A: EL EDIFICIO TIENE PUNTO EXACTO (Prioridad Absoluta)
-          console.log(`📍 [Directo] Volando al edificio con zoom cerrado: ${latValida}, ${lngValida}`);
+          // 📍 CASO A: EL EDIFICIO TIENE PUNTO EXACTO
+          console.log(`📍 Ejecutando marcador y vuelo para: ${latValida}, ${lngValida}`);
           
-          // Rompemos cualquier restricción de Leaflet usando un flyTo limpio y directo
-          // Un zoom de 18 o 19 te lo va a dejar bien cerquita, viendo la manzana perfecta
-          miMapaReal.flyTo([latValida, lngValida], 18, {
-            animate: true,
-            duration: 0.8 // duración del vuelo en segundos (rápido y firme)
-          });
-
-          // Movemos o abrimos el marcador en el mapa
+          // 1. Primero llamamos a tu función para que ponga el pin en el mapa de forma segura
           if (typeof inicializarMapaLeaflet === 'function') {
-            inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
+            try {
+              inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
+            } catch (e) {
+              console.warn("Aviso en inicializarMapaLeaflet:", e);
+            }
           }
+
+          // 2. Esperamos 100 milisegundos a que tu función termine de tocar el mapa...
+          setTimeout(() => {
+            try {
+              console.log("🚀 Disparando vuelo final con Zoom 18...");
+              miMapaReal.invalidateSize();
+              
+              // ...y ahí le clavamos el zoomazo definitivo sin que nada lo pise
+              miMapaReal.flyTo([latValida, lngValida], 18, {
+                animate: true,
+                duration: 0.6
+              });
+            } catch (flyError) {
+              console.error("Error en el flyTo diferido:", flyError);
+            }
+          }, 100);
 
         } else if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
           // 🗺️ CASO B: NO TIENE COORDENADAS (Ir al territorio con zoom más cercano)
