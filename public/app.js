@@ -607,7 +607,7 @@ async function verDetalleEdificioAdmin(buildingId) {
       if (miMapaReal) {
         let camaraMovida = false;
 
-       // 🚨 PRIORIDAD 1: Si hay coordenadas exactas, vamos directo al grano
+     // 🚨 PRIORIDAD 1: Si hay coordenadas exactas, vamos directo al grano
         try {
           const latValida = parseFloat(b.latitude);
           const lngValida = parseFloat(b.longitude);
@@ -615,18 +615,23 @@ async function verDetalleEdificioAdmin(buildingId) {
           if (!isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0) {
             console.log(`📍 Centrando mapa real en el edificio: ${latValida}, ${lngValida}`);
             
-            // 1. DESPERTADOR 1: Le avisamos al mapa que recalcule su tamaño real en la pantalla ya mismo
-            miMapaReal.invalidateSize({ animate: false });
+            // Forzamos el tamaño para arreglar los cuadraditos rotos
+            miMapaReal.invalidateSize();
 
-            // 2. Movemos la cámara con un pequeño delay interno para que los gráficos se acomoden al vuelo
-            setTimeout(() => {
-              miMapaReal.setView([latValida, lngValida], 16);
-              
-              // Abrimos o movemos el marcador para que se note el cambio
-              if (typeof inicializarMapaLeaflet === 'function') {
-                inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
-              }
-            }, 50);
+            // 🛠️ TRUCO MAESTRO: En vez de setView (que se congela), creamos un área milimétrica alrededor del punto
+            // Esto genera un margen de unos pocos metros para que fitBounds obligue al mapa a acercarse
+            const margen = 0.001; 
+            const sudoeste = [latValida - margen, lngValida - margen];
+            const nordeste = [latValida + margen, lngValida + margen];
+            const miMicroArea = L.latLngBounds(sudoeste, nordeste);
+
+            // Le ordenamos al mapa que encuadre esa micro-área (fuerza el zoom y el centrado)
+            miMapaReal.fitBounds(miMicroArea, { animate: true, maxZoom: 17 });
+            
+            // Abrimos o movemos el marcador para que se note el cambio
+            if (typeof inicializarMapaLeaflet === 'function') {
+              inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
+            }
 
             camaraMovida = true;
           }
