@@ -598,49 +598,19 @@ async function verDetalleEdificioAdmin(buildingId) {
     `;
 
     // --- 🗺️ CORRECCIÓN: CENTRADO INTELIGENTE CON DELAY PARA EVITAR EL BUG DE LEAFLET ---
-    // --- 🗺️ MOVIMIENTO DE CÁMARA OPTIMIZADO Y PRIORITARIO ---
+ // --- 🗺️ MOVIMIENTO DE CÁMARA EN CADENA (TERRITORIO ➔ COORDENADAS) ---
     setTimeout(() => {
-      // Intentamos detectar si el mapa está guardado con otro nombre común en tu código
       const miMapaReal = (typeof leafletMap !== 'undefined' && leafletMap !== null) ? leafletMap : 
                          (typeof map !== 'undefined' && map !== null) ? map : null;
 
       if (miMapaReal) {
-        let camaraMovida = false;
+        // Forzamos el redibujado de los cuadraditos por si acaso
+        miMapaReal.invalidateSize();
 
-     // 🚨 PRIORIDAD 1: Si hay coordenadas exactas, vamos directo al grano
-        try {
-          const latValida = parseFloat(b.latitude);
-          const lngValida = parseFloat(b.longitude);
+        let paso1TerritorioExitoso = false;
 
-          if (!isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0) {
-            console.log(`📍 Centrando mapa real en el edificio: ${latValida}, ${lngValida}`);
-            
-            // Forzamos el tamaño para arreglar los cuadraditos rotos
-            miMapaReal.invalidateSize();
-
-            // 🛠️ TRUCO MAESTRO: En vez de setView (que se congela), creamos un área milimétrica alrededor del punto
-            // Esto genera un margen de unos pocos metros para que fitBounds obligue al mapa a acercarse
-            const margen = 0.001; 
-            const sudoeste = [latValida - margen, lngValida - margen];
-            const nordeste = [latValida + margen, lngValida + margen];
-            const miMicroArea = L.latLngBounds(sudoeste, nordeste);
-
-            // Le ordenamos al mapa que encuadre esa micro-área (fuerza el zoom y el centrado)
-            miMapaReal.fitBounds(miMicroArea, { animate: true, maxZoom: 17 });
-            
-            // Abrimos o movemos el marcador para que se note el cambio
-            if (typeof inicializarMapaLeaflet === 'function') {
-              inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
-            }
-
-            camaraMovida = true;
-          }
-        } catch (setViewError) {
-          console.error("Error al mover la cámara al edificio:", setViewError);
-        }
-
-        // 🗺️ PRIORIDAD 2: Si no tenía coordenadas exactas, intentamos encuadrar el territorio
-        if (!camaraMovida && b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
+        // 🗺️ PASO 1: Primero obligamos al mapa a ir al territorio (la vieja confiable que sí funciona)
+        if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
           try {
             let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
               filter: function(feature) {
@@ -650,29 +620,52 @@ async function verDetalleEdificioAdmin(buildingId) {
             });
 
             if (capaGeoJSONAdmin.getLayers().length > 0) {
-              console.log(`🗺️ Encuadrando mapa en las fronteras del Territorio ${b.territory}`);
-              miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { padding: [50, 50], maxZoom: 16 });
-              camaraMovida = true;
+              console.log(`🗺️ [Paso 1] Moviendo primero al Territorio ${b.territory}`);
+              miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { padding: [40, 40], maxZoom: 15 });
+              paso1TerritorioExitoso = true;
             }
           } catch (geoError) {
-            console.warn("No se pudo aplicar el filtro GeoJSON:", geoError);
+            console.warn("No se pudo encuadrar el territorio en el Paso 1:", geoError);
           }
         }
 
-        // 🏙️ PLAN C: Si falló todo, centramos la vista general en Posadas
-        if (!camaraMovida) {
+        // Si no tenía territorio pero sí coordenadas, o si falló el GeoJSON, fijamos Posadas como base inicial
+        if (!paso1TerritorioExitoso) {
           try {
-            miMapaReal.setView([-27.36708, -55.89608], 13);
+            miMapaReal.setView([-27.36708, -55.89608], 14);
           } catch (e) { }
         }
 
-        // Forzar el redibujado de los cuadraditos del mapa
-        try {
-          miMapaReal.invalidateSize();
-        } catch (e) { }
+        // 📍 PASO 2: Esperamos a que el mapa llegue al territorio y ahí disparamos el zoom al punto exacto
+        setTimeout(() => {
+          try {
+            const latValida = parseFloat(b.latitude);
+            const lngValida = parseFloat(b.longitude);
+
+            if (!isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0) {
+              console.log(`📍 [Paso 2] Intentando zoom final en el edificio: ${latValida}, ${lngValida}`);
+              
+              // Aplicamos el truco del micro-área usando fitBounds que es más fuerte que setView
+              const margen = 0.0008; 
+              const sudoeste = [latValida - margen, lngValida - margen];
+              const nordeste = [latValida + margen, lngValida + margen];
+              const miMicroArea = L.latLngBounds(sudoeste, nordeste);
+
+              // Forzamos el encuadre final bien de cerca
+              miMapaReal.fitBounds(miMicroArea, { animate: true, maxZoom: 17 });
+              
+              // Colocamos o movemos el marcador e info
+              if (typeof inicializarMapaLeaflet === 'function') {
+                inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
+              }
+            }
+          } catch (errorPaso2) {
+            console.error("Fallo en el Paso 2 de zoom detallado:", errorPaso2);
+          }
+        }, 250); // 250ms de espera para darle tiempo al mapa de reaccionar al Paso 1
 
       } else {
-        console.warn("⚠️ No se encontró ninguna variable de mapa válida ('leafletMap' o 'map') en esta pantalla.");
+        console.warn("⚠️ No se encontró la variable del mapa.");
       }
     }, 150);
 
