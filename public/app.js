@@ -12,6 +12,7 @@ let prediMiniMap = null;
 let leafletMap = null;
 let leafletMarker = null;
 let miTemporizadorMapa = null; // Guardián para que no se pisen los clics de los edificios
+let miniMapaAdminInstance = null;
 
 function abrirVista(id) {
   // Ocultar todas las sub-vistas internas
@@ -618,58 +619,61 @@ async function verDetalleEdificioAdmin(buildingId) {
         const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
 
        if (tieneCoordenadas) {
-          // 📍 CASO A: EL EDIFICIO TIENE PUNTO EXACTO (Estrategia de Marcador Existente)
-          console.log(`📍 Buscando marcador nativo en el mapa para: ${latValida}, ${lngValida}`);
+          // 📍 CASO A: EL EDIFICIO TIENE PUNTO EXACTO (Inyección dinámica del mini-mapa)
+          console.log(`📍 Inicializando mini-mapa dedicado para: ${latValida}, ${lngValida}`);
           
-          let centradoPorMarcadorExitoso = false;
-
-          // 1. Recorremos todas las capas del mapa buscando el marcador que coincida con la dirección o las coordenadas
-          try {
-            miMapaReal.eachLayer((layer) => {
-              // Si es un marcador y tiene coordenadas asignadas
-              if (layer instanceof L.Marker || (layer.getLatLng && layer.getPopup)) {
-                const pos = layer.getLatLng();
-                // Verificamos si la posición coincide (con un pequeño margen por decimales)
-                if (pos && Math.abs(pos.lat - latValida) < 0.0001 && Math.abs(pos.lng - lngValida) < 0.0001) {
-                  console.log("🎯 ¡Marcador encontrado en el mapa! Forzando centrado y apertura...");
-                  
-                  // Despertamos el tamaño por si acaso
-                  miMapaReal.invalidateSize({ animate: false });
-
-                  // Abrimos el cartelito (Popup) que ya tiene asociado. ¡Esto en Leaflet obliga al mapa a centrarse automáticamente sin romper el _leaflet_pos!
-                  layer.openPopup();
-                  
-                  // Si tiene un método para obtener el punto, hacemos que la cámara lo mire
-                  miMapaReal.panTo(pos);
-                  
-                  centradoPorMarcadorExitoso = true;
-                }
-              }
-            });
-          } catch (layerError) {
-            console.warn("Error recorriendo capas del mapa:", layerError);
+          // 1. Limpiamos cualquier instancia de mapa secundaria que haya quedado abierta antes
+          if (miniMapaAdminInstance !== null) {
+            try {
+              miniMapaAdminInstance.remove();
+              miniMapaAdminInstance = null;
+            } catch (e) { console.warn("Error limpiando mapa anterior:", e); }
           }
 
-          // 2. PLAN B EXTREMO: Si el marcador no estaba dibujado todavía, usamos tu función nativa con un delay más largo
-          if (!centradoPorMarcadorExitoso) {
-            console.log("⚠️ No se encontró un marcador previo. Usando inicialización forzada...");
+          // 2. Buscamos el panel de detalles que se acaba de dibujar en la pantalla
+          const panelDetalle = document.getElementById("panelDetalleEdificio");
+          if (panelDetalle) {
+            // Eliminamos si ya existía un contenedor de mapa viejo para que no se duplique
+            const mapaViejo = document.getElementById("miniMapaDetalle");
+            if (mapaViejo) mapaViejo.remove();
+
+            // 3. Le pegamos el cuadradito del mapa abajo de todo el contenido de la ficha técnica
+            const contenedorMapaHTML = document.createElement("div");
+            contenedorMapaHTML.id = "miniMapaDetalle";
+            contenedorMapaHTML.style.width = "100%";
+            contenedorMapaHTML.style.height = "220px";
+            contenedorMapaHTML.style.borderRadius = "12px";
+            contenedorMapaHTML.style.marginTop = "15px";
+            contenedorMapaHTML.style.boxShadow = "0 4px 10px rgba(0,0,0,0.3)";
             
-            if (typeof inicializarMapaLeaflet === 'function') {
-              try {
-                inicializarMapaLeaflet(latValida, lngValida, addrEscaped);
-              } catch (e) { console.warn(e); }
-            }
-
-            // Un delay generoso de 200ms para que Leaflet asimile el nuevo marcador antes de pedirle que se mueva con panTo (que es más suave y seguro que setView)
-            setTimeout(() => {
-              try {
-                miMapaReal.invalidateSize({ animate: false });
-                miMapaReal.panTo([latValida, lngValida]);
-              } catch (criticalError) {
-                console.error("Fallo definitivo en plan B:", criticalError);
-              }
-            }, 200);
+            panelDetalle.appendChild(contenedorMapaHTML);
           }
+
+          // 4. Esperamos un mini instante (100ms) a que el navegador asimile el nuevo div en la pantalla
+          setTimeout(() => {
+            try {
+              // 5. Inicializamos el mapa independiente clavado en el edificio
+              miniMapaAdminInstance = L.map('miniMapaDetalle', {
+                center: [latValida, lngValida],
+                zoom: 17,
+                zoomControl: false,      // Limpio, sin botones molestos de + y -
+                attributionControl: false // Sin los textos largos de créditos abajo
+              });
+
+              // 6. Cargamos las calles de OpenStreetMap
+              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMapaAdminInstance);
+
+              // 7. Le clavamos el marcador justo en el medio (sin popups ni carteles)
+              L.marker([latValida, lngValida]).addTo(miniMapaAdminInstance);
+
+              // 8. Forzamos el redibujado para que ocupe todo el espacio asignado
+              miniMapaAdminInstance.invalidateSize();
+              console.log("🟢 Mini-mapa del edificio acoplado y renderizado con éxito absoluto.");
+
+            } catch (miniMapError) {
+              console.error("Error creando el mini-mapa independiente:", miniMapError);
+            }
+          }, 100);
 
         } else if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
           // 🗺️ CASO B: NO TIENE COORDENADAS (Ir al territorio con zoom más cercano)
