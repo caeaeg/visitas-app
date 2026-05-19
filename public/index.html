@@ -501,6 +501,44 @@
   font-size: 13px;
   margin: 0;
 }
+    /* Filas individuales del listado de edificios */
+.edificio-item-lista {
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.edificio-item-lista:hover {
+  background: #202024;
+  border-color: #3f3f46;
+}
+.edificio-info-txt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.edif-dir {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+.edif-sub {
+  font-size: 11px;
+  color: #a1a1aa;
+}
+.btn-ver-flecha {
+  font-size: 14px;
+  color: #71717a;
+}
+.edificio-item-lista:hover .btn-ver-flecha {
+  color: #3b82f6;
+}
 </style>
 </head>
 <body>
