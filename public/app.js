@@ -116,45 +116,51 @@ async function login() {
 }
 
 function iniciarApp() {
-  loginScreen.style.display = "none";
+  // 1. Ocultamos la pantalla de login (usando acceso seguro al DOM)
+  const elLogin = document.getElementById("loginScreen") || (typeof loginScreen !== 'undefined' ? loginScreen : null);
+  if (elLogin) elLogin.style.display = "none";
+  
+  // 2. Evaluamos botones y elementos internos del dashboard según rol
   aplicarPermisos();
   
-  // Redirección según rol (predi = móvil, admin/conductor = panel de control)
+  // 3. Redirección según rol (predi = móvil, admin/conductor = panel de control)
+  const appContainer = document.getElementById("appContainer");
+  const mainDashboard = document.getElementById("mainDashboard");
+
   if (currentRole === "predi") {
-    appContainer.style.display = "block";
-    mainDashboard.style.display = "none";
+    // 📱 Interfaz Móvil para el predicador
+    if (appContainer) appContainer.style.display = "block";
+    if (mainDashboard) mainDashboard.style.display = "none";
   } else {
-    mainDashboard.style.display = "block";
-    const topbar = document.querySelector(".topbar");
-    if (topbar) topbar.style.display = "flex"; // Nos aseguramos de restaurarla para el admin
-    appContainer.style.display = "none";
+    // 💻 Panel de Control para Admin / Conductor
+    if (mainDashboard) mainDashboard.style.display = "block";
+    if (appContainer) appContainer.style.display = "none";
+    
+    // Abrimos directamente la vista del menú principal
     abrirVista("dashboardView");
   }
 }
 
+function aplicarPermisos() {
+  // Buscamos el botón de reportes de problemas dentro del Dashboard
+  const btnProblemas = document.querySelector('#dashboardView [onclick="abrirVista(\'problemasView\')"]');
+
+  // Controlamos la visibilidad de las herramientas administrativas según el rol
+  if (currentRole === "admin") {
+    if (btnProblemas) btnProblemas.style.display = "block"; // El admin ve todo
+  }
+  else if (currentRole === "conductor") {
+    if (btnProblemas) btnProblemas.style.display = "none";  // El conductor no gestiona problemas
+  }
+  
+  // Nota aclaratoria: Las líneas de 'sidebar' y '.topbar' fueron removidas de forma 
+  // segura ya que esos contenedores se eliminaron físicamente del index.html.
+}
 function logout() {
   localStorage.removeItem("user");
   localStorage.removeItem("role");
   location.reload();
 }
-
-function aplicarPermisos() {
-  sidebar.style.display = "none";
-  const btnProblemas = document.querySelector('#dashboardView [onclick="abrirVista(\'problemasView\')"]');
-
-  if (currentRole === "admin") {
-    sidebar.style.display = "flex";
-    if (btnProblemas) btnProblemas.style.display = "block";
-  }
-  if (currentRole === "conductor") {
-    sidebar.style.display = "flex";
-    if (btnProblemas) btnProblemas.style.display = "none";
-  }
-  if (currentRole === "predi") {
-    sidebar.style.display = "none";
-  }
-}
-
 // Oidor de carga inicial de la página
 window.addEventListener("load", async () => {
   const savedUser = localStorage.getItem("user");
