@@ -394,52 +394,78 @@
     border-radius: 12px;
     padding: 14px;
   }
-    /* --- 🏠 ARREGLO EXCLUSIVO PARA EL PANEL DE CONTROL (DASHBOARD) --- */
+   /* --- 🏠 ARREGLO EXCLUSIVO PARA EL PANEL DE CONTROL (DASHBOARD) --- */
 #dashboardView {
-  max-width: 600px;
-  margin: 40px auto;
-  padding: 0 16px;
+  max-width: 500px; /* Más compacto para que se vea estilizado en PC y calce perfecto en celular */
+  margin: 20px auto;
+  padding: 0 8px;
 }
 
-#dashboardView h2 {
-  font-size: 26px;
-  margin-bottom: 24px;
-  text-align: left;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* Reconstrucción de las tarjetas de opciones */
+/* Reconstrucción de las tarjetas de opciones con bordes estilizados */
 .dashboardGrid {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-top: 20px;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .dashboardCard {
   background: #111113;
-  border: 1px solid #27272a;
+  border: 1px solid #27272a; /* Borde inicial sutil */
   border-radius: 14px;
-  padding: 20px;
+  padding: 16px 20px;
   cursor: pointer;
-  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
   text-align: left;
 }
 
+/* Efecto interactivo premium al pasar el mouse */
 .dashboardCard:hover {
   transform: translateY(-2px);
-  background: #18181b;
-  border-color: #3f3f46;
+  background: #141417;
+  border-color: #3b82f6; /* El borde se ilumina sutilmente en azul tecnológico */
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.08);
 }
 
 .dashboardCard:active {
   transform: scale(0.98);
+}
+
+/* Estilo para los contenedores de iconos */
+.dashboardCard .icon {
+  font-size: 24px;
+  width: 44px;
+  height: 44px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Textos internos alineados */
+.dashboardCard-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dashboardCard h3 {
+  color: #ffffff;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.dashboardCard p {
+  color: #71717a;
+  font-size: 12px;
+  margin: 0;
 }
 
 /* Estilo para los iconos grandes de las opciones */
@@ -489,15 +515,29 @@
 </div>
 
 <div id="dashboardView" class="view active">
-    <h2>⚙ Panel Control</h2>
+    
+    <div class="admin-nav-bar">
+      <div class="nav-left">
+        <div>
+          <span class="nav-title">📍 Visitas</span>
+          <span class="nav-subtitle">Panel de Control</span>
+        </div>
+      </div>
+      <div class="nav-right">
+        <button class="btn-salir-sutil" onclick="logout()">Salir</button>
+      </div>
+    </div>
+
     <div class="dashboardGrid">
+      
       <div class="dashboardCard" onclick="abrirVista('territorioView')">
-        <div class="icon">🗺</div>
+        <div class="icon">🗺️</div>
         <div class="dashboardCard-content">
           <h3>Territorios y Edificios</h3>
           <p>Mapa, estadísticas, filtros e historial</p>
         </div>
       </div>
+      
       <div class="dashboardCard" onclick="abrirEditorEdificio()">
         <div class="icon">➕</div>
         <div class="dashboardCard-content">
@@ -505,8 +545,9 @@
           <p>Agregar rápidamente</p>
         </div>
       </div>
+      
       <div class="dashboardCard" onclick="abrirVista('problemasView')">
-        <div class="icon">⚠</div>
+        <div class="icon">⚠️</div>
         <div class="dashboardCard-content">
           <h3>Problemas</h3>
           <p>Reportes pendientes</p>
