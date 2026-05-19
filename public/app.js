@@ -524,10 +524,11 @@ async function cargarEdificios() {
     listaContenedor.innerHTML = `<p style="color:#71717a; text-align:center; padding:20px; font-size:13px;">Cargando edificios...</p>`;
     
     // NOTA: Si la ruta de tu servidor para listar todo es diferente (ej: '/buildings'), cambiala acá:
-    const res = await apiFetch('/buildings-admin') || await apiFetch('/buildings');
+    const res = await apiFetch('/buildings'); // Dejamos solo la ruta que tu servidor sí tiene registrada
+    if (!res.ok) throw new Error(`Error en el servidor: ${res.status}`);
+    
     const edificiosListaGlobal = await res.json();
-
-    let edificiosFiltrados = [...edificiosListaGlobal]; 
+    let edificiosFiltrados = [...edificiosListaGlobal];
 
     // 3. OBTENER FILTROS DEL HTML
     const busquedaInput = document.getElementById("busquedaDireccionAdmin");
