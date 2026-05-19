@@ -303,9 +303,23 @@ async function mostrarInfoEdificio() {
     const data = await res.json();
     const b = data.building;
 
+    // ✨ CÁLCULO DE EDIFICIO NUEVO (Lapso de 30 días)
+    let cartelNuevoHtml = "";
+    if (b.createdAt || b.fechaCreacion) { 
+      const fechaCreacion = new Date(b.createdAt || b.fechaCreacion);
+      const hoy = new Date();
+      const diferenciaDias = Math.floor((hoy - fechaCreacion) / (1000 * 60 * 60 * 24));
+      
+      if (diferenciaDias <= 30) {
+        const fechaFormateada = fechaCreacion.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        cartelNuevoHtml = `<div style="background:#1e3a8a; color:#93c5fd; border: 1px solid #2563eb; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; margin-bottom: 10px; display: inline-block;">🏢 Edificio creado el ${fechaFormateada}</div>`;
+      }
+    }
+
     infoEdificio.style.display = "block";
     infoEdificio.innerHTML = `
       <div class="sectionCard">
+        ${cartelNuevoHtml}
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
           <div>
             <div style="font-size:24px; font-weight:bold; color:white;">${b.address}</div>
@@ -347,7 +361,6 @@ async function mostrarInfoEdificio() {
 
       let centradoExitoso = false;
 
-      // 1. DIBUJAR TERRITORIO (Como fondo)
       if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined') {
         let capaGeoJSON = L.geoJSON(misTerritoriosGeoJSON, {
           filter: (f) => String(f.properties.name || f.properties.Territorio_N) === String(b.territory),
@@ -360,16 +373,12 @@ async function mostrarInfoEdificio() {
         }
       }
 
-      // 2. AGREGAR MARCADOR (Con validación y re-centrado)
       if (b.latitude && b.longitude) {
         const lat = parseFloat(b.latitude);
         const lng = parseFloat(b.longitude);
         
         if (!isNaN(lat) && !isNaN(lng)) {
           L.marker([lat, lng]).addTo(prediMiniMap);
-          
-          // Si hay marcador, forzamos la vista sobre él, incluso si hay territorio
-          // Esto asegura que el punto sea el protagonista
           prediMiniMap.setView([lat, lng], 16); 
           centradoExitoso = true;
         }
@@ -506,52 +515,131 @@ async function cargarDashboard() {
 }
 
 async function cargarEdificios() {
-  listaEdificios.innerHTML = `
-    <div class="card-container skeleton">
-      <div class="skeletonLine"></div>
-      <div class="skeletonLine"></div>
-    </div>
-  `;
-  
-  // 1. Capturamos todos los filtros disponibles
-  const filtroTerritorio = busquedaTerritorio.value.trim();
-  const orden = filtroOrden.value;
-  
-  // 2. Capturamos el nuevo buscador por dirección (asegúrate de que el ID coincida con tu HTML)
-  const inputDireccion = document.getElementById("busquedaDireccionAdmin");
-  const filtroDireccion = inputDireccion ? inputDireccion.value.trim() : "";
-  
-  try {
-    // 3. Enviamos TODO al servidor: territorio, búsqueda por nombre/dirección y el orden
-    const res = await apiFetch(`/admin/buildings?page=${paginaActual}&limit=20&territory=${filtroTerritorio}&search=${encodeURIComponent(filtroDireccion)}&sort=${orden}`);
-    const data = await res.json();
-    let html = "";
+  // 1. Buscamos el contenedor de la lista en el HTML
+  const listaContenedor = document.getElementById("listaEdificios");
+  if (!listaContenedor) return;
 
-    if(!data.data || data.data.length === 0) {
-      listaEdificios.innerHTML = "<p style='color:gray; text-align:center; padding:20px;'>No se encontraron edificios con esos filtros.</p>";
+  try {
+    // 2. Traemos los edificios directamente desde tu servidor en tiempo real
+    listaContenedor.innerHTML = `<p style="color:#71717a; text-align:center; padding:20px; font-size:13px;">Cargando edificios...</p>`;
+    
+    // NOTA: Si la ruta de tu servidor para listar todo es diferente (ej: '/buildings'), cambiala acá:
+    const res = await apiFetch('/buildings-admin') || await apiFetch('/buildings');
+    const edificiosListaGlobal = await res.json();
+
+    let edificiosFiltrados = [...edificiosListaGlobal]; 
+
+    // 3. OBTENER FILTROS DEL HTML
+    const busquedaInput = document.getElementById("busquedaDireccionAdmin");
+    const territorioInput = document.getElementById("busquedaTerritorio");
+    const filtroOrdenInput = document.getElementById("filtroOrden");
+
+    const busqueda = busquedaInput ? busquedaInput.value.toLowerCase().trim() : "";
+    const territorioFiltro = territorioInput ? territorioInput.value.trim() : "";
+    const criterioOrden = filtroOrdenInput ? filtroOrdenInput.value : "address";
+
+    // 4. CONFIGURACIÓN PARA EDIFICIOS NUEVOS (Lapso de 30 días)
+    const MS_POR_DIA = 24 * 60 * 60 * 1000;
+    const hoy = new Date();
+
+    // 5. CALCULAR ESTADÍSTICAS REALES (Usando los campos correctos de tu Base de Datos)
+    let total = edificiosListaGlobal.length;
+    let visitadosHoy = 0;
+    let nuncaVisitados = 0;
+    let alertasActivas = 0;
+
+    edificiosListaGlobal.forEach(edif => {
+      // Control de Visitas (asumiendo edif.lastVisit o edif.ultimaVisita)
+      if (edif.lastVisit || edif.ultimaVisita) {
+        const fechaVisita = new Date(edif.lastVisit || edif.ultimaVisita);
+        if (fechaVisita.toDateString() === hoy.toDateString()) {
+          visitadosHoy++;
+        }
+      } else {
+        nuncaVisitados++;
+      }
+
+      // Control de Alertas (si tiene un problema reportado)
+      if (edif.hasIssue || edif.tieneProblema || edif.issue) {
+        alertasActivas++;
+      }
+    });
+
+    // Inyectamos las estadísticas en las mini-tarjetas que se ven arriba
+    if (document.getElementById("totalEdificios")) document.getElementById("totalEdificios").innerText = total;
+    if (document.getElementById("visitados")) document.getElementById("visitados").innerText = visitadosHoy;
+    if (document.getElementById("nuncaVisitados")) document.getElementById("nuncaVisitados").innerText = nuncaVisitados;
+    if (document.getElementById("problemasActivos")) document.getElementById("problemasActivos").innerText = alertasActivas;
+
+    // 6. APLICAR FILTROS DE BÚSQUEDA Y TERRITORIO
+    if (busqueda) {
+      edificiosFiltrados = edificiosFiltrados.filter(e => (e.address || e.direccion || "").toLowerCase().includes(busqueda));
+    }
+    if (territorioFiltro) {
+      edificiosFiltrados = edificiosFiltrados.filter(e => String(e.territory || e.territorio) === territorioFiltro);
+    }
+
+    // 7. ORDENAR LA LISTA (Mapeado a tus campos en inglés de la BD)
+    if (criterioOrden === "address" || criterioOrden === "Orden Alfabético") {
+      edificiosFiltrados.sort((a, b) => (a.address || "").localeCompare(b.address || ""));
+    } 
+    else if (criterioOrden === "territory" || criterioOrden === "Territorio") {
+      edificiosFiltrados.sort((a, b) => Number(a.territory || 0) - Number(b.territory || 0));
+    } 
+    else if (criterioOrden === "recent" || criterioOrden === "Nuevos") {
+      // Tu idea premium: Ordenar por fecha de creación (createdAt) de más nuevo a más viejo
+      edificiosFiltrados.sort((a, b) => {
+        const fechaA = a.createdAt || a.fechaCreacion ? new Date(a.createdAt || a.fechaCreacion) : new Date(0);
+        const fechaB = b.createdAt || b.fechaCreacion ? new Date(b.createdAt || b.fechaCreacion) : new Date(0);
+        return fechaB - fechaA;
+      });
+    }
+
+    // 8. RENDERIZAR EN EL HTML
+    listaContenedor.innerHTML = "";
+
+    if (edificiosFiltrados.length === 0) {
+      listaContenedor.innerHTML = `<p style="color:#71717a; text-align:center; padding:20px; font-size:13px;">No se encontraron edificios</p>`;
       return;
     }
 
-    data.data.forEach(b => {
-      // Usamos una lógica de color para resaltar si es nuevo (opcional)
-      const colorBorde = (orden === 'recent') ? '#4CAF50' : '#2196F3';
+    edificiosFiltrados.forEach(edif => {
+      // Por defecto muestra el territorio del edificio
+      let descripcionExtra = `Territorio: ${edif.territory || edif.territorio || "-"}`;
       
-      html += `
-        <div class="card-container" style="margin-top:10px; cursor:pointer; border-left: 4px solid ${colorBorde};" onclick="verDetalleEdificioAdmin('${b._id}')">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div>
-              <b style="color:white; font-size:16px;">${b.address}</b><br>
-              <small style="color:gray;">🗺️ Territorio: ${b.territory || "-"}</small>
-            </div>
-            <span style="font-size:14px; color:#2196F3;">👁️ Ver</span>
+      // Validamos si califica como "Nuevo" (menos de 30 días)
+      const fechaBase = edif.createdAt || edif.fechaCreacion;
+      if (fechaBase) {
+        const fechaCreacion = new Date(fechaBase);
+        const diferenciaDias = Math.floor((hoy - fechaCreacion) / MS_POR_DIA);
+
+        if (diferenciaDias <= 30 && diferenciaDias >= 0) {
+          const fechaFormateada = fechaCreacion.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+          descripcionExtra = `✨ Creado el ${fechaFormateada}`;
+        }
+      }
+
+      // Renderizamos la fila usando 'verDetalleEdificioAdmin' para cuando hagan clic
+      const itemHTML = `
+        <div class="edificio-item-lista" onclick="verDetalleEdificioAdmin('${edif.id || edif._id}')">
+          <div class="edificio-info-txt">
+            <span class="edif-dir">${edif.address || edif.direccion}</span>
+            <span class="edif-sub">${descripcionExtra}</span>
           </div>
+          <span class="btn-ver-flecha">→</span>
         </div>
       `;
+      listaContenedor.insertAdjacentHTML("beforeend", itemHTML);
     });
-    listaEdificios.innerHTML = html;
+
+    // 9. Actualizar marcadores del mapa si la función existe
+    if (typeof actualizarMarcadoresMapa === "function") {
+      actualizarMarcadoresMapa(edificiosFiltrados);
+    }
+
   } catch (error) {
     console.error("Error en cargarEdificios:", error);
-    listaEdificios.innerHTML = "<p style='color:red; text-align:center;'>Error al cargar el listado.</p>";
+    listaContenedor.innerHTML = `<p style="color:#f44336; text-align:center; padding:20px; font-size:13px;">Error al conectar con el servidor.</p>`;
   }
 }
 
@@ -562,13 +650,28 @@ async function verDetalleEdificioAdmin(buildingId) {
   panel.innerHTML = `<p style="text-align:center; color:gray;">Cargando historial y detalles...</p>`;
 
   try {
-    // Reutilizamos tu ruta de información que ya trae datos del edificio y problemas
     const res = await apiFetch(`/building-info/${buildingId}`);
     const data = await res.json();
     const b = data.building;
     const addrEscaped = b.address.replace(/'/g, "\\'");
 
-    // Comprobar si hay alertas de problemas activos
+    // ✨ CALCULO DE EDIFICIO NUEVO EN PANEL ADMIN
+    let cartelNuevoAdminHtml = "";
+    if (b.createdAt || b.fechaCreacion) {
+      const fechaCreacion = new Date(b.createdAt || b.fechaCreacion);
+      const hoy = new Date();
+      const diferenciaDias = Math.floor((hoy - fechaCreacion) / (1000 * 60 * 60 * 24));
+      
+      if (diferenciaDias <= 30) {
+        const fechaFormateada = fechaCreacion.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        cartelNuevoAdminHtml = `
+          <div style="background:#064e3b; border: 1px solid #059669; color:#a7f3d0; padding:10px; border-radius:12px; margin-bottom:12px; font-size:14px; font-weight:600;">
+            ✨ Edificio nuevo: ingresado al sistema el ${fechaFormateada}
+          </div>
+        `;
+      }
+    }
+
     let alertaHtml = "";
     if (data.issue) {
       alertaHtml = `
@@ -578,8 +681,8 @@ async function verDetalleEdificioAdmin(buildingId) {
       `;
     }
 
-    // Renderizamos todo el bloque consolidado primero para asegurar el HTML en pantalla
     panel.innerHTML = `
+      ${cartelNuevoAdminHtml}
       ${alertaHtml}
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
         <div>
@@ -604,8 +707,6 @@ async function verDetalleEdificioAdmin(buildingId) {
       </div>
     `;
 
-   // --- 🗺️ MOVIMIENTO DE CÁMARA INTELIGENTE, CERCANO Y ANTI-SOLAPAMIENTO ---
-    // Frenamos cualquier animación o movimiento que haya quedado colgado del clic anterior
     if (miTemporizadorMapa) {
       clearTimeout(miTemporizadorMapa);
     }
@@ -615,17 +716,14 @@ async function verDetalleEdificioAdmin(buildingId) {
                          (typeof map !== 'undefined' && map !== null) ? map : null;
 
       if (miMapaReal) {
-        // Despertamos los cuadraditos del mapa
         miMapaReal.invalidateSize({ animate: false });
 
         const latValida = parseFloat(b.latitude);
         const lngValida = parseFloat(b.longitude);
         
-        // ¿Tiene coordenadas reales y válidas?
         const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
 
-       if (tieneCoordenadas) {
-          // 📍 CASO A: EL EDIFICIO TIENE PUNTO EXACTO (Mini-mapa 100% Estático y Visual)
+        if (tieneCoordenadas) {
           console.log(`📍 Inicializando mini-mapa estático para: ${latValida}, ${lngValida}`);
           
           if (miniMapaAdminInstance !== null) {
@@ -653,18 +751,17 @@ async function verDetalleEdificioAdmin(buildingId) {
 
           setTimeout(() => {
             try {
-              // 🔒 MAPA BLOQUEADO: Desactivamos arrastre, doble clic, zoom con rueda, etc.
               miniMapaAdminInstance = L.map('miniMapaDetalle', {
                 center: [latValida, lngValida],
                 zoom: 17,
                 zoomControl: false,
                 attributionControl: false,
-                dragging: false,           // 🚫 No se puede arrastrar
-                touchZoom: false,          // 🚫 No zoom con dos dedos
-                doubleClickZoom: false,    // 🚫 No zoom con doble clic
-                scrollWheelZoom: false,    // 🚫 No zoom con la ruedita del mouse
-                boxZoom: false,            // 🚫 No zoom por selección de caja
-                keyboard: false            // 🚫 No mover con flechas del teclado
+                dragging: false,
+                touchZoom: false,
+                doubleClickZoom: false,
+                scrollWheelZoom: false,
+                boxZoom: false,
+                keyboard: false
               });
 
               L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMapaAdminInstance);
@@ -679,7 +776,6 @@ async function verDetalleEdificioAdmin(buildingId) {
           }, 100);
 
         } else if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
-          // 🗺️ CASO B: NO TIENE COORDENADAS (Ir al territorio con vista MUCHO más cercana)
           try {
             let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
               filter: function(feature) {
@@ -690,25 +786,22 @@ async function verDetalleEdificioAdmin(buildingId) {
 
             if (capaGeoJSONAdmin.getLayers().length > 0) {
               console.log(`🗺️ [Territorio] Encuadrando BIEN DE CERCA en el Territorio ${b.territory}`);
-              
-              // 👁️ Bajamos el padding a 5 píxeles para que se ajuste al límite del barrio y subimos el maxZoom a 16
               miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { 
                 padding: [5, 5], 
-                maxZoom: 16  // Obliga al mapa grande a meter un buen zoom sobre el territorio
+                maxZoom: 16 
               });
             }
           } catch (geoError) {
             console.warn("Fallo al encuadrar territorio:", geoError);
           }
         } else {
-          // 🏙️ CASO C: SIN NINGÚN DATO (Posadas General)
           miMapaReal.setView([-27.36708, -55.89608], 14);
         }
           
       } else {
         console.warn("⚠️ No se encontró la variable del mapa.");
       }
-    }, 100); // Bajamos el delay a 100ms porque al limpiar el anterior ya no hace falta esperar tanto
+    }, 100);
 
   } catch (error) {
     console.error("Error al cargar detalles del edificio:", error);
