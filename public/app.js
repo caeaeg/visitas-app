@@ -80,41 +80,6 @@ function tienePermiso(roles) {
   return roles.includes(currentRole);
 }
 
-function abrirVista(id) {
-  // Ocultar todas las sub-vistas internas
-  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-  
-  // Activar la sub-vista objetivo
-  const vistaObjetivo = document.getElementById(id);
-  if (vistaObjetivo) vistaObjetivo.classList.add("active");
-
-  // --- SOLUCIÓN DE FLUJO DE CONTENEDORES PARA MÓVIL ---
-  if (id === "editarView" && currentRole === "predi") {
-    // Si el predi va a editar/crear, ocultamos su buscador móvil
-    if (document.getElementById("appContainer")) document.getElementById("appContainer").style.display = "none";
-    // Y mostramos temporalmente el contenedor padre para renderizar el editor en pantalla completa
-    if (document.getElementById("mainDashboard")) document.getElementById("mainDashboard").style.display = "block";
-  }
-
-  // Acciones específicas según la vista
-  if (id === "territorioView") {
-    if (typeof cargarDashboard === "function") cargarDashboard();
-    if (typeof cargarEdificios === "function") cargarEdificios(); 
-    
-    // Forzamos re-cálculo de tamaño para evitar el bug del mapa gris de Leaflet
-    if (leafletMap) {
-      setTimeout(() => { leafletMap.invalidateSize(); }, 100);
-    } else if (typeof inicializarMapaLeaflet === "function") {
-      // Centrar mapa por defecto en Posadas al abrir territorios de cero
-      inicializarMapaLeaflet(-27.36708, -55.89608);
-    }
-  }
-
-  if (id === "problemasView" && typeof verProblemas === "function") {
-    verProblemas();
-  }
-}
-
 function iniciarApp() {
   // 1. Ocultamos la pantalla de login de forma segura
   const elLogin = document.getElementById("loginScreen") || (typeof loginScreen !== 'undefined' ? loginScreen : null);
@@ -128,16 +93,57 @@ function iniciarApp() {
   const mainDashboard = document.getElementById("mainDashboard");
 
   if (currentRole === "predi") {
-    // 📱 Interfaz Móvil: Mostramos SOLO la app y aislamos el panel de control grande
-    if (appContainer) appContainer.style.display = "block";
+    // 📱 INTERFAZ MÓVIL FORZADA: Apagamos el dashboard grande y sus vistas internas por completo
     if (mainDashboard) mainDashboard.style.display = "none";
+    if (appContainer) appContainer.style.display = "block";
+    
+    // Desactivamos cualquier sub-vista de administrador activa por las dudas
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
   } else {
-    // 💻 Panel de Control (Admin / Conductor): Ocultamos la app móvil y activamos el Dashboard corporativo
+    // 💻 PANEL DE CONTROL GENERAL (Admin / Conductor)
     if (mainDashboard) mainDashboard.style.display = "block";
     if (appContainer) appContainer.style.display = "none";
     
     // Abrimos directamente la vista del menú de tarjetas principales
     abrirVista("dashboardView");
+  }
+}
+
+function abrirVista(id) {
+  // 🚨 REGLA DE ORO DE SEGURIDAD: Si es predi y la vista NO es el editor, no lo dejamos tocar el dashboard admin
+  if (currentRole === "predi" && id !== "editarView") {
+    if (document.getElementById("mainDashboard")) document.getElementById("mainDashboard").style.display = "none";
+    if (document.getElementById("appContainer")) document.getElementById("appContainer").style.display = "block";
+    return; // Frenamos la ejecución acá
+  }
+
+  // Ocultar todas las sub-vistas internas
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  
+  // Activar la sub-vista objetivo
+  const vistaObjetivo = document.getElementById(id);
+  if (vistaObjetivo) vistaObjetivo.classList.add("active");
+
+  // --- SOLUCIÓN DE FLUJO DE CONTENEDORES PARA MÓVIL ---
+  if (id === "editarView" && currentRole === "predi") {
+    if (document.getElementById("appContainer")) document.getElementById("appContainer").style.display = "none";
+    if (document.getElementById("mainDashboard")) document.getElementById("mainDashboard").style.display = "block";
+  }
+
+  // Acciones específicas según la vista
+  if (id === "territorioView") {
+    if (typeof cargarDashboard === "function") cargarDashboard();
+    if (typeof cargarEdificios === "function") cargarEdificios(); 
+    
+    if (leafletMap) {
+      setTimeout(() => { leafletMap.invalidateSize(); }, 100);
+    } else if (typeof inicializarMapaLeaflet === "function") {
+      inicializarMapaLeaflet(-27.36708, -55.89608);
+    }
+  }
+
+  if (id === "problemasView" && typeof verProblemas === "function") {
+    verProblemas();
   }
 }
 
