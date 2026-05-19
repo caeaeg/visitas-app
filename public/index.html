@@ -533,24 +533,10 @@
   </div>
 </div>
 
-<div class="sidebar" id="sidebar" style="display:none;">
-  <button class="sidebarBtn" onclick="abrirVista('dashboardView')">🏠</button>
-  <button class="sidebarBtn" onclick="abrirVista('territorioView')">🗺</button>
-  <button class="sidebarBtn" onclick="abrirVista('problemasView')">⚠</button>
-</div>
+
 
 <div id="mainDashboard" class="appShell" style="display:none;">
-  <div class="topbar">
-    <div>
-      <div class="topbarTitle">📍 Visitas</div>
-      <div class="topbarSub">Sistema de territorios</div>
-    </div>
-    <div class="topbarActions">
-      <button class="miniBtn" onclick="logout()">Salir</button>
-    </div>
-  </div>
-
-  <div id="dashboardView" class="view active">
+   <div id="dashboardView" class="view active">
     <h2>⚙ Panel Control</h2>
     <div class="dashboardGrid">
       <div class="dashboardCard" onclick="abrirVista('territorioView')">
