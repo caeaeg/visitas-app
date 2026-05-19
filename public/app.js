@@ -526,14 +526,16 @@ async function cargarEdificios() {
   if (!listaContenedor) return;
 
   try {
-    // 2. Traemos los edificios directamente desde tu servidor en tiempo real
+    // 2. Traemos los edificios directamente desde tu servidor usando la ruta real comprobada
     listaContenedor.innerHTML = `<p style="color:#71717a; text-align:center; padding:20px; font-size:13px;">Cargando edificios...</p>`;
     
-    // NOTA: Si la ruta de tu servidor para listar todo es diferente (ej: '/buildings'), cambiala acá:
-    const res = await apiFetch('/buildings'); // Dejamos solo la ruta que tu servidor sí tiene registrada
+    // Apuntamos al endpoint correcto de tu servidor backend
+    const res = await apiFetch('/admin/buildings'); 
     if (!res.ok) throw new Error(`Error en el servidor: ${res.status}`);
     
-    const edificiosListaGlobal = await res.json();
+    // Desempaquetamos la propiedad .data que envía tu servidor
+    const resData = await res.json();
+    const edificiosListaGlobal = resData.data || []; 
     let edificiosFiltrados = [...edificiosListaGlobal];
 
     // 3. OBTENER FILTROS DEL HTML
@@ -549,14 +551,14 @@ async function cargarEdificios() {
     const MS_POR_DIA = 24 * 60 * 60 * 1000;
     const hoy = new Date();
 
-    // 5. CALCULAR ESTADÍSTICAS REALES (Usando los campos correctos de tu Base de Datos)
+    // 5. CALCULAR ESTADÍSTICAS REALES (Usando los campos de tu Base de Datos)
     let total = edificiosListaGlobal.length;
     let visitadosHoy = 0;
     let nuncaVisitados = 0;
     let alertasActivas = 0;
 
     edificiosListaGlobal.forEach(edif => {
-      // Control de Visitas (asumiendo edif.lastVisit o edif.ultimaVisita)
+      // Control de Visitas
       if (edif.lastVisit || edif.ultimaVisita) {
         const fechaVisita = new Date(edif.lastVisit || edif.ultimaVisita);
         if (fechaVisita.toDateString() === hoy.toDateString()) {
@@ -566,13 +568,13 @@ async function cargarEdificios() {
         nuncaVisitados++;
       }
 
-      // Control de Alertas (si tiene un problema reportado)
+      // Control de Alertas
       if (edif.hasIssue || edif.tieneProblema || edif.issue) {
         alertasActivas++;
       }
     });
 
-    // Inyectamos las estadísticas en las mini-tarjetas que se ven arriba
+    // Inyectamos las estadísticas en las mini-tarjetas del panel administrativo
     if (document.getElementById("totalEdificios")) document.getElementById("totalEdificios").innerText = total;
     if (document.getElementById("visitados")) document.getElementById("visitados").innerText = visitadosHoy;
     if (document.getElementById("nuncaVisitados")) document.getElementById("nuncaVisitados").innerText = nuncaVisitados;
@@ -586,7 +588,7 @@ async function cargarEdificios() {
       edificiosFiltrados = edificiosFiltrados.filter(e => String(e.territory || e.territorio) === territorioFiltro);
     }
 
-    // 7. ORDENAR LA LISTA (Mapeado a tus campos en inglés de la BD)
+    // 7. ORDENAR LA LISTA
     if (criterioOrden === "address" || criterioOrden === "Orden Alfabético") {
       edificiosFiltrados.sort((a, b) => (a.address || "").localeCompare(b.address || ""));
     } 
@@ -594,7 +596,6 @@ async function cargarEdificios() {
       edificiosFiltrados.sort((a, b) => Number(a.territory || 0) - Number(b.territory || 0));
     } 
     else if (criterioOrden === "recent" || criterioOrden === "Nuevos") {
-      // Tu idea premium: Ordenar por fecha de creación (createdAt) de más nuevo a más viejo
       edificiosFiltrados.sort((a, b) => {
         const fechaA = a.createdAt || a.fechaCreacion ? new Date(a.createdAt || a.fechaCreacion) : new Date(0);
         const fechaB = b.createdAt || b.fechaCreacion ? new Date(b.createdAt || b.fechaCreacion) : new Date(0);
@@ -611,10 +612,9 @@ async function cargarEdificios() {
     }
 
     edificiosFiltrados.forEach(edif => {
-      // Por defecto muestra el territorio del edificio
       let descripcionExtra = `Territorio: ${edif.territory || edif.territorio || "-"}`;
       
-      // Validamos si califica como "Nuevo" (menos de 30 días)
+      // Identificamos novedades
       const fechaBase = edif.createdAt || edif.fechaCreacion;
       if (fechaBase) {
         const fechaCreacion = new Date(fechaBase);
@@ -626,7 +626,7 @@ async function cargarEdificios() {
         }
       }
 
-      // Renderizamos la fila usando 'verDetalleEdificioAdmin' para cuando hagan clic
+      // Inyectamos fila
       const itemHTML = `
         <div class="edificio-item-lista" onclick="verDetalleEdificioAdmin('${edif.id || edif._id}')">
           <div class="edificio-info-txt">
