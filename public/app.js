@@ -14,71 +14,11 @@ let leafletMarker = null;
 let miTemporizadorMapa = null; // Guardián para que no se pisen los clics de los edificios
 let miniMapaAdminInstance = null;
 
-function abrirVista(id) {
-  // Ocultar todas las sub-vistas internas
-  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-  
-  // Activar la sub-vista objetivo
-  const vistaObjetivo = document.getElementById(id);
-  if (vistaObjetivo) vistaObjetivo.classList.add("active");
-  // --- SOLUCIÓN DE FLUJO DE CONTENEDORES ---
-  if (id === "editarView" && currentRole === "predi") {
-    // Si el predi va a editar/crear, ocultamos su buscador móvil
-    document.getElementById("appContainer").style.display = "none";
-    // Y mostramos temporalmente el contenedor padre del editor, ocultando su barra superior de admin
-    document.getElementById("mainDashboard").style.display = "block";
-    const topbar = document.querySelector(".topbar");
-    if (topbar) topbar.style.display = "none"; 
-  }
-  // Acciones específicas según la vista
-  if (id === "territorioView") {
-    cargarDashboard();
-    cargarEdificios(); 
-    // Si el mapa ya existe, forzamos re-cálculo de tamaño para evitar el bug gris de Leaflet
-    if (leafletMap) {
-      setTimeout(() => {
-        leafletMap.invalidateSize();
-      }, 100);
-    } else {
-      // Centrar mapa por defecto en Posadas al abrir territorios de cero
-      inicializarMapaLeaflet(-27.36708, -55.89608);
-    }
-  }
-  if (id === "problemasView") {
-    verProblemas();
-  }
-}
+//--------------------------------------------------------------------------------------------//
 
-
-// --- FUNCIÓN CENTRAL DE PETICIONES HTTP (API FETCH NATIVA) ---
-
-async function apiFetch(url, options = {}) {
-  const headers = {
-    ...(options.headers || {}),
-    "x-user": currentUser,
-    "x-role": currentRole
-  };
-  if (!(options.body instanceof FormData)) {
-    headers["Content-Type"] = headers["Content-Type"] || "application/json";
-  }
-  const response = await fetch(url, { ...options, headers });
-  if (response.status === 401) {
-    logout();
-    alert("Sesión expirada");
-  }
-  if (response.status === 403) {
-    alert("No tenés permisos");
-  }
-  return response;
-}
-
-function tienePermiso(roles) {
-  return roles.includes(currentRole);
-}
 
 
 // --- SISTEMA DE AUTENTICACIÓN (LOGIN / LOGOUT) ---
-
 async function login() {
   const username = loginUser.value.trim();
   const password = loginPass.value.trim();
@@ -115,52 +55,112 @@ async function login() {
   }
 }
 
+// --- FUNCIÓN CENTRAL DE PETICIONES HTTP (API FETCH NATIVA) ---
+async function apiFetch(url, options = {}) {
+  const headers = {
+    ...(options.headers || {}),
+    "x-user": currentUser,
+    "x-role": currentRole
+  };
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = headers["Content-Type"] || "application/json";
+  }
+  const response = await fetch(url, { ...options, headers });
+  if (response.status === 401) {
+    logout();
+    alert("Sesión expirada");
+  }
+  if (response.status === 403) {
+    alert("No tenés permisos");
+  }
+  return response;
+}
+
+function tienePermiso(roles) {
+  return roles.includes(currentRole);
+}
+
+function abrirVista(id) {
+  // Ocultar todas las sub-vistas internas
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  
+  // Activar la sub-vista objetivo
+  const vistaObjetivo = document.getElementById(id);
+  if (vistaObjetivo) vistaObjetivo.classList.add("active");
+
+  // --- SOLUCIÓN DE FLUJO DE CONTENEDORES PARA MÓVIL ---
+  if (id === "editarView" && currentRole === "predi") {
+    // Si el predi va a editar/crear, ocultamos su buscador móvil
+    if (document.getElementById("appContainer")) document.getElementById("appContainer").style.display = "none";
+    // Y mostramos temporalmente el contenedor padre para renderizar el editor en pantalla completa
+    if (document.getElementById("mainDashboard")) document.getElementById("mainDashboard").style.display = "block";
+  }
+
+  // Acciones específicas según la vista
+  if (id === "territorioView") {
+    if (typeof cargarDashboard === "function") cargarDashboard();
+    if (typeof cargarEdificios === "function") cargarEdificios(); 
+    
+    // Forzamos re-cálculo de tamaño para evitar el bug del mapa gris de Leaflet
+    if (leafletMap) {
+      setTimeout(() => { leafletMap.invalidateSize(); }, 100);
+    } else if (typeof inicializarMapaLeaflet === "function") {
+      // Centrar mapa por defecto en Posadas al abrir territorios de cero
+      inicializarMapaLeaflet(-27.36708, -55.89608);
+    }
+  }
+
+  if (id === "problemasView" && typeof verProblemas === "function") {
+    verProblemas();
+  }
+}
+
 function iniciarApp() {
-  // 1. Ocultamos la pantalla de login (usando acceso seguro al DOM)
+  // 1. Ocultamos la pantalla de login de forma segura
   const elLogin = document.getElementById("loginScreen") || (typeof loginScreen !== 'undefined' ? loginScreen : null);
   if (elLogin) elLogin.style.display = "none";
   
-  // 2. Evaluamos botones y elementos internos del dashboard según rol
+  // 2. Evaluamos botones del panel control según el rol logueado
   aplicarPermisos();
   
-  // 3. Redirección según rol (predi = móvil, admin/conductor = panel de control)
+  // 3. Redirección absoluta de pantallas contenedoras principales
   const appContainer = document.getElementById("appContainer");
   const mainDashboard = document.getElementById("mainDashboard");
 
   if (currentRole === "predi") {
-    // 📱 Interfaz Móvil para el predicador
+    // 📱 Interfaz Móvil: Mostramos SOLO la app y aislamos el panel de control grande
     if (appContainer) appContainer.style.display = "block";
     if (mainDashboard) mainDashboard.style.display = "none";
   } else {
-    // 💻 Panel de Control para Admin / Conductor
+    // 💻 Panel de Control (Admin / Conductor): Ocultamos la app móvil y activamos el Dashboard corporativo
     if (mainDashboard) mainDashboard.style.display = "block";
     if (appContainer) appContainer.style.display = "none";
     
-    // Abrimos directamente la vista del menú principal
+    // Abrimos directamente la vista del menú de tarjetas principales
     abrirVista("dashboardView");
   }
 }
 
 function aplicarPermisos() {
-  // Buscamos el botón de reportes de problemas dentro del Dashboard
+  // Buscamos la tarjeta de reportes de problemas en el menú principal
   const btnProblemas = document.querySelector('#dashboardView [onclick="abrirVista(\'problemasView\')"]');
 
-  // Controlamos la visibilidad de las herramientas administrativas según el rol
+  if (!btnProblemas) return;
+
+  // Control estricto de herramientas según rol
   if (currentRole === "admin") {
-    if (btnProblemas) btnProblemas.style.display = "block"; // El admin ve todo
+    btnProblemas.style.display = "flex"; // El admin ve y gestiona los problemas abiertos
+  } else if (currentRole === "conductor") {
+    btnProblemas.style.display = "none"; // El conductor tiene un flujo limpio sin alertas
   }
-  else if (currentRole === "conductor") {
-    if (btnProblemas) btnProblemas.style.display = "none";  // El conductor no gestiona problemas
-  }
-  
-  // Nota aclaratoria: Las líneas de 'sidebar' y '.topbar' fueron removidas de forma 
-  // segura ya que esos contenedores se eliminaron físicamente del index.html.
 }
+
 function logout() {
   localStorage.removeItem("user");
   localStorage.removeItem("role");
   location.reload();
 }
+
 // Oidor de carga inicial de la página
 window.addEventListener("load", async () => {
   const savedUser = localStorage.getItem("user");
@@ -172,12 +172,12 @@ window.addEventListener("load", async () => {
     iniciarApp();
   }
   
-  // Soporte para links directos QR o parámetros (?building=ID)
+  // Soporte para links directos por escaneo QR (?building=ID)
   const params = new URLSearchParams(window.location.search);
   const buildingIdParam = params.get("building");
-  if (buildingIdParam) {
+  if (buildingIdParam && typeof cargarDepto === "function") {
     currentBuildingId = buildingIdParam;
-    mensajeInicial.style.display = "none";
+    if (typeof mensajeInicial !== 'undefined' && mensajeInicial) mensajeInicial.style.display = "none";
     await cargarDepto();
   }
 });
