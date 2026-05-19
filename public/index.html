@@ -394,6 +394,86 @@
     border-radius: 12px;
     padding: 14px;
   }
+    /* --- 🏠 ARREGLO EXCLUSIVO PARA EL PANEL DE CONTROL (DASHBOARD) --- */
+#dashboardView {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 0 16px;
+}
+
+#dashboardView h2 {
+  font-size: 26px;
+  margin-bottom: 24px;
+  text-align: left;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Reconstrucción de las tarjetas de opciones */
+.dashboardGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.dashboardCard {
+  background: #111113;
+  border: 1px solid #27272a;
+  border-radius: 14px;
+  padding: 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  text-align: left;
+}
+
+.dashboardCard:hover {
+  transform: translateY(-2px);
+  background: #18181b;
+  border-color: #3f3f46;
+}
+
+.dashboardCard:active {
+  transform: scale(0.98);
+}
+
+/* Estilo para los iconos grandes de las opciones */
+.dashboardCard .icon {
+  font-size: 28px;
+  width: 50px;
+  height: 50px;
+  background: #18181b;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Textos internos de la opción */
+.dashboardCard-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dashboardCard h3 {
+  color: #ffffff;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.dashboardCard p {
+  color: #a1a1aa;
+  font-size: 13px;
+  margin: 0;
+}
 </style>
 </head>
 <body>
