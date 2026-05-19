@@ -488,27 +488,31 @@
   </div>
 </div>
 
-
-
-<div id="mainDashboard" class="appShell" style="display:none;">
-   <div id="dashboardView" class="view active">
+<div id="dashboardView" class="view active">
     <h2>⚙ Panel Control</h2>
     <div class="dashboardGrid">
       <div class="dashboardCard" onclick="abrirVista('territorioView')">
         <div class="icon">🗺</div>
-        <h3>Territorios y Edificios</h3>
-        <p>Mapa, estadísticas, filtros e historial</p>
+        <div class="dashboardCard-content">
+          <h3>Territorios y Edificios</h3>
+          <p>Mapa, estadísticas, filtros e historial</p>
+        </div>
       </div>
       <div class="dashboardCard" onclick="abrirEditorEdificio()">
         <div class="icon">➕</div>
-        <h3>Nuevo edificio</h3>
-        <p>Agregar rápidamente</p>
+        <div class="dashboardCard-content">
+          <h3>Nuevo edificio</h3>
+          <p>Agregar rápidamente</p>
+        </div>
       </div>
       <div class="dashboardCard" onclick="abrirVista('problemasView')">
         <div class="icon">⚠</div>
-        <h3>Problemas</h3>
-        <p>Reportes pendientes</p>
+        <div class="dashboardCard-content">
+          <h3>Problemas</h3>
+          <p>Reportes pendientes</p>
+        </div>
       </div>
+
     </div>
   </div>
 
