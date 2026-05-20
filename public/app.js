@@ -542,7 +542,158 @@ async function enviarReporte() {
     alert("Error crítico de comunicación. Revisa tu conexión.");
   }
 }
+// 💻 Admin (NUEVA): Carga la info total del edificio cruzada con el incidente + Mini Mapa + Historial
+let mapaIncidenteAdminInstance = null;
 
+
+async function verDetalleIncidenteAdmin(incidente, index) {
+  const panel = document.getElementById("panelDetalleProblemaAdmin");
+  panel.innerHTML = `<p style="text-align:center; color:gray; padding-top:50px;">Consultando detalles de infraestructura del edificio...</p>`;
+
+  try {
+    // 🚨 EXTRACCIÓN SEGURA DEL ID (Evita el error [object Object] en la URL de la API)
+    let idEdificioLimpio = "";
+    if (incidente.buildingId && typeof incidente.buildingId === "object") {
+      idEdificioLimpio = incidente.buildingId._id || incidente.buildingId.id || "";
+    } else {
+      idEdificioLimpio = incidente.buildingId || "";
+    }
+
+    if (!idEdificioLimpio || idEdificioLimpio === "[object Object]") {
+      throw new Error("El incidente no cuenta con un ID de edificio válido asociado.");
+    }
+
+    // Cruza los datos llamando a la info completa del edificio asignado usando el ID en formato String
+    const res = await apiFetch(`/building-info/${idEdificioLimpio}`);
+    if (!res.ok) {
+      throw new Error(`El servidor respondió con un estado ${res.status}`);
+    }
+    
+    const data = await res.json();
+    const b = data.building;
+
+    if (!b) {
+      throw new Error("No se encontraron datos de infraestructura para el edificio consultado.");
+    }
+
+    // Formateamos la fecha exacta si existe en el objeto i de MongoDB
+    let fechaFormateada = "No informada";
+    if (incidente.createdAt) {
+      fechaFormateada = new Date(incidente.createdAt).toLocaleString('es-AR', {
+        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      }) + " hs";
+    }
+
+    // Estructura limpia y potente con historial compacto e información similar a la sección Admin
+    panel.innerHTML = `
+      <div style="background:#27272a; border:1px solid #ef4444; padding:14px; border-radius:12px; margin-bottom:15px;">
+        <span style="font-size:11px; color:#ef4444; font-weight:700; text-transform:uppercase; display:block; margin-bottom:4px;">Detalles de la Alerta</span>
+        <h3 style="margin:0; color:white; font-size:18px;">⚠️ ${incidente.type}</h3>
+        <p style="margin:8px 0; color:#e4e4e7; font-size:14px; background:#18181b; padding:10px; border-radius:8px; border:1px solid #27272a; line-height:1.4;">
+          "${incidente.description || "Sin descripción detallada."}"
+        </p>
+        <div style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:#a1a1aa; margin-top:4px;">
+          <span>👤 Reportado por: <b style="color:white;">${incidente.reportedBy || "Anónimo"}</b></span>
+          ${incidente.departmentNumber ? `<span>🚪 Departamento involucrado: <b style="color:white;">${incidente.departmentNumber}</b></span>` : ""}
+          <span style="color:#71717a; margin-top:2px;">🕒 Fecha del reporte: ${fechaFormateada}</span>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+        <div>
+          <h4 style="margin:0; color:white; font-size:18px;">${b.address || "Dirección no disponible"}</h4>
+          <p style="color:gray; margin:2px 0; font-size:12px;">${b.address2 || "Sin especificaciones de zona"}</p>
+        </div>
+        <button class="secondary" style="width:auto; min-height:34px; padding:4px 10px; font-size:12px; border-radius:8px; margin:0;" onclick='abrirEditorEdificioDirecto(${JSON.stringify(b)})'>✏️ Editar Edificio</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; font-size:12px; background:#252525; padding:10px; border-radius:10px; margin-bottom:15px; border: 1px solid #333;">
+        <div>🏢 <b>Nombre:</b> ${b.name || "-"}</div>
+        <div>🗺️ <b>Territorio:</b> ${b.territory || "-"}</div>
+        <div>🔢 <b>Pisos:</b> ${b.floors || 0}</div>
+        <div>🚪 <b>Deptos/Piso:</b> ${b.unitsPerFloor || 0}</div>
+        <div>🌱 <b>PB:</b> ${b.hasGroundFloor ? "Sí" : "No"}</div>
+        <div>🛎️ <b>Portero:</b> ${b.hasDoorman ? "Sí" : "No"}</div>
+      </div>
+
+      <div id="miniMapaIncidenteAdmin" style="width:100%; height:150px; border-radius:10px; margin-bottom:15px; border:1px solid #3f3f46;"></div>
+
+      <h5 style="margin:12px 0 6px; color:#3b82f6; font-size:13px; text-transform:uppercase;">🕒 Historial de Infraestructura y Visitas</h5>
+      <div style="font-size:12px; background:#111; padding:10px; border-radius:8px; margin-bottom:20px; border:1px solid #222; max-height:110px; overflow-y:auto;">
+        <div style="padding-bottom:6px; border-bottom:1px solid #222; color:#bdbdbd;">
+          📅 <b>Última Visita General:</b> ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "No se registran visitas previas"}
+        </div>
+        <div style="margin-top:6px; color:gray; line-height:1.3;">
+          📋 <b>Notas históricas:</b> ${b.description || "El edificio no posee anotaciones de administración todavía."}
+        </div>
+      </div>
+
+      <h5 style="margin:0 0 8px; color:white; font-size:13px;">⚙️ Resolver o Cambiar Estado del Incidente</h5>
+      <div style="display:flex; gap:10px;">
+        <button onclick="cambiarEstadoIncidente('${incidente._id || incidente.id}', 'EN_PROCESO')" style="background:#eab308; color:black; font-weight:700; border:none; padding:10px; border-radius:10px; flex:1; font-size:13px; cursor:pointer; transition: opacity 0.2s;">
+          ⏳ En Proceso
+        </button>
+        <button onclick="resolverIncidenteCompleto('${incidente._id || incidente.id}')" style="background:#22c55e; color:white; font-weight:700; border:none; padding:10px; border-radius:10px; flex:1; font-size:13px; cursor:pointer; transition: opacity 0.2s;">
+          ✅ Solucionado
+        </button>
+      </div>
+    `;
+
+    // --- RENDER DE MAPA SEGURO EN PANEL DE INCIDENTES (Evita huecos grises) ---
+    setTimeout(() => {
+      try {
+        if (typeof mapaIncidenteAdminInstance !== 'undefined' && mapaIncidenteAdminInstance !== null) {
+          mapaIncidenteAdminInstance.remove();
+          mapaIncidenteAdminInstance = null;
+        }
+
+        const latValida = parseFloat(b.latitude);
+        const lngValida = parseFloat(b.longitude);
+        const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
+
+        mapaIncidenteAdminInstance = L.map('miniMapaIncidenteAdmin', {
+          zoomControl: false, attributionControl: false, dragging: false, 
+          touchZoom: false, doubleClickZoom: false, scrollWheelZoom: false
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapaIncidenteAdminInstance);
+
+        let mapaCentrado = false;
+        if (tieneCoordenadas) {
+          L.marker([latValida, lngValida]).addTo(mapaIncidenteAdminInstance);
+          mapaIncidenteAdminInstance.setView([latValida, lngValida], 16);
+          mapaCentrado = true;
+        }
+
+        // Si no tiene coordenadas cargadas, se posiciona usando el polígono de su territorio
+        if (!mapaCentrado && b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON) {
+          let capaGeoJSON = L.geoJSON(misTerritoriosGeoJSON, {
+            filter: (f) => String(f.properties.name || f.properties.Territorio_N) === String(b.territory),
+            style: { color: '#ef4444', weight: 2, fillColor: '#ef4444', fillOpacity: 0.1 }
+          }).addTo(mapaIncidenteAdminInstance);
+
+          if (capaGeoJSON.getLayers().length > 0) {
+            mapaIncidenteAdminInstance.fitBounds(capaGeoJSON.getBounds(), { padding: [5, 5] });
+            mapaCentrado = true;
+          }
+        }
+
+        // Posicionamiento de respaldo por si todo falla
+        if (!mapaCentrado) {
+          mapaIncidenteAdminInstance.setView([-27.36708, -55.89608], 14);
+        }
+
+        mapaIncidenteAdminInstance.invalidateSize();
+      } catch (mapErr) {
+        console.error("Error cargando mapa de incidentes:", mapErr);
+      }
+    }, 120);
+
+  } catch (err) {
+    console.error("Error al desplegar detalle del incidente:", err);
+    panel.innerHTML = `<p style="color:#ef4444; padding:20px; text-align:center;">⚠️ Error al sincronizar: ${err.message}</p>`;
+  }
+}
 // 💻 Admin: Lista los problemas en un Layout Premium de dos columnas (Dashboard)
 let listaProblemasGlobal = [];
 
@@ -606,8 +757,7 @@ async function verProblemas() {
         estadoBadge = `<span style="background:#3b2e16; color:#fde047; border:1px solid #eab308; padding:2px 6px; border-radius:6px; font-size:10px; font-weight:600;">EN PROCESO</span>`;
       }
 
-      // EVITAMOS EL [object Object]: Si buildingId es un objeto (porque funcionó el populate), mostramos la dirección.
-      // Si sigue siendo una cadena o está rota, ponemos un aviso claro.
+      // EVITAMOS EL [object Object]: Si buildingId es un objeto, mostramos la dirección.
       let textoEdificio = "No asignado";
       if (i.buildingId) {
         if (typeof i.buildingId === "object" && i.buildingId.address) {
@@ -624,6 +774,7 @@ async function verProblemas() {
       card.style.cssText = "background:#27272a; border:1px solid #3f3f46; padding:14px; border-radius:12px; cursor:pointer; transition:all 0.2s;";
       card.onclick = () => verDetalleIncidenteAdmin(i, index);
       
+      // 🚨 AGREGAMOS event.stopPropagation() al botón de borrar para que no interfiera al hacer clic
       card.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; width:100%;">
           <div style="flex-grow:1;">
@@ -636,7 +787,7 @@ async function verProblemas() {
               ${i.description || "Sin descripción"}
             </p>
             
-            <button onclick="eliminarReporteRotoDirecto(event, '${i._id || i.id}')" style="background:#451a1a; color:#f87171; border:1px solid #ef4444; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:600; cursor:pointer; margin-top:10px; transition: background 0.2s;">
+            <button onclick="event.stopPropagation(); eliminarReporteRotoDirecto(event, '${i._id || i.id}')" style="background:#451a1a; color:#f87171; border:1px solid #ef4444; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:600; cursor:pointer; margin-top:10px; transition: background 0.2s;">
               🗑️ Eliminar Reporte
             </button>
           </div>
@@ -651,7 +802,6 @@ async function verProblemas() {
     document.getElementById("listaReportesAdminContenedor").innerHTML = "<p style='color:#ef4444; padding:15px;'>Error al conectar con los servidores de reportes.</p>";
   }
 }
-
 // 🛑 NUEVA FUNCIÓN AUXILIAR: Va al final de tu app.js o abajo de verProblemas
 async function eliminarReporteRotoDirecto(event, id) {
   // Evitamos que al hacer click en el botón se intente seleccionar la tarjeta y rompa la derecha
@@ -676,137 +826,9 @@ async function eliminarReporteRotoDirecto(event, id) {
   }
 }
 
-// 💻 Admin (NUEVA): Carga la info total del edificio cruzada con el incidente + Mini Mapa + Historial
-let mapaIncidenteAdminInstance = null;
 
-async function verDetalleIncidenteAdmin(incidente, index) {
-  const panel = document.getElementById("panelDetalleProblemaAdmin");
-  panel.innerHTML = `<p style="text-align:center; color:gray; padding-top:50px;">Consultando detalles de infraestructura del edificio...</p>`;
 
-  try {
-    // Cruza los datos llamando a la info completa del edificio asignado
-    const res = await apiFetch(`/building-info/${incidente.buildingId}`);
-    const data = await res.json();
-    const b = data.building;
 
-    // Formateamos la fecha exacta si existe en el objeto i de MongoDB
-    let fechaFormateada = "No informada";
-    if (incidente.createdAt) {
-      fechaFormateada = new Date(incidente.createdAt).toLocaleString('es-AR', {
-        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-      }) + " hs";
-    }
-
-    // Estructura limpia y potente con historial compacto e información similar a la sección Admin
-    panel.innerHTML = `
-      <div style="background:#27272a; border:1px solid #ef4444; padding:14px; border-radius:12px; margin-bottom:15px;">
-        <span style="font-size:11px; color:#ef4444; font-weight:700; text-transform:uppercase; display:block; margin-bottom:4px;">Detalles de la Alerta</span>
-        <h3 style="margin:0; color:white; font-size:18px;">⚠️ ${incidente.type}</h3>
-        <p style="margin:8px 0; color:#e4e4e7; font-size:14px; background:#18181b; padding:10px; border-radius:8px; border:1px solid #27272a; line-height:1.4;">
-          "${incidente.description || "Sin descripción detallada."}"
-        </p>
-        <div style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:#a1a1aa; margin-top:4px;">
-          <span>👤 Reportado por: <b style="color:white;">${incidente.reportedBy || "Anónimo"}</b></span>
-          ${incidente.departmentNumber ? `<span>🚪 Departamento involucrado: <b style="color:white;">${incidente.departmentNumber}</b></span>` : ""}
-          <span style="color:#71717a; margin-top:2px;">🕒 Fecha del reporte: ${fechaFormateada}</span>
-        </div>
-      </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
-        <div>
-          <h4 style="margin:0; color:white; font-size:18px;">${b.address}</h4>
-          <p style="color:gray; margin:2px 0; font-size:12px;">${b.address2 || "Sin especificaciones de zona"}</p>
-        </div>
-        <button class="secondary" style="width:auto; min-height:34px; padding:4px 10px; font-size:12px; border-radius:8px; margin:0;" onclick='abrirEditorEdificioDirecto(${JSON.stringify(b)})'>✏️ Editar Edificio</button>
-      </div>
-
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; font-size:12px; background:#252525; padding:10px; border-radius:10px; margin-bottom:15px; border: 1px solid #333;">
-        <div>🏢 <b>Nombre:</b> ${b.name || "-"}</div>
-        <div>🗺️ <b>Territorio:</b> ${b.territory || "-"}</div>
-        <div>🔢 <b>Pisos:</b> ${b.floors || 0}</div>
-        <div>🚪 <b>Deptos/Piso:</b> ${b.unitsPerFloor || 0}</div>
-        <div>🌱 <b>PB:</b> ${b.hasGroundFloor ? "Sí" : "No"}</div>
-        <div>🛎️ <b>Portero:</b> ${b.hasDoorman ? "Sí" : "No"}</div>
-      </div>
-
-      <div id="miniMapaIncidenteAdmin" style="width:100%; height:150px; border-radius:10px; margin-bottom:15px; border:1px solid #3f3f46;"></div>
-
-      <h5 style="margin:12px 0 6px; color:#3b82f6; font-size:13px; text-transform:uppercase;">🕒 Historial de Infraestructura y Visitas</h5>
-      <div style="font-size:12px; background:#111; padding:10px; border-radius:8px; margin-bottom:20px; border:1px solid #222; max-height:110px; overflow-y:auto;">
-        <div style="padding-bottom:6px; border-bottom:1px solid #222; color:#bdbdbd;">
-          📅 <b>Última Visita General:</b> ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "No se registran visitas previas"}
-        </div>
-        <div style="margin-top:6px; color:gray; line-height:1.3;">
-          📋 <b>Notas históricas:</b> ${b.description || "El edificio no posee anotaciones de administración todavía."}
-        </div>
-      </div>
-
-      <h5 style="margin:0 0 8px; color:white; font-size:13px;">⚙️ Resolver o Cambiar Estado del Incidente</h5>
-      <div style="display:flex; gap:10px;">
-        <button onclick="cambiarEstadoIncidente('${incidente._id || incidente.id}', 'EN_PROCESO')" style="background:#eab308; color:black; font-weight:700; border:none; padding:10px; border-radius:10px; flex:1; font-size:13px; cursor:pointer; transition: opacity 0.2s;">
-          ⏳ En Proceso
-        </button>
-        <button onclick="resolverIncidenteCompleto('${incidente._id || incidente.id}')" style="background:#22c55e; color:white; font-weight:700; border:none; padding:10px; border-radius:10px; flex:1; font-size:13px; cursor:pointer; transition: opacity 0.2s;">
-          ✅ Solucionado
-        </button>
-      </div>
-    `;
-
-    // --- RENDER DE MAPA SEGURO EN PANEL DE INCIDENTES (Evita huecos grises) ---
-    setTimeout(() => {
-      try {
-        if (mapaIncidenteAdminInstance !== null) {
-          mapaIncidenteAdminInstance.remove();
-          mapaIncidenteAdminInstance = null;
-        }
-
-        const latValida = parseFloat(b.latitude);
-        const lngValida = parseFloat(b.longitude);
-        const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
-
-        mapaIncidenteAdminInstance = L.map('miniMapaIncidenteAdmin', {
-          zoomControl: false, attributionControl: false, dragging: false, 
-          touchZoom: false, doubleClickZoom: false, scrollWheelZoom: false
-        });
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapaIncidenteAdminInstance);
-
-        let mapaCentrado = false;
-        if (tieneCoordenadas) {
-          L.marker([latValida, lngValida]).addTo(mapaIncidenteAdminInstance);
-          mapaIncidenteAdminInstance.setView([latValida, lngValida], 16);
-          mapaCentrado = true;
-        }
-
-        // Si no tiene coordenadas cargadas, se posiciona usando el polígono de su territorio
-        if (!mapaCentrado && b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON) {
-          let capaGeoJSON = L.geoJSON(misTerritoriosGeoJSON, {
-            filter: (f) => String(f.properties.name || f.properties.Territorio_N) === String(b.territory),
-            style: { color: '#ef4444', weight: 2, fillColor: '#ef4444', fillOpacity: 0.1 }
-          }).addTo(mapaIncidenteAdminInstance);
-
-          if (capaGeoJSON.getLayers().length > 0) {
-            mapaIncidenteAdminInstance.fitBounds(capaGeoJSON.getBounds(), { padding: [5, 5] });
-            mapaCentrado = true;
-          }
-        }
-
-        // Posicionamiento de respaldo (Posadas, Misiones) por si todo falla
-        if (!mapaCentrado) {
-          mapaIncidenteAdminInstance.setView([-27.36708, -55.89608], 14);
-        }
-
-        mapaIncidenteAdminInstance.invalidateSize();
-      } catch (mapErr) {
-        console.error("Error cargando mapa de incidentes:", mapErr);
-      }
-    }, 120);
-
-  } catch (err) {
-    console.error("Error al desplegar detalle del incidente:", err);
-    panel.innerHTML = `<p style="color:#ef4444; padding:20px; text-align:center;">Error al sincronizar los datos del edificio para este incidente.</p>`;
-  }
-}
 
 // 💻 Admin (NUEVA): Cambia el estado a EN_PROCESO en el servidor
 async function cambiarEstadoIncidente(id, nuevoEstado) {
