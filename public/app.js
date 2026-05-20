@@ -191,6 +191,37 @@ window.addEventListener("load", async () => {
 //--------------------------------------------------------gestion de usuarios ------------------------//
 
 
+
+
+async function buscarPorTerritorio() {
+  limpiarVista();
+  const territorio = prompt("Número de territorio:");
+  if (!territorio) return;
+
+  try {
+    const res = await apiFetch(`/territory/${territory}`);
+    const data = await res.json();
+    
+    if (!data.length) {
+      listaTerritorio.innerHTML = "<p style='text-align:center;'>No hay edificios asignados</p>";
+      return;
+    }
+    
+    listaTerritorio.innerHTML = "";
+    data.forEach(b => {
+      const btn = document.createElement("button");
+      btn.innerText = b.address;
+      btn.onclick = () => {
+        currentBuildingId = b._id;
+        cargarDepto();
+      };
+      listaTerritorio.appendChild(btn);
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 async function buscar() {
   limpiarVista();
   const input = normalizarDireccion(buildingId.value);
@@ -225,7 +256,7 @@ async function buscar() {
     }
     currentBuildingId = building._id;
     await cargarDepto();
-    } catch (error) {
+  } catch (error) {
     console.error("Detalle del error en buscar:", error);
     // Si la API falló con 404 pero saltó al catch por el fetch nativo, también le damos la opción de crear
     resultado.innerText = "Edificio no encontrado o error de red";
@@ -233,35 +264,6 @@ async function buscar() {
     btnNuevoEdificio.onclick = function() {
       crearEdificio();
     };
-  }
-}
-
-async function buscarPorTerritorio() {
-  limpiarVista();
-  const territorio = prompt("Número de territorio:");
-  if (!territorio) return;
-
-  try {
-    const res = await apiFetch(`/territory/${territory}`);
-    const data = await res.json();
-    
-    if (!data.length) {
-      listaTerritorio.innerHTML = "<p style='text-align:center;'>No hay edificios asignados</p>";
-      return;
-    }
-    
-    listaTerritorio.innerHTML = "";
-    data.forEach(b => {
-      const btn = document.createElement("button");
-      btn.innerText = b.address;
-      btn.onclick = () => {
-        currentBuildingId = b._id;
-        cargarDepto();
-      };
-      listaTerritorio.appendChild(btn);
-    });
-  } catch (error) {
-    console.error(error);
   }
 }
 
@@ -332,16 +334,15 @@ async function mostrarInfoEdificio() {
       }
     }
 
-    // Buscamos el botón de reportes original (si existía como elemento flotante en el HTML, lo ocultamos para usar el integrado)
     if (typeof reportBtn !== 'undefined' && reportBtn) {
       reportBtn.style.display = "none"; 
     }
 
-    // Estilo limpio e integrado tipo Admin para el Predicador
     infoEdificio.style.display = "block";
     infoEdificio.innerHTML = `
       <div class="sectionCard" style="background: #1e1e1e; border: 1px solid #2b2b2b; padding: 16px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
         ${cartelNuevoHtml}
+        
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 12px;">
           <div>
             <div style="font-size:22px; font-weight:bold; color:white; line-height:1.2;">${b.address}</div>
@@ -350,20 +351,32 @@ async function mostrarInfoEdificio() {
           <div style="background:#2b2b2b; padding:6px 10px; border-radius:10px; font-size:12px; font-weight:600; white-space:nowrap; color:#e4e4e7;">🏢 ${b.name || "Edificio"}</div>
         </div>
 
-        <div id="miniMapaPredi" class="mapaBox" style="display:block; height: 150px; margin: 12px 0; border-radius:12px; pointer-events: none; border: 1px solid #3f3f46;"></div>
-        
-        <div style="margin-top:14px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-          <div style="background:#27272a; color:#d4d4d8; padding:8px 12px; border-radius:10px; font-size:12px; font-weight:500;">
-            🕒 Última visita: ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString() : "Nunca"}
-          </div>
+        <div style="display: flex; gap: 14px; align-items: stretch;">
           
-          <button onclick="abrirReporte()" style="width:auto; min-height:34px; background:#3f1f1f; color:#f87171; border:1px solid #ef4444; padding:6px 12px; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; margin:0;">
-            ⚠️ Algo pasa
-          </button>
+          <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; font-size: 13px; color:#e4e4e7;">
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <div>🗺️ <b>Territorio:</b> <span style="color:#a1a1aa;">${b.territory || "-"}</span></div>
+              <div>🔢 <b>Pisos:</b> <span style="color:#a1a1aa;">${b.floors || 0}</span></div>
+              <div>📋 <b>Notas:</b> <span style="color:#a1a1aa; font-style: italic;">${b.description || "Sin anotaciones de administración."}</span></div>
+            </div>
+            
+            <div style="margin-top: 10px; font-size: 11px; color:#71717a; border-top: 1px solid #2b2b2b; padding-top: 6px;">
+              🕒 <b>Última visita:</b> ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString() : "Nunca"}
+            </div>
+          </div>
+
+          <div style="width: 140px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;">
+            <div id="miniMapaPredi" class="mapaBox" style="width: 140px; height: 140px; border-radius: 12px; border: 1px solid #3f3f46; background:#252525; pointer-events: none;"></div>
+            
+            <button onclick="abrirReporte()" style="width:100%; min-height:34px; background:#3f1f1f; color:#f87171; border:1px solid #ef4444; padding:6px 4px; border-radius:10px; font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; margin:0; white-space: nowrap;">
+              ⚠️ Reportar problema
+            </button>
+          </div>
+
         </div>
 
         ${data.issue ? `
-          <div style="background:#451a1a; color:#fca5a5; border:1px solid #b91c1c; padding:10px; border-radius:10px; margin-top:12px; font-size:12px; font-weight:500;">
+          <div style="background:#451a1a; color:#fca5a5; border:1px solid #b91c1c; padding:10px; border-radius:10px; margin-top:14px; font-size:12px; font-weight:500; line-height:1.4;">
             ⚠ <b>Alerta activa (${data.issue.type}):</b> ${data.issue.description || "Sin detalles"}
           </div>
         ` : ""}
@@ -410,12 +423,13 @@ async function mostrarInfoEdificio() {
         }
       }
 
-      // Caída por defecto si no hay nada de info geográfica
+      // Caída por defecto si no hay nada de info geográfica (Posadas, Misiones)
       if (!centradoExitoso) {
         prediMiniMap.setView([-27.36708, -55.89608], 14);
       }
 
-      setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 200);
+      // El timeout asegura que Leaflet lea el nuevo tamaño cuadrado (140x140) perfectamente
+      setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 220);
     }
   } catch (error) {
     console.error("Error en mostrarInfoEdificio:", error);
