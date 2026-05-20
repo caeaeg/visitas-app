@@ -948,29 +948,39 @@ async function verDetalleEdificioAdmin(buildingId) {
       `;
     }
 
+    // Renderizamos la estructura base aplicando el diseño Flex (Datos izq, Mapa der)
     panel.innerHTML = `
       ${cartelNuevoAdminHtml}
       ${alertaHtml}
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
+      
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px; gap: 10px;">
         <div>
           <h3 style="margin:0; color:white; font-size:22px;">${b.address}</h3>
           <p style="color:gray; margin:2px 0;">${b.address2 || ""}</p>
         </div>
-        <button class="secondary" style="width:auto; min-height:38px; padding:6px 12px; font-size:14px; border-radius:8px;" onclick='abrirEditorEdificio(${JSON.stringify(b)})'>✏️ Editar</button>
+        <button class="secondary" style="width:auto; min-height:38px; padding:6px 12px; font-size:14px; border-radius:8px; white-space:nowrap;" onclick='abrirEditorEdificio(${JSON.stringify(b)})'>✏️ Editar</button>
       </div>
 
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; font-size:14px; background:#252525; padding:12px; border-radius:12px; margin-bottom:15px;">
-        <div>🏢 <b>Nombre:</b> ${b.name || "-"}</div>
-        <div>🗺️ <b>Territorio:</b> ${b.territory || "-"}</div>
-        <div>🔢 <b>Pisos:</b> ${b.floors || 0}</div>
-        <div>🚪 <b>Deptos/Piso:</b> ${b.unitsPerFloor || 0}</div>
-        <div>🌱 <b>Planta Baja:</b> ${b.hasGroundFloor ? "Sí" : "No"}</div>
-        <div>🛎️ <b>Portero:</b> ${b.hasDoorman ? "Sí" : "No"}</div>
+      <div style="display: flex; gap: 14px; align-items: stretch; margin-bottom: 15px;">
+        
+        <div style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 13px; background:#252525; padding:12px; border-radius:12px; color: #e4e4e7;">
+          <div>🏢 <b>Nombre:</b> ${b.name || "-"}</div>
+          <div>🗺️ <b>Territorio:</b> ${b.territory || "-"}</div>
+          <div>🔢 <b>Pisos:</b> ${b.floors || 0}</div>
+          <div>🚪 <b>Deptos/Piso:</b> ${b.unitsPerFloor || 0}</div>
+          <div>🌱 <b>PB:</b> ${b.hasGroundFloor ? "Sí" : "No"} | 🛎️ <b>Portero:</b> ${b.hasDoorman ? "Sí" : "No"}</div>
+        </div>
+
+        <div id="contenedorMapaAdminSquare" style="width: 140px; height: 140px; flex-shrink: 0; position: relative;">
+          <div id="miniMapaDetalle" style="width: 140px; height: 140px; border-radius: 12px; border: 1px solid #3f3f46; background:#181818;"></div>
+        </div>
+
       </div>
+
       <h4 style="margin:10px 0 5px; color:#2196F3; font-size:16px;">🕒 Historial de Visitas e Información</h4>
       <div style="font-size:14px; background:#181818; padding:10px; border-radius:10px; max-height:180px; overflow-y:auto; border:1px solid #2b2b2b;">
-        <p style="margin:0; color:#bdbdbd;">Última visita registrada: ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString() : "Nunca"}</p>
-        ${b.description ? `<p style="margin-top:8px; color:gray;"><b>Descripción interna:</b> ${b.description}</p>` : ""}
+        <p style="margin:0; color:#bdbdbd;">Última visita registrada: ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca"}</p>
+        ${b.description ? `<p style="margin-top:8px; color:gray; font-style: italic;"><b>Descripción interna:</b> ${b.description}</p>` : ""}
       </div>
     `;
 
@@ -990,9 +1000,13 @@ async function verDetalleEdificioAdmin(buildingId) {
         
         const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
 
+        // 📍 SI TIENE COORDENADAS: Renderizamos el mapa estático y acomodamos el mapa general
         if (tieneCoordenadas) {
           console.log(`📍 Inicializando mini-mapa estático para: ${latValida}, ${lngValida}`);
           
+          // El mapa grande del fondo hace foco bien cerquita (Zoom 16)
+          miMapaReal.setView([latValida, lngValida], 16);
+
           if (miniMapaAdminInstance !== null) {
             try {
               miniMapaAdminInstance.remove();
@@ -1000,27 +1014,12 @@ async function verDetalleEdificioAdmin(buildingId) {
             } catch (e) { console.warn("Error limpiando mapa anterior:", e); }
           }
 
-          const panelDetalle = document.getElementById("panelDetalleEdificio");
-          if (panelDetalle) {
-            const mapaViejo = document.getElementById("miniMapaDetalle");
-            if (mapaViejo) mapaViejo.remove();
-
-            const contenedorMapaHTML = document.createElement("div");
-            contenedorMapaHTML.id = "miniMapaDetalle";
-            contenedorMapaHTML.style.width = "100%";
-            contenedorMapaHTML.style.height = "220px";
-            contenedorMapaHTML.style.borderRadius = "12px";
-            contenedorMapaHTML.style.marginTop = "15px";
-            contenedorMapaHTML.style.boxShadow = "0 4px 10px rgba(0,0,0,0.3)";
-            
-            panelDetalle.appendChild(contenedorMapaHTML);
-          }
-
+          // Inicializamos el mapa miniatura usando el div cuadrado ya existente en el HTML
           setTimeout(() => {
             try {
               miniMapaAdminInstance = L.map('miniMapaDetalle', {
                 center: [latValida, lngValida],
-                zoom: 17,
+                zoom: 16, // Zoom perfecto para que no quede ni muy pegado ni muy lejos en la miniatura
                 zoomControl: false,
                 attributionControl: false,
                 dragging: false,
@@ -1035,13 +1034,14 @@ async function verDetalleEdificioAdmin(buildingId) {
               L.marker([latValida, lngValida]).addTo(miniMapaAdminInstance);
 
               miniMapaAdminInstance.invalidateSize();
-              console.log("🟢 Mini-mapa estático renderizado con éxito.");
+              console.log("🟢 Mini-mapa estático cuadrado renderizado con éxito.");
 
             } catch (miniMapError) {
               console.error("Error creando el mini-mapa independiente:", miniMapError);
             }
-          }, 100);
+          }, 50);
 
+        // 🗺️ SI NO TIENE COORDENADAS PERO SÍ TERRITORIO: Centramos el mapa general al polígono
         } else if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
           try {
             let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
@@ -1054,15 +1054,21 @@ async function verDetalleEdificioAdmin(buildingId) {
             if (capaGeoJSONAdmin.getLayers().length > 0) {
               console.log(`🗺️ [Territorio] Encuadrando BIEN DE CERCA en el Territorio ${b.territory}`);
               miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { 
-                padding: [5, 5], 
-                maxZoom: 16 
+                padding: [25, 25], 
+                maxZoom: 16 // Mantenemos el encuadre cerrado sobre el territorio
               });
             }
           } catch (geoError) {
             console.warn("Fallo al encuadrar territorio:", geoError);
           }
+          
+          // Si no tiene coordenadas mecánicas, vaciamos el contenedor de la miniatura para no confundir
+          const minMapDiv = document.getElementById("miniMapaDetalle");
+          if(minMapDiv) minMapDiv.innerHTML = `<p style="color:#71717a; font-size:11px; text-align:center; padding-top:55px; margin:0;">Falta geolocalización</p>`;
+
         } else {
-          miMapaReal.setView([-27.36708, -55.89608], 14);
+          // Caída por defecto si no hay datos geográficos
+          miMapaReal.setView([-27.36708, -55.89608], 15);
         }
           
       } else {
@@ -1214,51 +1220,103 @@ async function cargarEdificios() {
       actualizarMarcadoresMapa(edificiosFiltrados);
     }
 
+    // 🚀 10. CENTRADO INTELIGENTE Y CERCANO EN EL TERRITORIO SELECCIONADO
+    // Si estás filtrando por un territorio específico y hay un mapa GeoJSON global cargado
+    if (territorioFiltro && typeof mapaGeneral !== 'undefined' && mapaGeneral && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON) {
+      let capaGeoJSONTemp = L.geoJSON(misTerritoriosGeoJSON, {
+        filter: (f) => String(f.properties.name || f.properties.Territorio_N) === String(territorioFiltro)
+      });
+
+      if (capaGeoJSONTemp.getLayers().length > 0) {
+        // Centramos con un zoom controlado y bien enfocado
+        mapaGeneral.fitBounds(capaGeoJSONTemp.getBounds(), { 
+          padding: [40, 40], 
+          maxZoom: 16 // Fiel reflejo de cercanía ideal para ver calles de Posadas
+        });
+      }
+    }
+
   } catch (error) {
     console.error("Error en cargarEdificios:", error);
     listaContenedor.innerHTML = `<p style="color:#f44336; text-align:center; padding:20px; font-size:13px;">Error al conectar con el servidor.</p>`;
   }
 }
-async function buscarTerritorioAdmin() {
-  const t = territorioAdminInput.value.trim();
-  if (!t) return;
-  
-  territorioResultados.innerHTML = `
-    <div class="card-container skeleton">
-      <div class="skeletonLine"></div>
-      <div class="skeletonLine"></div>
-    </div>
-  `;
-  
-  try {
-    const res = await apiFetch(`/territory/${t}`);
-    const data = await res.json();
-    let html = "";
-    
-    if(!data.length) {
-      territorioResultados.innerHTML = "<p style='color:gray;'>Este territorio no tiene edificios cargados.</p>";
-      return;
-    }
 
-    data.forEach(b => {
-      const addrEscaped = b.address.replace(/'/g, "\\'");
-      html += `
-        <div class="card-container" style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <b>${b.address}</b><br>
-            🗺 Territorio N° ${b.territory || "-"}
-          </div>
-          <button class="buscar" style="width:auto; min-height:40px; padding:10px;" onclick="inicializarMapaLeaflet(${b.latitude || null}, ${b.longitude || null}, '${addrEscaped}')">🗺️ Ver</button>
-        </div>
-      `;
-    });
-    territorioResultados.innerHTML = html;
+// 👁️ ADAPTACIÓN DE LA FUNCIÓN QUE BORRA Y REDIBUJA LOS PUNTOS EN EL MAPA GENERAL
+function actualizarMarcadoresMapa(edificios) {
+  // Aseguramos que existan el mapa y las variables globales necesarias
+  if (typeof mapaGeneral === 'undefined' || !mapaGeneral) return;
+
+  // Si ya existía un grupo viejo de marcadores, lo limpiamos por completo
+  if (typeof marcadoresClusterGlobal !== 'undefined' && marcadoresClusterGlobal) {
+    mapaGeneral.removeLayer(marcadoresClusterGlobal);
+  }
+
+  // ✨ Creamos el nuevo Marker Cluster con tus preferencias visuales
+  marcadoresClusterGlobal = L.markerClusterGroup({
+    disableClusteringAtZoom: 16, // Al hacer zoom cercano (16), se desarman los bloques de números
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
     
-    if (data.length > 0 && data[0].latitude && data[0].longitude) {
-      inicializarMapaLeaflet(data[0].latitude, data[0].longitude, data[0].address);
+    // Icono estético personalizado para los números agrupados
+    iconCreateFunction: function (cluster) {
+      const cantidad = cluster.getChildCount();
+      
+      // Estilo de burbuja circular translúcida a tono con el Dark Mode
+      return L.divIcon({
+        html: `
+          <div style="
+            width: 38px; 
+            height: 38px; 
+            background: rgba(30, 30, 30, 0.85); 
+            border: 2px solid #3f3f46; 
+            color: #ffffff; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 13px; 
+            font-weight: 700; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+          ">
+            ${cantidad}
+          </div>
+        `,
+        className: 'custom-dark-cluster',
+        iconSize: L.point(38, 38)
+      });
     }
-  } catch (error) {
-    console.error(error);
+  });
+
+  // Recorremos los edificios filtrados para poner los pines individuales dentro del cluster
+  let bounds = L.latLngBounds();
+  let tienePuntosValidos = false;
+
+  edificios.forEach(e => {
+    const lat = parseFloat(e.latitude || e.latitud);
+    const lng = parseFloat(e.longitude || e.longitud);
+
+    if (!isNaN(lat) && !isNaN(lng)) {
+      const marcador = L.marker([lat, lng]).bindPopup(`<b>${e.address || "Edificio"}</b>`);
+      marcadoresClusterGlobal.addLayer(marcador);
+      bounds.extend([lat, lng]);
+      tienePuntosValidos = true;
+    }
+  });
+
+  // Agregamos el lote de marcadores renovados al mapa
+  mapaGeneral.addLayer(marcadoresClusterGlobal);
+
+  // Si no se filtró por territorio, pero sí hay marcadores en el mapa, ajustamos el encuadre general cerca
+  const territorioInput = document.getElementById("busquedaTerritorio");
+  const filtroTerritorioActivo = territorioInput ? territorioInput.value.trim() : "";
+
+  if (tienePuntosValidos && !filtroTerritorioActivo) {
+    mapaGeneral.fitBounds(bounds, { 
+      padding: [40, 40], 
+      maxZoom: 15 // Zoom óptimo inicial para ver todo el lote de Posadas sin alejarse a Encarnación
+    });
   }
 }
 
