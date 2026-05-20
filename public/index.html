@@ -547,6 +547,44 @@
     border-color: #3b82f6 !important; /* El borde se ilumina en azul al pasar el cursor */
     background: rgba(24, 24, 27, 0.95) !important;
   }
+    /* --- 📊 PESTAÑAS DE BÚSQUEDA COMPACTAS PREMIUM --- */
+  .tabs-filtros {
+    display: flex;
+    gap: 4px;
+    background: #09090b;
+    padding: 3px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #27272a;
+  }
+  .tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #a1a1aa;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 6px;
+    margin: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .tab-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .tab-btn.active {
+    background: #27272a;
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  }
+  .tab-content {
+    display: none;
+  }
+  .tab-content.active {
+    display: block;
+  }
 </style>
 </head>
 <body>
@@ -652,17 +690,25 @@
     <div class="workspace-grid">
       <div class="workspace-col col-lista">
         <div class="component-card">
-          <div class="card-header-sm">
-            <h3>🔍 Filtros de Búsqueda</h3>
+          <div class="tabs-filtros">
+            <button id="tabDirBtn" class="tab-btn active" onclick="cambiarTabFiltro('direccion')">📍 Dirección</button>
+            <button id="tabTerrBtn" class="tab-btn" onclick="cambiarTabFiltro('territorio')">🗺️ Territorio</button>
           </div>
+
           <div class="filtros-compactos">
-            <input type="text" id="busquedaDireccionAdmin" placeholder="Dirección..." oninput="cargarEdificios()">
-            <div class="filtro-doble-fila">
-              <input type="number" id="busquedaTerritorio" placeholder="Territorio" oninput="cargarEdificios()">
-              <select id="filtroOrden" onchange="cargarEdificios()">
-                <option value="address">🔤 Alfabeto</option>
-                <option value="recent">🆕 Nuevos</option> 
-                <option value="territory">📍 Territorio</option>
+            <div id="tabContenidoDireccion" class="tab-content active">
+              <input type="text" id="busquedaDireccionAdmin" placeholder="Buscar por calle o altura..." oninput="cargarEdificios()">
+            </div>
+
+            <div id="tabContenidoTerritorio" class="tab-content">
+              <input type="number" id="busquedaTerritorio" placeholder="Número de territorio..." oninput="cargarEdificios()">
+            </div>
+
+            <div class="filtro-doble-fila" style="margin-top: 4px;">
+              <select id="filtroOrden" onchange="cargarEdificios()" style="margin: 0;">
+                <option value="address">🔤 Orden Alfabético</option>
+                <option value="recent">🆕 Agregados Recientemente</option> 
+                <option value="territory">📍 Agrupar por Territorio</option>
               </select>
             </div>
           </div>
@@ -743,6 +789,4 @@
     </div>
   </div>
 </div>
-
-</body>
 </html>
