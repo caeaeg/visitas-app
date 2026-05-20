@@ -496,12 +496,18 @@ async function enviarReporte() {
     return;
   }
 
+  // EXTRA: Extraemos de forma segura la ID limpia del edificio si 'currentBuildingId' viene como objeto
+  let idEdificioLimpia = currentBuildingId;
+  if (currentBuildingId && typeof currentBuildingId === 'object') {
+    idEdificioLimpia = currentBuildingId._id || currentBuildingId.id;
+  }
+
   try {
     // Apuntamos a tu ruta "/issues"
     const res = await apiFetch("/issues", {
       method: "POST",
       body: JSON.stringify({
-        buildingId: currentBuildingId,
+        buildingId: idEdificioLimpia, // 👈 Usamos la ID de texto extraída limpiamente
         departmentId: currentDept?._id || null,
         departmentNumber: currentDept?.number || null, // Contexto de departamento
         type: tipo,
@@ -1008,7 +1014,7 @@ async function cargarEdificios() {
     listaContenedor.innerHTML = `<p style="color:#71717a; text-align:center; padding:20px; font-size:13px;">Cargando edificios...</p>`;
     
     // Apuntamos al endpoint correcto de tu servidor backend
-    const res = await apiFetch('/admin/buildings'); 
+    const res = await apiFetch('/buildings'); 
     if (!res.ok) throw new Error(`Error en el servidor: ${res.status}`);
     
     // Desempaquetamos la propiedad .data que envía tu servidor
