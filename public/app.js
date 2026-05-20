@@ -1164,7 +1164,7 @@ async function cargarEdificios() {
       edificiosFiltrados = edificiosFiltrados.filter(e => String(e.territory || e.territorio) === territorioFiltro);
     }
 
-    // 7. ORDENAR LA LISTA
+    // 7. ORDENAR LA LISTA (Sincronizado con los nuevos textos del HTML)
     if (criterioOrden === "address" || criterioOrden === "Orden Alfabético") {
       edificiosFiltrados.sort((a, b) => (a.address || "").localeCompare(b.address || ""));
     } 
@@ -1221,14 +1221,12 @@ async function cargarEdificios() {
     }
 
     // 🚀 10. CENTRADO INTELIGENTE Y CERCANO EN EL TERRITORIO SELECCIONADO
-    // Si estás filtrando por un territorio específico y hay un mapa GeoJSON global cargado
     if (territorioFiltro && typeof mapaGeneral !== 'undefined' && mapaGeneral && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON) {
       let capaGeoJSONTemp = L.geoJSON(misTerritoriosGeoJSON, {
         filter: (f) => String(f.properties.name || f.properties.Territorio_N) === String(territorioFiltro)
       });
 
       if (capaGeoJSONTemp.getLayers().length > 0) {
-        // Centramos con un zoom controlado y bien enfocado
         mapaGeneral.fitBounds(capaGeoJSONTemp.getBounds(), { 
           padding: [40, 40], 
           maxZoom: 16 // Fiel reflejo de cercanía ideal para ver calles de Posadas
@@ -1478,6 +1476,31 @@ function abrirEditorEdificio(building = null) {
   }, 200);
 }
 
+function cambiarTabFiltro(tipo) {
+    // 1. Alternar clases activas en los botones estilizados
+    document.getElementById('tabDirBtn').classList.toggle('active', tipo === 'direccion');
+    document.getElementById('tabTerrBtn').classList.toggle('active', tipo === 'territorio');
+    
+    // 2. Traer los contenedores de inputs
+    const contDireccion = document.getElementById('tabContenidoDireccion');
+    const contTerritorio = document.getElementById('tabContenidoTerritorio');
+    
+    // 3. Activar el contenedor correcto y limpiar el opuesto
+    if (tipo === 'direccion') {
+        contDireccion.classList.add('active');
+        contTerritorio.classList.remove('active');
+        document.getElementById('busquedaTerritorio').value = ''; // Resetea el número para que no interfiera
+    } else {
+        contDireccion.classList.remove('active');
+        contTerritorio.classList.add('active');
+        document.getElementById('busquedaDireccionAdmin').value = ''; // Resetea el texto para que no interfiera
+    }
+    
+    // 4. Invocar la recarga de datos en tu app.js si la función ya existe
+    if (typeof cargarEdificios === 'function') {
+        cargarEdificios();
+    }
+}
 
 // 🗺️ FUNCIÓN ENCARGADA DE INYECTAR MAPAS Y CAPAS GEOJSON (Corregida sin carteles molestos y con números elegantes)
 function inicializarMapaLeaflet(lat, lng, address = null) {
