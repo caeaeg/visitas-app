@@ -11,7 +11,7 @@ let currentBuildingId = null;
 let prediMiniMap = null; 
 let leafletMap = null;
 let leafletMarker = null;
-let miTemporizadorMapa = null; // Guardián para que no se pisen los clics de los edificios
+let miTemporizadorMapa = null; 
 let miniMapaAdminInstance = null;
 
 //--------------------------------------------------------------------------------------------//
