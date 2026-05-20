@@ -496,24 +496,33 @@ async function enviarReporte() {
     return;
   }
 
-  // EXTRA: Extraemos de forma segura la ID limpia del edificio si 'currentBuildingId' viene como objeto
+  // Extraemos de forma segura la ID limpia
   let idEdificioLimpia = currentBuildingId;
   if (currentBuildingId && typeof currentBuildingId === 'object') {
     idEdificioLimpia = currentBuildingId._id || currentBuildingId.id;
   }
+
+  // VALIDACIÓN EXTRA: Si no hay ID válida, no permitimos el envío
+  if (!idEdificioLimpia || idEdificioLimpia === "[object Object]") {
+    alert("Error local: No se pudo identificar el edificio actual. Intenta recargar la página del edificio.");
+    return;
+  }
+
+  // Imprimimos en consola para auditar qué estamos mandando exactamente
+  console.log("🚀 Enviando reporte con ID de edificio:", idEdificioLimpia);
 
   try {
     // Apuntamos a tu ruta "/issues"
     const res = await apiFetch("/issues", {
       method: "POST",
       body: JSON.stringify({
-        buildingId: idEdificioLimpia, // 👈 Usamos la ID de texto extraída limpiamente
+        buildingId: idEdificioLimpia, 
         departmentId: currentDept?._id || null,
-        departmentNumber: currentDept?.number || null, // Contexto de departamento
+        departmentNumber: currentDept?.number || null, 
         type: tipo,
         description: descripcion,
-        reportedBy: nombreReporta, // Guardado gracias a la actualización de issue.js
-        status: "PENDIENTE" // En mayúsculas exactas para Mongoose
+        reportedBy: nombreReporta, 
+        status: "PENDIENTE" 
       })
     });
 
@@ -521,7 +530,7 @@ async function enviarReporte() {
     if (res.ok) {
       cerrarReporte();
       descProblema.value = "";
-      if (inputNombre) inputNombre.value = ""; // Limpiamos el nombre para el próximo reporte
+      if (inputNombre) inputNombre.value = ""; 
       alert("Reporte enviado con éxito al panel de control.");
       await mostrarInfoEdificio();
     } else {
