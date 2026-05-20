@@ -307,22 +307,32 @@ app.get(
   }
 );
 
-// 🔹 RUTA UNIFICADA PARA REPORTAR PROBLEMAS
+
+// 🔹 RUTA UNIFICADA PARA REPORTAR PROBLEMAS (Actualizada y Protegida)
 app.post("/issues", requireLogin, async (req, res) => {
   try {
-    const { buildingId, departmentId, type, description } = req.body;
+    // Recibimos los campos nuevos que viajan desde el formulario del Frontend
+    const { buildingId, departmentId, type, description, reportedBy, status } = req.body;
+
+    // Validación estricta en el Backend: si el id no viene o viene corrupto, respondemos con sutileza
+    if (!buildingId || buildingId === "[object Object]") {
+      return res.status(400).json({ error: "El ID del edificio enviado no es válido o está vacío." });
+    }
     const nuevoIssue = new Issue({
       buildingId,
       departmentId,
-      user: req.user?.username || "Predicador", // Captura el usuario logueado
-      type,
-      description
+      user: req.user?.username || "Predicador", // Usuario logueado en la sesión
+      reportedBy: reportedBy || "Anónimo",       // Guarda quién escribió el reporte en el input
+      type: type || "Otro",
+      description: description,
+      status: status || "PENDIENTE"              // Forzamos "PENDIENTE" por defecto si viene vacío
     });
     await nuevoIssue.save();
     res.status(201).json({ message: "Reporte guardado con éxito" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "No se pudo procesar el reporte en la base de datos" });
+    // Esto te va a mostrar el error exacto en los logs de Render para que lo puedas auditar
+    console.error("❌ Error guardando Issue en Base de Datos:", err.message);
+    res.status(500).json({ error: "No se pudo procesar el reporte en la base de datos: " + err.message });
   }
 });
 
