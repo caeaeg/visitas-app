@@ -606,6 +606,19 @@ async function verProblemas() {
         estadoBadge = `<span style="background:#3b2e16; color:#fde047; border:1px solid #eab308; padding:2px 6px; border-radius:6px; font-size:10px; font-weight:600;">EN PROCESO</span>`;
       }
 
+      // EVITAMOS EL [object Object]: Si buildingId es un objeto (porque funcionó el populate), mostramos la dirección.
+      // Si sigue siendo una cadena o está rota, ponemos un aviso claro.
+      let textoEdificio = "No asignado";
+      if (i.buildingId) {
+        if (typeof i.buildingId === "object" && i.buildingId.address) {
+          textoEdificio = i.buildingId.address;
+        } else if (typeof i.buildingId === "string" && i.buildingId !== "[object Object]") {
+          textoEdificio = "ID: " + i.buildingId;
+        } else {
+          textoEdificio = "Edificio no reconocido (Reporte Corrupto)";
+        }
+      }
+
       const card = document.createElement("div");
       card.className = "edificio-item-lista";
       card.style.cssText = "background:#27272a; border:1px solid #3f3f46; padding:14px; border-radius:12px; cursor:pointer; transition:all 0.2s;";
@@ -618,10 +631,14 @@ async function verProblemas() {
               <b style="color:${colorTipo}; font-size:14px;">⚠️ ${i.type || "Incidente"}</b>
               ${estadoBadge}
             </div>
-            <span style="color:white; font-weight:600; font-size:12px; display:block; margin-top:2px;">Edificio ID: ${i.buildingId}</span>
+            <span style="color:white; font-weight:600; font-size:12px; display:block; margin-top:2px;">📍 ${textoEdificio}</span>
             <p style="margin:6px 0 0 0; color:#d4d4d8; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
               ${i.description || "Sin descripción"}
             </p>
+            
+            <button onclick="eliminarReporteRotoDirecto(event, '${i._id || i.id}')" style="background:#451a1a; color:#f87171; border:1px solid #ef4444; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:600; cursor:pointer; margin-top:10px; transition: background 0.2s;">
+              🗑️ Eliminar Reporte
+            </button>
           </div>
           <span style="color:#71717a; font-weight:bold; align-self:center; font-size:16px;">→</span>
         </div>
@@ -632,6 +649,30 @@ async function verProblemas() {
   } catch (error) {
     console.error("Error al listar reportes en el panel de administración:", error);
     document.getElementById("listaReportesAdminContenedor").innerHTML = "<p style='color:#ef4444; padding:15px;'>Error al conectar con los servidores de reportes.</p>";
+  }
+}
+
+// 🛑 NUEVA FUNCIÓN AUXILIAR: Va al final de tu app.js o abajo de verProblemas
+async function eliminarReporteRotoDirecto(event, id) {
+  // Evitamos que al hacer click en el botón se intente seleccionar la tarjeta y rompa la derecha
+  event.stopPropagation();
+
+  if (!confirm("¿Querés eliminar este reporte viejo de forma permanente de la base de datos?")) return;
+
+  try {
+    const res = await apiFetch(`/issues/${id}`, {
+      method: "DELETE"
+    });
+
+    if (res.ok) {
+      alert("Reporte eliminado correctamente.");
+      await verProblemas(); // Refrescamos el panel al instante
+    } else {
+      alert("No se pudo eliminar el reporte del servidor.");
+    }
+  } catch (error) {
+    console.error("Error en eliminarReporteRotoDirecto:", error);
+    alert("Error de red al intentar borrar.");
   }
 }
 
