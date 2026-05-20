@@ -1023,7 +1023,7 @@ async function cargarEdificios() {
     listaContenedor.innerHTML = `<p style="color:#71717a; text-align:center; padding:20px; font-size:13px;">Cargando edificios...</p>`;
     
     // Apuntamos al endpoint correcto de tu servidor backend
-    const res = await apiFetch('/buildings'); 
+    const res = await apiFetch('/admin/buildings');
     if (!res.ok) throw new Error(`Error en el servidor: ${res.status}`);
     
     // Desempaquetamos la propiedad .data que envía tu servidor
