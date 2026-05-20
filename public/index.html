@@ -9,7 +9,18 @@
 
   <script src="territorios.js"></script>
   <script src="app.js" defer></script>
-  
+  <link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#121214">
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('Servicio de instalación activo', reg))
+        .catch(err => console.error('Error al activar servicio', err));
+    });
+  }
+</script>
   <style>
   /* --- 1. CONFIGURACIÓN BASE Y REINICIO --- */
   * {
