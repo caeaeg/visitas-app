@@ -367,6 +367,27 @@ app.put(
     }
   }
 );
+// 🔹 ELIMINAR UN INCIDENTE ESPECÍFICO (Para limpiar reportes rotos o viejos)
+app.delete(
+  "/issues/:id",
+  requireLogin,
+  requireRole(["admin"]),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const eliminado = await Issue.findByIdAndDelete(id);
+      
+      if (!eliminado) {
+        return res.status(404).send("No se encontró el reporte a eliminar.");
+      }
+      
+      res.send("Reporte eliminado con éxito de la base de datos.");
+    } catch (err) {
+      console.error("❌ Error en DELETE /issues:", err.message);
+      res.status(500).send("Error eliminando el reporte: " + err.message);
+    }
+  }
+);
 
 // 🔹 STATS (Optimizado para bases de datos reales)
 app.get(
