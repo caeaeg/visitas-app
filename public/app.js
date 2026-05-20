@@ -443,35 +443,74 @@ async function siguiente() {
 }
 //---------------------------------------------------------------------------------------------//
 
-// --- MÓDULO REPORTES DE PROBLEMAS ---
-function abrirReporte() { modalReporte.style.display = "flex"; }
-function cerrarReporte() { modalReporte.style.display = "none"; }
+// ==========================================
+// ⚠️ --- MÓDULO REPORTES DE PROBLEMAS ---
+// ==========================================
+
+function abrirReporte() { 
+  if(typeof modalReporte !== 'undefined') {
+    modalReporte.style.display = "flex"; 
+  } else {
+    const modal = document.getElementById("modalReporte");
+    if(modal) modal.style.display = "flex";
+  }
+}
+
+function cerrarReporte() { 
+  if(typeof modalReporte !== 'undefined') {
+    modalReporte.style.display = "none"; 
+  } else {
+    const modal = document.getElementById("modalReporte");
+    if(modal) modal.style.display = "none";
+  }
+}
+
+// 📱 Predicador: Envía el reporte capturando correctamente los nuevos campos
 async function enviarReporte() {
-  // 1. Validar que el usuario haya escrito algo antes de enviar
+  // Capturamos la descripción
   const descripcion = descProblema.value.trim();
+  
+  // Capturamos el nuevo campo de Nombre que agregamos en el index.html
+  const inputNombre = document.getElementById("edit_nombre_reporta");
+  const nombreReporta = inputNombre ? inputNombre.value.trim() : "";
+  
+  // Capturamos el tipo del selector select
+  const selectorTipo = document.getElementById("tipoProblema");
+  const tipo = selectorTipo ? selectorTipo.value : "Otro";
+
+  // 1. Validaciones obligatorias en el Frontend antes de gastar datos/red
+  if (!nombreReporta) {
+    alert("Por favor, introduce tu nombre para saber quién reporta el problema.");
+    return;
+  }
   if (!descripcion) {
     alert("Por favor, escribe los detalles del problema antes de enviar.");
     return;
   }
+
   try {
-    // Apuntamos a la ruta "/issues" que ya tenías definida
+    // Apuntamos a tu ruta "/issues"
     const res = await apiFetch("/issues", {
       method: "POST",
       body: JSON.stringify({
         buildingId: currentBuildingId,
-        departmentId: currentDept?._id || null, // Aseguramos un null si no hay depto
-        type: tipoProblema.value,
-        description: descripcion
+        departmentId: currentDept?._id || null,
+        departmentNumber: currentDept?.number || null, // Contexto de departamento
+        type: tipo,
+        description: descripcion,
+        reportedBy: nombreReporta, // Guardado gracias a la actualización de issue.js
+        status: "PENDIENTE" // En mayúsculas exactas para Mongoose
       })
     });
+
     // 2. Controlar si el servidor realmente aceptó el reporte
     if (res.ok) {
       cerrarReporte();
       descProblema.value = "";
-      alert("Reporte enviado con éxito");
+      if (inputNombre) inputNombre.value = ""; // Limpiamos el nombre para el próximo reporte
+      alert("Reporte enviado con éxito al panel de control.");
       await mostrarInfoEdificio();
     } else {
-      // Intentamos leer el mensaje de error del servidor si existe
       const errorData = await res.json().catch(() => ({}));
       alert("No se pudo enviar el reporte: " + (errorData.error || "Error en el servidor"));
     }
@@ -481,36 +520,294 @@ async function enviarReporte() {
   }
 }
 
+// 💻 Admin: Lista los problemas en un Layout Premium de dos columnas (Dashboard)
+let listaProblemasGlobal = [];
+
 async function verProblemas() {
+  const probView = document.getElementById("problemasView");
+  if (!probView) return;
+
+  // Re-estructuramos la vista para crear las dos columnas dinámicas
+  probView.innerHTML = `
+    <div style="padding: 20px; max-width: 1400px; margin: 0 auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <div>
+          <button class="secondary backModern" style="margin:0;" onclick="abrirVista('dashboardView')">← Volver</button>
+          <h2 style="margin:10px 0 0 0; font-size:28px; color:white;">⚠️ Gestión de Incidentes y Reportes</h2>
+        </div>
+        <div style="background:#27272a; border:1px solid #3f3f46; padding:10px 16px; border-radius:12px; text-align:right;">
+          <span style="font-size:12px; color:#a1a1aa; display:block;">Reportes Activos</span>
+          <b id="contadorProblemasAdmin" style="font-size:20px; color:#ef4444;">-</b>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; min-height: 70vh;" class="admin-grid-layout">
+        <div style="background:#18181b; border:1px solid #27272a; border-radius:16px; padding:15px; display:flex; flex-direction:column; gap:10px; max-height:75vh; overflow-y:auto;" id="listaReportesAdminContenedor">
+          <p style='padding:15px; color:gray; text-align:center;'>Cargando reportes en tiempo real...</p>
+        </div>
+
+        <div style="background:#18181b; border:1px solid #27272a; border-radius:16px; padding:20px; position:sticky; top:20px; max-height:75vh; overflow-y:auto;" id="panelDetalleProblemaAdmin">
+          <div style="text-align:center; color:#71717a; margin-top:100px;">
+            <span style="font-size:48px; display:block; margin-bottom:10px;">🔍</span>
+            Selecciona un reporte de la lista para auditar el edificio, ver historiales y aplicar resoluciones.
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
   try {
     const res = await apiFetch("/issues");
-    const data = await res.json();
-    let html = "";
+    listaProblemasGlobal = await res.json();
     
-    if(!data.length) {
-      html = "<p style='padding:15px; color:gray;'>No hay problemas reportados pendientes.</p>";
+    const contenedorLista = document.getElementById("listaReportesAdminContenedor");
+    const contador = document.getElementById("contadorProblemasAdmin");
+    
+    contador.innerText = listaProblemasGlobal.length;
+
+    if (!listaProblemasGlobal.length) {
+      contenedorLista.innerHTML = "<p style='padding:30px; color:#a1a1aa; text-align:center; font-size:14px;'>🎉 ¡Excelente! No hay problemas pendientes en ningún edificio.</p>";
+      return;
     }
 
-    data.forEach(i => {
-      html += `
-        <div class="card-container" style="margin-bottom:10px;">
-          <b style="color:#ff8a80;">⚠️ ${i.type}</b><br>
-          <small style="color:gray;">Edificio ID: ${i.buildingId}</small><br>
-          <p style="margin-top:5px;">${i.description || "Sin descripción"}</p>
+    contenedorLista.innerHTML = "";
+    listaProblemasGlobal.forEach((i, index) => {
+      // Color decorativo del borde/fuente según el tipo de incidente
+      let colorTipo = "#ef4444"; 
+      if (i.type?.toLowerCase().includes("dato")) colorTipo = "#eab308";
+      if (i.type?.toLowerCase().includes("portero")) colorTipo = "#3b82f6";
+
+      // Badge visual de estado adaptado a tus enums en Mayúsculas
+      let estadoBadge = `<span style="background:#3f1f1f; color:#f87171; border:1px solid #ef4444; padding:2px 6px; border-radius:6px; font-size:10px; font-weight:600;">PENDIENTE</span>`;
+      if (i.status === "EN_PROCESO") {
+        estadoBadge = `<span style="background:#3b2e16; color:#fde047; border:1px solid #eab308; padding:2px 6px; border-radius:6px; font-size:10px; font-weight:600;">EN PROCESO</span>`;
+      }
+
+      const card = document.createElement("div");
+      card.className = "edificio-item-lista";
+      card.style.cssText = "background:#27272a; border:1px solid #3f3f46; padding:14px; border-radius:12px; cursor:pointer; transition:all 0.2s;";
+      card.onclick = () => verDetalleIncidenteAdmin(i, index);
+      
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; width:100%;">
+          <div style="flex-grow:1;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+              <b style="color:${colorTipo}; font-size:14px;">⚠️ ${i.type || "Incidente"}</b>
+              ${estadoBadge}
+            </div>
+            <span style="color:white; font-weight:600; font-size:12px; display:block; margin-top:2px;">Edificio ID: ${i.buildingId}</span>
+            <p style="margin:6px 0 0 0; color:#d4d4d8; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+              ${i.description || "Sin descripción"}
+            </p>
+          </div>
+          <span style="color:#71717a; font-weight:bold; align-self:center; font-size:16px;">→</span>
         </div>
       `;
+      contenedorLista.appendChild(card);
     });
-    
-    const probView = document.getElementById("problemasView");
-    probView.innerHTML = `
-      <button class="secondary backModern" onclick="abrirVista('dashboardView')">← Volver</button>
-      <h2>⚠ Problemas Reportados</h2>
-      ${html}
-    `;
+
   } catch (error) {
-    console.error(error);
+    console.error("Error al listar reportes en el panel de administración:", error);
+    document.getElementById("listaReportesAdminContenedor").innerHTML = "<p style='color:#ef4444; padding:15px;'>Error al conectar con los servidores de reportes.</p>";
   }
 }
+
+// 💻 Admin (NUEVA): Carga la info total del edificio cruzada con el incidente + Mini Mapa + Historial
+let mapaIncidenteAdminInstance = null;
+
+async function verDetalleIncidenteAdmin(incidente, index) {
+  const panel = document.getElementById("panelDetalleProblemaAdmin");
+  panel.innerHTML = `<p style="text-align:center; color:gray; padding-top:50px;">Consultando detalles de infraestructura del edificio...</p>`;
+
+  try {
+    // Cruza los datos llamando a la info completa del edificio asignado
+    const res = await apiFetch(`/building-info/${incidente.buildingId}`);
+    const data = await res.json();
+    const b = data.building;
+
+    // Formateamos la fecha exacta si existe en el objeto i de MongoDB
+    let fechaFormateada = "No informada";
+    if (incidente.createdAt) {
+      fechaFormateada = new Date(incidente.createdAt).toLocaleString('es-AR', {
+        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      }) + " hs";
+    }
+
+    // Estructura limpia y potente con historial compacto e información similar a la sección Admin
+    panel.innerHTML = `
+      <div style="background:#27272a; border:1px solid #ef4444; padding:14px; border-radius:12px; margin-bottom:15px;">
+        <span style="font-size:11px; color:#ef4444; font-weight:700; text-transform:uppercase; display:block; margin-bottom:4px;">Detalles de la Alerta</span>
+        <h3 style="margin:0; color:white; font-size:18px;">⚠️ ${incidente.type}</h3>
+        <p style="margin:8px 0; color:#e4e4e7; font-size:14px; background:#18181b; padding:10px; border-radius:8px; border:1px solid #27272a; line-height:1.4;">
+          "${incidente.description || "Sin descripción detallada."}"
+        </p>
+        <div style="display:flex; flex-direction:column; gap:4px; font-size:12px; color:#a1a1aa; margin-top:4px;">
+          <span>👤 Reportado por: <b style="color:white;">${incidente.reportedBy || "Anónimo"}</b></span>
+          ${incidente.departmentNumber ? `<span>🚪 Departamento involucrado: <b style="color:white;">${incidente.departmentNumber}</b></span>` : ""}
+          <span style="color:#71717a; margin-top:2px;">🕒 Fecha del reporte: ${fechaFormateada}</span>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+        <div>
+          <h4 style="margin:0; color:white; font-size:18px;">${b.address}</h4>
+          <p style="color:gray; margin:2px 0; font-size:12px;">${b.address2 || "Sin especificaciones de zona"}</p>
+        </div>
+        <button class="secondary" style="width:auto; min-height:34px; padding:4px 10px; font-size:12px; border-radius:8px; margin:0;" onclick='abrirEditorEdificioDirecto(${JSON.stringify(b)})'>✏️ Editar Edificio</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; font-size:12px; background:#252525; padding:10px; border-radius:10px; margin-bottom:15px; border: 1px solid #333;">
+        <div>🏢 <b>Nombre:</b> ${b.name || "-"}</div>
+        <div>🗺️ <b>Territorio:</b> ${b.territory || "-"}</div>
+        <div>🔢 <b>Pisos:</b> ${b.floors || 0}</div>
+        <div>🚪 <b>Deptos/Piso:</b> ${b.unitsPerFloor || 0}</div>
+        <div>🌱 <b>PB:</b> ${b.hasGroundFloor ? "Sí" : "No"}</div>
+        <div>🛎️ <b>Portero:</b> ${b.hasDoorman ? "Sí" : "No"}</div>
+      </div>
+
+      <div id="miniMapaIncidenteAdmin" style="width:100%; height:150px; border-radius:10px; margin-bottom:15px; border:1px solid #3f3f46;"></div>
+
+      <h5 style="margin:12px 0 6px; color:#3b82f6; font-size:13px; text-transform:uppercase;">🕒 Historial de Infraestructura y Visitas</h5>
+      <div style="font-size:12px; background:#111; padding:10px; border-radius:8px; margin-bottom:20px; border:1px solid #222; max-height:110px; overflow-y:auto;">
+        <div style="padding-bottom:6px; border-bottom:1px solid #222; color:#bdbdbd;">
+          📅 <b>Última Visita General:</b> ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "No se registran visitas previas"}
+        </div>
+        <div style="margin-top:6px; color:gray; line-height:1.3;">
+          📋 <b>Notas históricas:</b> ${b.description || "El edificio no posee anotaciones de administración todavía."}
+        </div>
+      </div>
+
+      <h5 style="margin:0 0 8px; color:white; font-size:13px;">⚙️ Resolver o Cambiar Estado del Incidente</h5>
+      <div style="display:flex; gap:10px;">
+        <button onclick="cambiarEstadoIncidente('${incidente._id || incidente.id}', 'EN_PROCESO')" style="background:#eab308; color:black; font-weight:700; border:none; padding:10px; border-radius:10px; flex:1; font-size:13px; cursor:pointer; transition: opacity 0.2s;">
+          ⏳ En Proceso
+        </button>
+        <button onclick="resolverIncidenteCompleto('${incidente._id || incidente.id}')" style="background:#22c55e; color:white; font-weight:700; border:none; padding:10px; border-radius:10px; flex:1; font-size:13px; cursor:pointer; transition: opacity 0.2s;">
+          ✅ Solucionado
+        </button>
+      </div>
+    `;
+
+    // --- RENDER DE MAPA SEGURO EN PANEL DE INCIDENTES (Evita huecos grises) ---
+    setTimeout(() => {
+      try {
+        if (mapaIncidenteAdminInstance !== null) {
+          mapaIncidenteAdminInstance.remove();
+          mapaIncidenteAdminInstance = null;
+        }
+
+        const latValida = parseFloat(b.latitude);
+        const lngValida = parseFloat(b.longitude);
+        const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
+
+        mapaIncidenteAdminInstance = L.map('miniMapaIncidenteAdmin', {
+          zoomControl: false, attributionControl: false, dragging: false, 
+          touchZoom: false, doubleClickZoom: false, scrollWheelZoom: false
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapaIncidenteAdminInstance);
+
+        let mapaCentrado = false;
+        if (tieneCoordenadas) {
+          L.marker([latValida, lngValida]).addTo(mapaIncidenteAdminInstance);
+          mapaIncidenteAdminInstance.setView([latValida, lngValida], 16);
+          mapaCentrado = true;
+        }
+
+        // Si no tiene coordenadas cargadas, se posiciona usando el polígono de su territorio
+        if (!mapaCentrado && b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON) {
+          let capaGeoJSON = L.geoJSON(misTerritoriosGeoJSON, {
+            filter: (f) => String(f.properties.name || f.properties.Territorio_N) === String(b.territory),
+            style: { color: '#ef4444', weight: 2, fillColor: '#ef4444', fillOpacity: 0.1 }
+          }).addTo(mapaIncidenteAdminInstance);
+
+          if (capaGeoJSON.getLayers().length > 0) {
+            mapaIncidenteAdminInstance.fitBounds(capaGeoJSON.getBounds(), { padding: [5, 5] });
+            mapaCentrado = true;
+          }
+        }
+
+        // Posicionamiento de respaldo (Posadas, Misiones) por si todo falla
+        if (!mapaCentrado) {
+          mapaIncidenteAdminInstance.setView([-27.36708, -55.89608], 14);
+        }
+
+        mapaIncidenteAdminInstance.invalidateSize();
+      } catch (mapErr) {
+        console.error("Error cargando mapa de incidentes:", mapErr);
+      }
+    }, 120);
+
+  } catch (err) {
+    console.error("Error al desplegar detalle del incidente:", err);
+    panel.innerHTML = `<p style="color:#ef4444; padding:20px; text-align:center;">Error al sincronizar los datos del edificio para este incidente.</p>`;
+  }
+}
+
+// 💻 Admin (NUEVA): Cambia el estado a EN_PROCESO en el servidor
+async function cambiarEstadoIncidente(id, nuevoEstado) {
+  try {
+    const res = await apiFetch(`/issues/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ status: nuevoEstado })
+    });
+
+    if (res.ok) {
+      alert(`El reporte ahora figura como: "${nuevoEstado.replace('_', ' ')}"`);
+      await verProblemas(); // Refrescamos el Dashboard al instante
+    } else {
+      alert("El servidor no pudo actualizar el estado del problema.");
+    }
+  } catch (error) {
+    console.error("Error en cambiarEstadoIncidente:", error);
+    alert("Error de comunicación al actualizar estado.");
+  }
+}
+
+// 💻 Admin (NUEVA): Elimina o marca como RESUELTO el problema
+async function resolverIncidenteCompleto(id) {
+  if (!confirm("¿Confirmas que el problema ha sido solucionado por completo? Se removerá la alerta activa del edificio.")) return;
+
+  try {
+    const res = await apiFetch(`/issues/${id}`, {
+      method: "DELETE"
+    });
+
+    if (res.ok) {
+      alert("¡Incidente solucionado con éxito!");
+      await verProblemas(); // Recarga la lista y limpia la pantalla
+    } else {
+      // Intento alternativo por si tu backend está configurado con actualización PUT a RESUELTO
+      const intentoPut = await apiFetch(`/issues/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ status: "RESUELTO" })
+      });
+      
+      if (intentoPut.ok) {
+        alert("¡Incidente marcado como RESUELTO!");
+        await verProblemas();
+      } else {
+        alert("No se pudo procesar la baja del incidente en el servidor.");
+      }
+    }
+  } catch (error) {
+    console.error("Error en resolverIncidenteCompleto:", error);
+    alert("Error de conexión al procesar la resolución.");
+  }
+}
+
+// 🔧 Función puente para abrir el modal de edición de edificio existente
+function abrirEditorEdificioDirecto(edificioObj) {
+  if (typeof abrirEditorEdificio === 'function') {
+    abrirEditorEdificio(edificioObj);
+  } else if (typeof editarEdificioAdmin === 'function') {
+    editarEdificioAdmin(edificioObj);
+  } else {
+    alert("Función de edición no encontrada. Asegúrate de tener tu modal o función de edición cargada.");
+  }
+}
+
+//-------------------------------------CIERRE SECTOR REPORTES DE PROBLEMAS -------------------------------//
 
 
 // Nueva función centralizada para auditar un edificio (Detalles, Alertas, Historial y Editar)
