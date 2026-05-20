@@ -701,15 +701,15 @@
             </div>
 
             <div id="tabContenidoTerritorio" class="tab-content">
-              <input type="number" id="busquedaTerritorio" placeholder="Número de territorio..." oninput="cargarEdificios()">
-            </div>
-
-            <div class="filtro-doble-fila" style="margin-top: 8px;">
-              <select id="filtroOrden" onchange="cargarEdificios()" style="margin: 0; width: 100%;">
-                <option value="address">🔤 Orden Alfabético</option>
-                <option value="recent">🆕 Agregados Recientemente</option> 
-                <option value="territory">📍 Agrupar por Territorio</option>
-              </select>
+              <input type="number" id="busquedaTerritorio" placeholder="Número de territorio..." oninput="cargarEdificios()" style="margin-bottom: 8px;">
+              
+              <div class="filtro-doble-fila" style="margin: 0;">
+                <select id="filtroOrden" onchange="cargarEdificios()" style="margin: 0; width: 100%;">
+                  <option value="address">🔤 Orden Alfabético</option>
+                  <option value="recent">🆕 Agregados Recientemente</option> 
+                  <option value="territory">📍 Agrupar por Territorio</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
