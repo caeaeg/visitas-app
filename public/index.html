@@ -20,11 +20,11 @@
   
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 15px; /* Ajustado de 19px a 15px para un aspecto profesional, scannable y estilizado */
+    font-size: 15px;
     line-height: 1.5;
     letter-spacing: 0.1px;
     padding: 16px;
-    background: #09090b; /* Fondo general más oscuro para resaltar las tarjetas */
+    background: #09090b;
     color: #e4e4e7;
   }
 
@@ -101,7 +101,7 @@
 
   /* --- 4. SECCIONES GENERALES Y VISTAS --- */
   .appShell {
-    max-width: 1200px; /* Ampliado para dar soporte óptimo a la grilla de 3 columnas en PC */
+    max-width: 1200px;
     margin: auto;
   }
 
@@ -169,7 +169,7 @@
   }
   .link:hover { text-decoration: underline; }
 
-  /* --- 6. ACCESOS RÁPIDOS Y MODALES FIXEDS --- */
+  /* --- 6. ACCESOS RÁPIDOS Y BOTÓN FLOTANTE --- */
   #adminBtn {
     position: fixed;
     top: 12px;
@@ -190,19 +190,23 @@
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: #f59e0b;
+    background: #ef4444; /* Rojo de alerta dinámico */
     color: white;
-    width: 54px;
-    height: 54px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
-    font-size: 20px;
+    font-size: 22px;
     display: none;
+    align-items: center;
+    justify-content: center;
     box-sizing: border-box;
-    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+    box-shadow: 0 6px 18px rgba(239, 68, 68, 0.4);
     z-index: 1000;
+    border: 2px solid #ffffff;
   }
 
   .alerta { background: #ef4444 !important; }
+  
   #loginScreen {
     position: fixed;
     inset: 0;
@@ -212,6 +216,7 @@
     justify-content: center;
     z-index: 9999;
   }
+  
   .loginCard {
     width: 100%;
     max-width: 360px;
@@ -221,6 +226,7 @@
     border-radius: 16px;
     box-shadow: 0 20px 40px rgba(0,0,0,0.6);
   }
+  
   #loginMsg {
     text-align: center;
     margin-top: 8px;
@@ -228,6 +234,33 @@
     font-size: 13px;
     min-height: 18px;
   }
+
+  /* --- ✨ 6.5 DETALLES CSS PREMIUM EXCLUSIVOS PARA EL MODAL DE REPORTES --- */
+  .modal {
+    display: none; /* Oculto por defecto */
+    position: fixed;
+    z-index: 2000; /* Por encima de todo */
+    inset: 0;
+    background-color: rgba(9, 9, 11, 0.85); /* Fondo oscuro traslúcido cinematográfico */
+    backdrop-filter: blur(6px); /* Efecto esmerilado de iOS/Glassmorphism */
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    animation: fadeInModal 0.2s ease-out;
+  }
+  
+  .modal-content {
+    width: 100%;
+    max-width: 440px;
+    background: #18181b !important;
+    border: 1px solid #27272a;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    transform: scale(0.96);
+    animation: scaleUpModal 0.2s forwards ease-out;
+  }
+
+  @keyframes fadeInModal { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes scaleUpModal { to { transform: scale(1); } }
 
   /* --- 7. REGLAS ESPECÍFICAS DE LEAFLET --- */
   .leaflet-container {
@@ -257,12 +290,9 @@
   @keyframes skeleton { 100% { transform: translateX(100%); } }
   .skeletonLine { height: 18px; margin-bottom: 8px; }
 
-
   /* ==========================================================================
-     👑 SECCIÓN: NUEVO REDISEÑO PREMIUM PARA PANEL DE ADMINISTRACIÓN
+     👑 SECCIÓN: REDISEÑO PREMIUM PARA PANEL DE ADMINISTRACIÓN
      ========================================================================== */
-
-  /* Barra de navegación superior unificada */
   .admin-nav-bar {
     display: flex;
     justify-content: space-between;
@@ -288,7 +318,7 @@
   .nav-subtitle { font-size: 11px; color: #71717a; display: block; }
   
   .btn-salir-sutil {
-    background: #451a03; /* Tono marrón/óxido oscuro muy sutil */
+    background: #451a03;
     color: #fcd34d;
     padding: 6px 12px;
     border-radius: 6px;
@@ -297,7 +327,6 @@
   }
   .btn-salir-sutil:hover { background: #78350f; }
 
-  /* Mini tarjetas de estadísticas */
   .mini-stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -331,7 +360,6 @@
   .stat-data h3 { margin: 0; font-size: 16px; font-weight: 700; color: #ffffff; }
   .stat-data p { margin: 0; font-size: 11px; color: #a1a1aa; font-weight: 400; }
 
-  /* Entorno de trabajo principal en 3 columnas */
   .workspace-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -354,7 +382,6 @@
   }
   .card-header-sm h3 { margin: 0 0 8px 0; font-size: 11px; color: #71717a; text-transform: uppercase; letter-spacing: 0.5px; }
 
-  /* Filtros y buscador compacto */
   .filtros-compactos { display: flex; flex-direction: column; gap: 4px; }
   .filtros-compactos input, .filtros-compactos select {
     background: #09090b;
@@ -364,7 +391,6 @@
   }
   .filtro-doble-fila { display: flex; gap: 6px; }
 
-  /* Lista de edificios estilizada */
   .lista-scroll-limpia {
     max-height: 340px;
     overflow-y: auto;
@@ -384,7 +410,6 @@
   }
   .btn-pag:hover { background: #27272a; }
 
-  /* Contenedores de Mapa y Detalle */
   .mapa-card-wrapper { padding: 0; overflow: hidden; border-radius: 12px; border: 1px solid #27272a; }
   .mapa-principal-moderno { height: 490px; width: 100%; background: #09090b; }
 
@@ -394,151 +419,115 @@
     border-radius: 12px;
     padding: 14px;
   }
-   /* --- 🏠 ARREGLO EXCLUSIVO PARA EL PANEL DE CONTROL (DASHBOARD) --- */
-#dashboardView {
-  max-width: 500px; /* Más compacto para que se vea estilizado en PC y calce perfecto en celular */
-  margin: 20px auto;
-  padding: 0 8px;
-}
+  
+  /* --- 🏠 PANEL DE CONTROL (DASHBOARD) --- */
+  #dashboardView {
+    max-width: 500px;
+    margin: 20px auto;
+    padding: 0 8px;
+  }
 
-/* Reconstrucción de las tarjetas de opciones con bordes estilizados */
-.dashboardGrid {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 16px;
-}
+  .dashboardGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+  }
 
-.dashboardCard {
-  background: #111113;
-  border: 1px solid #27272a; /* Borde inicial sutil */
-  border-radius: 14px;
-  padding: 16px 20px;
-  cursor: pointer;
-  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  text-align: left;
-}
+  .dashboardCard {
+    background: #111113;
+    border: 1px solid #27272a;
+    border-radius: 14px;
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+  }
 
-/* Efecto interactivo premium al pasar el mouse */
-.dashboardCard:hover {
-  transform: translateY(-2px);
-  background: #141417;
-  border-color: #3b82f6; /* El borde se ilumina sutilmente en azul tecnológico */
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.08);
-}
+  .dashboardCard:hover {
+    transform: translateY(-2px);
+    background: #141417;
+    border-color: #3b82f6;
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.08);
+  }
 
-.dashboardCard:active {
-  transform: scale(0.98);
-}
+  .dashboardCard:active {
+    transform: scale(0.98);
+  }
 
-/* Estilo para los contenedores de iconos */
-.dashboardCard .icon {
-  font-size: 24px;
-  width: 44px;
-  height: 44px;
-  background: #18181b;
-  border: 1px solid #27272a;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
+  .dashboardCard .icon {
+    font-size: 28px;
+    width: 50px;
+    height: 50px;
+    background: #18181b;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid #27272a;
+  }
 
-/* Textos internos alineados */
-.dashboardCard-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1; 
-}
+  .dashboardCard-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
 
-.dashboardCard h3 {
-  color: #ffffff;
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-}
+  .dashboardCard h3 {
+    color: #ffffff;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
 
-.dashboardCard p {
-  color: #71717a;
-  font-size: 12px;
-  margin: 0;
-}
+  .dashboardCard p {
+    color: #a1a1aa;
+    font-size: 13px;
+    margin: 0;
+  }
 
-/* Estilo para los iconos grandes de las opciones */
-.dashboardCard .icon {
-  font-size: 28px;
-  width: 50px;
-  height: 50px;
-  background: #18181b;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-/* Textos internos de la opción */
-.dashboardCard-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.dashboardCard h3 {
-  color: #ffffff;
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.dashboardCard p {
-  color: #a1a1aa;
-  font-size: 13px;
-  margin: 0;
-}
-    /* Filas individuales del listado de edificios */
-.edificio-item-lista {
-  background: #18181b;
-  border: 1px solid #27272a;
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
-}
-.edificio-item-lista:hover {
-  background: #202024;
-  border-color: #3f3f46;
-}
-.edificio-info-txt {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.edif-dir {
-  font-size: 14px;
-  font-weight: 600;
-  color: #ffffff;
-}
-.edif-sub {
-  font-size: 11px;
-  color: #a1a1aa;
-}
-.btn-ver-flecha {
-  font-size: 14px;
-  color: #71717a;
-}
-.edificio-item-lista:hover .btn-ver-flecha {
-  color: #3b82f6;
-}
+  .edificio-item-lista {
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .edificio-item-lista:hover {
+    background: #202024;
+    border-color: #3f3f46;
+  }
+  .edificio-info-txt {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .edif-dir {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+  }
+  .edif-sub {
+    font-size: 11px;
+    color: #a1a1aa;
+  }
+  .btn-ver-flecha {
+    font-size: 14px;
+    color: #71717a;
+  }
+  .edificio-item-lista:hover .btn-ver-flecha {
+    color: #3b82f6;
+  }
 </style>
 </head>
 <body>
@@ -554,7 +543,6 @@
 </div>
 
 <div id="dashboardView" class="view active">
-    
     <div class="admin-nav-bar">
       <div class="nav-left">
         <div>
@@ -568,7 +556,6 @@
     </div>
 
     <div class="dashboardGrid">
-      
       <div class="dashboardCard" onclick="abrirVista('territorioView')">
         <div class="icon">🗺️</div>
         <div class="dashboardCard-content">
@@ -592,12 +579,10 @@
           <p>Reportes pendientes</p>
         </div>
       </div>
-
     </div>
-  </div>
+</div>
 
-  <div id="territorioView" class="view">
-    
+<div id="territorioView" class="view">
     <div class="admin-nav-bar">
       <div class="nav-left">
         <button class="btn-atras-sutil" onclick="abrirVista('dashboardView')">←</button>
@@ -646,7 +631,6 @@
     </div>
 
     <div class="workspace-grid">
-      
       <div class="workspace-col col-lista">
         <div class="component-card">
           <div class="card-header-sm">
@@ -670,7 +654,6 @@
             <h3>📋 Edificios Registrados</h3>
           </div>
           <div id="listaEdificios" class="lista-scroll-limpia"></div>
-          
           <div class="paginador-sutil">
             <button class="btn-pag" onclick="paginaAnterior()">← Ant</button>
             <button class="btn-pag" onclick="paginaSiguiente()">Sig →</button>
@@ -685,19 +668,13 @@
       </div>
       
       <div class="workspace-col col-detalle">
-        <div id="panelDetalleEdificio" class="detalle-edificio-premium" style="display: none;">
-          </div>
+        <div id="panelDetalleEdificio" class="detalle-edificio-premium" style="display: none;"></div>
       </div>
-
-    </div>
-  </div>
-
-  <div id="editarView" class="view">
-    </div>
-
-  <div id="problemasView" class="view">
     </div>
 </div>
+
+<div id="editarView" class="view"></div>
+<div id="problemasView" class="view"></div>
 
 <div class="container" id="appContainer" style="display:none;">
   <div class="card-container">
@@ -711,9 +688,7 @@
     <p id="mensajeInicial" style="text-align:center;">Ingresá una dirección para comenzar</p>
     <button class="buscar" onclick="buscar()">Buscar</button>
     
-    <div id="infoEdificio">
-      </div>
-    
+    <div id="infoEdificio"></div>
     <div id="listaTerritorio"></div>
     <h3 id="resultado" style="text-align:center;"></h3>
     
@@ -729,17 +704,21 @@
 <div id="modalReporte" class="modal">
   <div class="modal-content" style="background:#1c1c1e; color:white; padding:20px; border-radius:16px;">
     <h3>⚠️ Reportar Inconveniente</h3>
-    <label style="display:block; font-size:12px; color:#a1a1aa; margin-bottom:4px;">Tu Nombre (Quien reporta):</label>
+    <label style="display:block; font-size:12px; color:#a1a1aa; margin-bottom:4px; margin-top:10px;">Tu Nombre (Quien reporta):</label>
     <input type="text" id="edit_nombre_reporta" placeholder="Ej: Juan Bezuz" style="width:100%; margin-bottom:12px; background:#2c2c2e; border:1px solid #3a3a3c; color:white; padding:10px; border-radius:8px;">
+    
     <label style="display:block; font-size:12px; color:#a1a1aa; margin-bottom:4px;">Tipo de Inconveniente:</label>
     <select id="tipoProblema" style="width:100%; margin-bottom:12px; background:#2c2c2e; border:1px solid #3a3a3c; color:white; padding:10px; border-radius:8px;">
       <option value="Problema de Acceso">Problema de Acceso</option>
       <option value="Dato Incorrecto">Dato Incorrecto</option>
-      <option value="Problema en Portero Eléctrico">Problema en Portero Eléctrico</option> <option value="Otro">Otro / Alerta general</option>
+      <option value="Problema en Portero Eléctrico">Problema en Portero Eléctrico</option>
+      <option value="Otro">Otro / Alerta general</option>
     </select>
+    
     <label style="display:block; font-size:12px; color:#a1a1aa; margin-bottom:4px;">Detalles:</label>
     <textarea id="descProblema" rows="4" placeholder="Escribe aquí los detalles..." style="width:100%; margin-bottom:15px; background:#2c2c2e; border:1px solid #3a3a3c; color:white; padding:10px; border-radius:8px; resize:none;"></textarea>
-    <div style="display:flex; gap:10px;">
+    
+    <div style="display:flex; gap:10px; margin-top:5px;">
       <button class="secondary" onclick="cerrarReporte()" style="flex:1; margin:0;">Cancelar</button>
       <button class="buscar" onclick="enviarReporte()" style="flex:1; margin:0; background:#ef4444; color:white;">Enviar Reporte</button>
     </div>
