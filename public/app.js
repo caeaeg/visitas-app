@@ -278,6 +278,10 @@ async function cargarDepto() {
       btnOk.style.display = "none";
       btnNo.style.display = "none";
       btnSiguiente.style.display = "none";
+      
+      // Si el elemento reportBtn viejo existe en el HTML, lo ocultamos para que no moleste
+      if (typeof reportBtn !== 'undefined' && reportBtn) reportBtn.style.display = "none";
+      
       await mostrarInfoEdificio();
       return;
     }
@@ -293,15 +297,19 @@ async function cargarDepto() {
     nota.style.display = "block";
     btnOk.style.display = "block";
     btnNo.style.display = "block";
-    reportBtn.style.display = "block";
+    
+    // 👁️ Ocultamos el botón viejo flotante para usar el nuevo integrado en la tarjeta
+    if (typeof reportBtn !== 'undefined' && reportBtn) reportBtn.style.display = "none";
+    
     btnOk.disabled = false;
     btnNo.disabled = false;
     btnSiguiente.style.display = "none";
-    
+
+    // ✨ Actualizamos la info del edificio para que tome el contexto del depto actual
     await mostrarInfoEdificio();
+
   } catch (error) {
-    console.error(error);
-    resultado.innerText = "Error al cargar el departamento";
+    console.error("Error al cargar el siguiente departamento:", error);
   }
 }
 
