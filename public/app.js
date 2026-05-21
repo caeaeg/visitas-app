@@ -1,7 +1,5 @@
-/**
- * APP.JS - Lógica de Control y Conexión con la API
- * Sistema de Gestión de Territorios y Visitas
- */
+// * Sistema de Gestión de Territorios y Visitas
+ 
 // --- VARIABLES GLOBALES DEL NAVEGADOR ---
 let paginaActual = 1;
 let currentDept = null;
@@ -13,6 +11,9 @@ let leafletMap = null;
 let leafletMarker = null;
 let miTemporizadorMapa = null; 
 let miniMapaAdminInstance = null;
+let mapaIncidenteAdminInstance = null;
+
+let listaProblemasGlobal = [];
 
 //--------------------------------------------------------------------------------------------//
 
@@ -557,8 +558,6 @@ async function enviarReporte() {
   }
 }
 // 💻 Admin (NUEVA): Carga la info total del edificio cruzada con el incidente + Mini Mapa + Historial
-let mapaIncidenteAdminInstance = null;
-
 
 async function verDetalleIncidenteAdmin(incidente, index) {
   const panel = document.getElementById("panelDetalleProblemaAdmin");
@@ -708,8 +707,100 @@ async function verDetalleIncidenteAdmin(incidente, index) {
     panel.innerHTML = `<p style="color:#ef4444; padding:20px; text-align:center;">⚠️ Error al sincronizar: ${err.message}</p>`;
   }
 }
+// Función para abrir la ventana del historial completo departamento por departamento
+async function abrirHistorialEdificio() {
+    // 🌟 USAMOS TU VARIABLE EXISTENTE DIRECTAMENTE
+    const idEdificio = currentBuildingId; 
+    const contenedorHistorial = document.getElementById("historialContenido");
+    const modal = document.getElementById("modalHistorial");
+    
+    if (!idEdificio) {
+        alert("Primero selecciona un edificio de la lista.");
+        return;
+    }
+
+    modal.style.display = "flex";
+    contenedorHistorial.innerHTML = `<p style="color:#71717a; text-align:center; padding:20px; font-size:13px;">Buscando registros...</p>`;
+
+    try {
+        // Consultamos el historial al backend pasándole tu variable
+        const res = await apiFetch(`/admin/visits?buildingId=${idEdificio}`);
+        if (!res.ok) throw new Error("No se pudo obtener el historial");
+        
+        const resData = await res.json();
+        const visitas = resData.data || resData || []; 
+
+        if (visitas.length === 0) {
+            contenedorHistorial.innerHTML = `
+                <div style="text-align:center; padding:30px; color:#71717a;">
+                    <p style="font-size:24px; margin-bottom:5px;">📂</p>
+                    <p style="font-size:13px; margin:0;">Este edificio todavía no tiene visitas registradas.</p>
+                </div>`;
+            return;
+        }
+
+        // Ordenamos las visitas más nuevas primero
+        visitas.sort((a, b) => new Date(b.date || b.fecha || b.createdAt) - new Date(a.date || a.fecha || a.createdAt));
+
+        contenedorHistorial.innerHTML = "";
+
+        visitas.forEach(vis => {
+            const fechaRaw = vis.date || vis.fecha || vis.createdAt;
+            const fechaFormateada = fechaRaw ? new Date(fechaRaw).toLocaleDateString('es-AR', {
+                day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit'
+            }) : "Fecha desconocida";
+
+            const depto = vis.department || vis.depto || vis.departamento || "-";
+            const estado = vis.status || vis.resultado || "REGISTRADO";
+            const nota = vis.notes || vis.nota || "";
+            const tieneProblema = vis.hasIssue || vis.issue || vis.problema;
+
+            let badgeColor = "#71717a"; 
+            let badgeText = estado;
+            
+            if (estado === "ATENDIO" || estado === "ATENDIÓ") {
+                badgeColor = "#16a34a"; 
+                badgeText = "✔ ATENDIÓ";
+            } else if (estado === "NO_EN_CASA" || estado === "NO EN CASA") {
+                badgeColor = "#ca8a04"; 
+                badgeText = "✖ NO EN CASA";
+            }
+
+            const tarjetaVisita = `
+                <div style="background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: bold; color: #f4f4f5; font-size: 14px;">🚪 Depto / Unidad: <span style="color:#3b82f6;">${depto}</span></span>
+                        <span style="font-size: 11px; color: #a1a1aa;">📅 ${fechaFormateada}</span>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 2px;">
+                        <span style="background: ${badgeColor}; color: white; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${badgeText}</span>
+                        ${tieneProblema ? `<span style="background: #ef4444; color: white; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: bold;">⚠️ PROBLEMA REPORTADO</span>` : ''}
+                        ${vis.user || vis.usuario ? `<span style="font-size: 11px; color: #71717a;">Por: ${vis.user || vis.usuario}</span>` : ''}
+                    </div>
+
+                    ${nota ? `
+                    <div style="background: #1c1c1e; border-left: 3px solid #3b82f6; padding: 6px 10px; border-radius: 4px; margin-top: 4px;">
+                        <p style="margin: 0; font-size: 12px; color: #d4d4d8; font-style: italic;">" ${nota} "</p>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            contenedorHistorial.insertAdjacentHTML("beforeend", tarjetaVisita);
+        });
+
+    } catch (error) {
+        console.error("Error cargando historial:", error);
+        contenedorHistorial.innerHTML = `<p style="color:#ef4444; text-align:center; padding:20px; font-size:13px;">Error al conectar con el servidor para traer el historial.</p>`;
+    }
+}
+
+function cerrarHistorial() {
+    document.getElementById("modalHistorial").style.display = "none";
+}
+
+
 // 💻 Admin: Lista los problemas en un Layout Premium de dos columnas (Dashboard)
-let listaProblemasGlobal = [];
 
 async function verProblemas() {
   const probView = document.getElementById("problemasView");
@@ -912,6 +1003,9 @@ function abrirEditorEdificioDirecto(edificioObj) {
 
 // Nueva función centralizada para auditar un edificio (Detalles, Alertas, Historial y Editar)
 async function verDetalleEdificioAdmin(buildingId) {
+  // 🌟 GUARDAMOS EL ID EN TU VARIABLE ACTUAL PARA QUE LA APP SEPA QUÉ EDIFICIO ESTÁ EN PANTALLA
+  currentBuildingId = buildingId; 
+
   const panel = document.getElementById("panelDetalleEdificio");
   panel.style.display = "block";
   panel.innerHTML = `<p style="text-align:center; color:gray;">Cargando historial y detalles...</p>`;
@@ -948,7 +1042,7 @@ async function verDetalleEdificioAdmin(buildingId) {
       `;
     }
 
-    // Renderizamos la estructura base aplicando el diseño Flex (Datos izq, Mapa der)
+    // Renderizamos la estructura base aplicando el diseño Flex (Datos izq, Botones der)
     panel.innerHTML = `
       ${cartelNuevoAdminHtml}
       ${alertaHtml}
@@ -958,7 +1052,10 @@ async function verDetalleEdificioAdmin(buildingId) {
           <h3 style="margin:0; color:white; font-size:22px;">${b.address}</h3>
           <p style="color:gray; margin:2px 0;">${b.address2 || ""}</p>
         </div>
-        <button class="secondary" style="width:auto; min-height:38px; padding:6px 12px; font-size:14px; border-radius:8px; white-space:nowrap;" onclick='abrirEditorEdificio(${JSON.stringify(b)})'>✏️ Editar</button>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="secondary" style="width:auto; min-height:38px; padding:6px 12px; font-size:13px; border-radius:8px; white-space:nowrap; background:#1e293b; color:#3b82f6; border-color:#1e3a8a;" onclick="abrirHistorialEdificio()">📜 Historial</button>
+          <button class="secondary" style="width:auto; min-height:38px; padding:6px 12px; font-size:13px; border-radius:8px; white-space:nowrap;" onclick='abrirEditorEdificio(${JSON.stringify(b)})'>✏️ Editar</button>
+        </div>
       </div>
 
       <div style="display: flex; gap: 14px; align-items: stretch; margin-bottom: 15px;">
@@ -1004,7 +1101,6 @@ async function verDetalleEdificioAdmin(buildingId) {
         if (tieneCoordenadas) {
           console.log(`📍 Inicializando mini-mapa estático para: ${latValida}, ${lngValida}`);
           
-          // El mapa grande del fondo hace foco bien cerquita (Zoom 16)
           miMapaReal.setView([latValida, lngValida], 16);
 
           if (miniMapaAdminInstance !== null) {
@@ -1014,12 +1110,11 @@ async function verDetalleEdificioAdmin(buildingId) {
             } catch (e) { console.warn("Error limpiando mapa anterior:", e); }
           }
 
-          // Inicializamos el mapa miniatura usando el div cuadrado ya existente en el HTML
           setTimeout(() => {
             try {
               miniMapaAdminInstance = L.map('miniMapaDetalle', {
                 center: [latValida, lngValida],
-                zoom: 16, // Zoom perfecto para que no quede ni muy pegado ni muy lejos en la miniatura
+                zoom: 16,
                 zoomControl: false,
                 attributionControl: false,
                 dragging: false,
@@ -1055,19 +1150,17 @@ async function verDetalleEdificioAdmin(buildingId) {
               console.log(`🗺️ [Territorio] Encuadrando BIEN DE CERCA en el Territorio ${b.territory}`);
               miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { 
                 padding: [25, 25], 
-                maxZoom: 16 // Mantenemos el encuadre cerrado sobre el territorio
+                maxZoom: 16
               });
             }
           } catch (geoError) {
             console.warn("Fallo al encuadrar territorio:", geoError);
           }
           
-          // Si no tiene coordenadas mecánicas, vaciamos el contenedor de la miniatura para no confundir
           const minMapDiv = document.getElementById("miniMapaDetalle");
           if(minMapDiv) minMapDiv.innerHTML = `<p style="color:#71717a; font-size:11px; text-align:center; padding-top:55px; margin:0;">Falta geolocalización</p>`;
 
         } else {
-          // Caída por defecto si no hay datos geográficos
           miMapaReal.setView([-27.36708, -55.89608], 15);
         }
           
@@ -1580,7 +1673,6 @@ function inicializarMapaLeaflet(lat, lng, address = null) {
       const zoomActual = leafletMap.getZoom();
       // Buscamos todos los cartelitos de territorio en la pantalla
       const elementosEtiqueta = document.querySelectorAll('.texto-territorio-elegante');
-      
       elementosEtiqueta.forEach(elemento => {
         if (zoomActual >= 15) {
           // Si está cerca, le ponemos la ropa elegante de gala
@@ -1598,16 +1690,12 @@ function inicializarMapaLeaflet(lat, lng, address = null) {
 // --- AUXILIARES Y LIMPIEZA DE INTERFAZ ---
 // Función auxiliar para cuando el usuario móvil cancela la creación
 function cancelarEdificioMovil() {
-  // Ocultamos la vista del editor y apagamos el contenedor del dashboard
   document.getElementById("editarView").classList.remove("active");
   document.getElementById("mainDashboard").style.display = "none";
-    // Volvemos a hacer visible el contenedor original de la app móvil
   document.getElementById("appContainer").style.display = "block";
-    // Limpiamos los textos para dejar la app lista para otra búsqueda
   limpiarVista();
   mensajeInicial.style.display = "block";
 }
-
 function normalizarDireccion(dir) {
   return dir
     .toLowerCase()
@@ -1643,7 +1731,6 @@ function paginaAnterior() {
     cargarEdificios();
   }
 }
-
 function paginaSiguiente() {
   paginaActual++;
   cargarEdificios();
