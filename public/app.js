@@ -447,6 +447,7 @@ async function marcar(status) {
       method: "POST",
       body: JSON.stringify({
         departmentId: currentDept._id,
+        buildingId: currentDept.buildingId || currentBuildingId,
         status: status,
         note: nota.value
       })
