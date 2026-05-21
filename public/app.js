@@ -441,29 +441,47 @@ async function marcar(status) {
   if (!currentDept) return;
   btnOk.disabled = true;
   btnNo.disabled = true;
+
+  // Armamos el paquete de la visita
+  const datosVisita = {
+    departmentId: currentDept._id,
+    buildingId: currentDept.buildingId || currentBuildingId,
+    status: status,
+    note: nota.value.trim()
+  };
   
+  // 🛰️ CASO 1: Si el celular detecta nativamente que NO tiene internet
+  if (!navigator.onLine) {
+    guardarEnMochilaLocal("visitas_pendientes", datosVisita);
+    alert("⏳ Visita guardada localmente (Sin Señal). Se enviará sola apenas recuperes internet.");
+    
+    // Dejamos que el flujo continúe para que puedan pasar al siguiente departamento sin trabarse
+    nota.value = ""; // Limpiamos la nota anterior
+    btnSiguiente.style.display = "block";
+    return;
+  }
+  
+  // CASO 2: Intentamos enviar normalmente
   try {
-    await apiFetch("/visit", {
+    const res = await apiFetch("/visit", {
       method: "POST",
-      body: JSON.stringify({
-        departmentId: currentDept._id,
-        buildingId: currentDept.buildingId || currentBuildingId,
-        status: status,
-        note: nota.value
-      })
+      body: JSON.stringify(datosVisita)
     });
     
+    if (!res.ok) throw new Error(`Servidor respondió con código: ${res.status}`);
+    
+    nota.value = ""; // Limpiamos nota tras éxito
     btnSiguiente.style.display = "block";
   } catch (error) {
-    console.error(error);
-    btnOk.disabled = false;
-    btnNo.disabled = false;
+    console.error("Falla de red al marcar visita, respaldando...", error);
+    
+    // Si falló por micro-corte o timeout del servidor, lo guardamos en la mochila por las dudas
+    guardarEnMochilaLocal("visitas_pendientes", datosVisita);
+    alert("⏳ Hubo un problema de red. La visita quedó guardada en el celu para no perderse.");
+    
+    nota.value = "";
+    btnSiguiente.style.display = "block";
   }
-}
-
-async function siguiente() {
-  nota.value = "";
-  await cargarDepto();
 }
 //---------------------------------------------------------------------------------------------//
 
@@ -489,7 +507,7 @@ function cerrarReporte() {
   }
 }
 
-// 📱 Predicador: Envía el reporte capturando correctamente los nuevos campos
+// 📱 Predicador: Envía el reporte capturando correctamente los nuevos campos (Blindada Sin Internet)
 async function enviarReporte() {
   // Capturamos la descripción
   const descripcion = descProblema.value.trim();
@@ -524,25 +542,40 @@ async function enviarReporte() {
     return;
   }
 
-  // Imprimimos en consola para auditar qué estamos mandando exactamente
-  console.log("🚀 Enviando reporte con ID de edificio:", idEdificioLimpia);
+  // Armamos el paquete de datos del reporte idéntico a tu esquema original
+  const datosReporte = {
+    buildingId: idEdificioLimpia, 
+    departmentId: currentDept?._id || null,
+    departmentNumber: currentDept?.number || null, 
+    type: tipo,
+    description: descripcion,
+    reportedBy: nombreReporta, 
+    status: "PENDIENTE" 
+  };
 
+  // Imprimimos en consola para auditar qué estamos procesando
+  console.log("🚀 Procesando reporte con ID de edificio:", idEdificioLimpia);
+
+  // 🛰️ CASO 1: Si el celular detecta de antemano que está sin conexión a internet
+  if (!navigator.onLine) {
+    guardarEnMochilaLocal("reportes_pendientes", datosReporte);
+    
+    // Dejamos fluir la interfaz para comodidad del usuario
+    cerrarReporte();
+    descProblema.value = "";
+    if (inputNombre) inputNombre.value = ""; 
+    
+    alert("⚠️ Guardado localmente (Sin Internet). El reporte de problemas se enviará solo cuando recuperes señal.");
+    return;
+  }
+
+  // CASO 2: Intentamos enviar normalmente por red
   try {
-    // Apuntamos a tu ruta "/issues"
     const res = await apiFetch("/issues", {
       method: "POST",
-      body: JSON.stringify({
-        buildingId: idEdificioLimpia, 
-        departmentId: currentDept?._id || null,
-        departmentNumber: currentDept?.number || null, 
-        type: tipo,
-        description: descripcion,
-        reportedBy: nombreReporta, 
-        status: "PENDIENTE" 
-      })
+      body: JSON.stringify(datosReporte)
     });
 
-    // 2. Controlar si el servidor realmente aceptó el reporte
     if (res.ok) {
       cerrarReporte();
       descProblema.value = "";
@@ -554,8 +587,16 @@ async function enviarReporte() {
       alert("No se pudo enviar el reporte: " + (errorData.error || "Error en el servidor"));
     }
   } catch (error) {
-    console.error("Error crítico al enviar reporte:", error);
-    alert("Error crítico de comunicación. Revisa tu conexión.");
+    console.error("Error crítico al enviar reporte, respaldando...", error);
+    
+    // Si da un error de red imprevisto en plena carga, lo guardamos en el celular para salvarlo
+    guardarEnMochilaLocal("reportes_pendientes", datosReporte);
+    
+    cerrarReporte();
+    descProblema.value = "";
+    if (inputNombre) inputNombre.value = ""; 
+
+    alert("⏳ Problema temporal de red. El reporte quedó guardado de forma segura en tu celu y se reenviará automáticamente.");
   }
 }
 // 💻 Admin (NUEVA): Carga la info total del edificio cruzada con el incidente + Mini Mapa + Historial
@@ -1764,3 +1805,68 @@ function paginaSiguiente() {
   paginaActual++;
   cargarEdificios();
 }
+// 💾 Función genérica para guardar elementos en el localStorage del teléfono
+function guardarEnMochilaLocal(clave, datos) {
+  let listado = JSON.parse(localStorage.getItem(clave)) || [];
+  // Le agregamos una marca de tiempo para saber cuándo se tomó por las dudas
+  datos.guardadoEnLocalEl = new Date().toISOString(); 
+  listado.push(datos);
+  localStorage.setItem(clave, JSON.stringify(listado));
+}
+
+// 📡 El "Vigilante" del Internet: Se dispara solo cuando el celular recupera conexión
+window.addEventListener('online', async () => {
+  const visitasPendientes = JSON.parse(localStorage.getItem("visitas_pendientes")) || [];
+  const reportesPendientes = JSON.parse(localStorage.getItem("reportes_pendientes")) || [];
+
+  if (visitasPendientes.length === 0 && reportesPendientes.length === 0) return;
+
+  console.log(`📡 Conexión recuperada. Sincronizando: ${visitasPendientes.length} visitas y ${reportesPendientes.length} reportes...`);
+
+  let erroresCarga = false;
+
+  // 1. Despachamos las visitas retenidas
+  if (visitasPendientes.length > 0) {
+    const visitasNoEnviadas = [];
+    for (let visita of visitasPendientes) {
+      try {
+        const res = await apiFetch("/visit", { method: "POST", body: JSON.stringify(visita) });
+        if (!res.ok) throw new Error();
+      } catch (err) {
+        visitasNoEnviadas.push(visita);
+        erroresCarga = true;
+      }
+    }
+    if (visitasNoEnviadas.length > 0) {
+      localStorage.setItem("visitas_pendientes", JSON.stringify(visitasNoEnviadas));
+    } else {
+      localStorage.removeItem("visitas_pendientes");
+    }
+  }
+
+  // 2. Despachamos los reportes (issues) retenidos
+  if (reportesPendientes.length > 0) {
+    const reportesNoEnviados = [];
+    for (let reporte of reportesPendientes) {
+      try {
+        const res = await apiFetch("/issues", { method: "POST", body: JSON.stringify(reporte) });
+        if (!res.ok) throw new Error();
+      } catch (err) {
+        reportesNoEnviados.push(reporte);
+        erroresCarga = true;
+      }
+    }
+    if (reportesNoEnviados.length > 0) {
+      localStorage.setItem("reportes_pendientes", JSON.stringify(reportesNoEnviados));
+    } else {
+      localStorage.removeItem("reportes_pendientes");
+    }
+  }
+
+  // Avisamos con un cartel sutil al usuario si todo se sincronizó bien
+  if (!erroresCarga) {
+    alert("🔄 ¡Datos sincronizados! Las visitas y reportes tomados sin internet ya se subieron al servidor con éxito.");
+    // Opcional: Si estás en el panel admin, refrescamos la vista
+    if (typeof cargarEdificios === "function") cargarEdificios();
+  }
+});
