@@ -218,18 +218,19 @@
     .alerta { background: #ef4444 !important; }
     
     #loginScreen {
-      position: fixed;
-      inset: 0;
-      background: #09090b;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-    }
-    
-    .loginCard {
-      width: 100%;
-      max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; /* ⬅️ Lo empuja hacia el techo de la pantalla */
+    align-items: center;         /* Mantiene el centrado horizontal */
+    padding-top: 7vh;            /* ⬅️ Margen superior inteligente para que no pegue al borde */
+    min-height: 100vh;           /* Usa min-height en vez de height fijo para que sea elástico */
+    box-sizing: border-box;
+}
+
+  .loginCard {
+      width: 90%;                  /* Se adapta bien a pantallas chicas */
+      max-width: 360px;            /* No se deforma en pantallas grandes */
+      margin: 0 auto;
       background: #111113;
       border: 1px solid #27272a;
       padding: 24px;
