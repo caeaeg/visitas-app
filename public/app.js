@@ -707,9 +707,8 @@ async function verDetalleIncidenteAdmin(incidente, index) {
     panel.innerHTML = `<p style="color:#ef4444; padding:20px; text-align:center;">⚠️ Error al sincronizar: ${err.message}</p>`;
   }
 }
-// Función para abrir la ventana del historial completo departamento por departamento
+// Función corregida para abrir el historial usando la ruta existente del servidor
 async function abrirHistorialEdificio() {
-    // 🌟 USAMOS TU VARIABLE EXISTENTE DIRECTAMENTE
     const idEdificio = currentBuildingId; 
     const contenedorHistorial = document.getElementById("historialContenido");
     const modal = document.getElementById("modalHistorial");
@@ -723,12 +722,15 @@ async function abrirHistorialEdificio() {
     contenedorHistorial.innerHTML = `<p style="color:#71717a; text-align:center; padding:20px; font-size:13px;">Buscando registros...</p>`;
 
     try {
-        // Consultamos el historial al backend pasándole tu variable
-        const res = await apiFetch(`/admin/visits?buildingId=${idEdificio}`);
+        // Usa la ruta que SI existe y que no da error 404
+        const res = await apiFetch(`/building-info/${idEdificio}`);
         if (!res.ok) throw new Error("No se pudo obtener el historial");
         
         const resData = await res.json();
-        const visitas = resData.data || resData || []; 
+        
+        // Mapeamos de dónde vienen las visitas en tu estructura de datos compartida
+        // Probamos con todas las variantes posibles que devuelve tu backend
+        const visitas = resData.history || resData.visits || resData.visitas || (resData.lastVisit ? [resData.lastVisit] : []); 
 
         if (visitas.length === 0) {
             contenedorHistorial.innerHTML = `
@@ -739,7 +741,7 @@ async function abrirHistorialEdificio() {
             return;
         }
 
-        // Ordenamos las visitas más nuevas primero
+        // Ordenamos las visitas por fecha (más nuevas primero)
         visitas.sort((a, b) => new Date(b.date || b.fecha || b.createdAt) - new Date(a.date || a.fecha || a.createdAt));
 
         contenedorHistorial.innerHTML = "";
@@ -767,7 +769,7 @@ async function abrirHistorialEdificio() {
             }
 
             const tarjetaVisita = `
-                <div style="background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 6px;">
+                <div style="background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-weight: bold; color: #f4f4f5; font-size: 14px;">🚪 Depto / Unidad: <span style="color:#3b82f6;">${depto}</span></span>
                         <span style="font-size: 11px; color: #a1a1aa;">📅 ${fechaFormateada}</span>
@@ -775,7 +777,7 @@ async function abrirHistorialEdificio() {
                     
                     <div style="display: flex; gap: 8px; align-items: center; margin-top: 2px;">
                         <span style="background: ${badgeColor}; color: white; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${badgeText}</span>
-                        ${tieneProblema ? `<span style="background: #ef4444; color: white; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: bold;">⚠️ PROBLEMA REPORTADO</span>` : ''}
+                        ${tieneProblema ? `<span style="background: #ef4444; color: white; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: bold;">⚠️ PROBLEMA</span>` : ''}
                         ${vis.user || vis.usuario ? `<span style="font-size: 11px; color: #71717a;">Por: ${vis.user || vis.usuario}</span>` : ''}
                     </div>
 
@@ -1313,17 +1315,43 @@ async function cargarEdificios() {
       actualizarMarcadoresMapa(edificiosFiltrados);
     }
 
-    // 🚀 10. CENTRADO INTELIGENTE Y CERCANO EN EL TERRITORIO SELECCIONADO
-    if (territorioFiltro && typeof mapaGeneral !== 'undefined' && mapaGeneral && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON) {
-      let capaGeoJSONTemp = L.geoJSON(misTerritoriosGeoJSON, {
-        filter: (f) => String(f.properties.name || f.properties.Territorio_N) === String(territorioFiltro)
-      });
+    // Definimos cuál es la variable real del mapa general (para evitar errores si cambia de nombre)
+    const miMapaReal = (typeof mapaGeneral !== 'undefined' && mapaGeneral !== null) ? mapaGeneral : 
+                       (typeof leafletMap !== 'undefined' && leafletMap !== null) ? leafletMap : 
+                       (typeof map !== 'undefined' && map !== null) ? map : null;
 
-      if (capaGeoJSONTemp.getLayers().length > 0) {
-        mapaGeneral.fitBounds(capaGeoJSONTemp.getBounds(), { 
-          padding: [40, 40], 
-          maxZoom: 16 // Fiel reflejo de cercanía ideal para ver calles de Posadas
+    if (miMapaReal) {
+      // 🚀 10. ENCUADRE INTELIGENTE SEGÚN BÚSQUEDA POR TEXTO (Para evitar el mapa alejado)
+      if (busqueda && edificiosFiltrados.length > 0) {
+        // Filtramos solo los que tengan coordenadas válidas
+        const conCoordenadas = edificiosFiltrados.filter(e => {
+          const lat = parseFloat(e.latitude || e.lat);
+          const lng = parseFloat(e.longitude || e.lng);
+          return !isNaN(lat) && !isNaN(lng) && lat !== 0;
         });
+
+        if (conCoordenadas.length === 1) {
+          // Si queda un único edificio (como en tu captura), clavamos un zoom 16 bien cerca de las calles
+          const unico = conCoordenadas[0];
+          miMapaReal.setView([parseFloat(unico.latitude || unico.lat), parseFloat(unico.longitude || unico.lng)], 16);
+        } else if (conCoordenadas.length > 1) {
+          // Si quedan varios, armamos un grupo de coordenadas para que el mapa se encuadre justo en ese rango
+          const grupoPuntos = conCoordenadas.map(e => [parseFloat(e.latitude || e.lat), parseFloat(e.longitude || e.lng)]);
+          miMapaReal.fitBounds(grupoPuntos, { padding: [30, 30], maxZoom: 16 });
+        }
+      }
+      // 🚀 11. CENTRADO INTELIGENTE Y CERCANO EN EL TERRITORIO SELECCIONADO
+      else if (territorioFiltro && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON) {
+        let capaGeoJSONTemp = L.geoJSON(misTerritoriosGeoJSON, {
+          filter: (f) => String(f.properties.name || f.properties.Territorio_N) === String(territorioFiltro)
+        });
+
+        if (capaGeoJSONTemp.getLayers().length > 0) {
+          miMapaReal.fitBounds(capaGeoJSONTemp.getBounds(), { 
+            padding: [40, 40], 
+            maxZoom: 16 // Fiel reflejo de cercanía ideal para ver calles de Posadas
+          });
+        }
       }
     }
 
