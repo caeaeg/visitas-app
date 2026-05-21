@@ -177,7 +177,7 @@ app.post(
   }
 );
 
-// 🔹 VISITA (Corregida para evitar Error 500 si no se especifica departamento)
+// 🔹 VISITA (¡Blindada contra el requerimiento de buildingId!)
 app.post(
   "/visit",
   requireLogin,
@@ -185,17 +185,36 @@ app.post(
   async (req, res) => {
     try {
       let { departmentId, status, note, buildingId } = req.body;
-      // Safe-guard: Si no viene departmentId pero sí buildingId, le asignamos el primer depto disponible
+
+      // 1. Si viene departmentId pero falta buildingId, lo buscamos en la base de datos
+      if (departmentId && !buildingId) {
+        const deptoInfo = await Department.findById(departmentId);
+        if (deptoInfo) {
+          buildingId = deptoInfo.buildingId;
+        }
+      }
+
+      // 2. Si venía desde el Admin con buildingId pero sin depto, buscamos el primer depto
       if (!departmentId && buildingId) {
         const primerDepto = await Department.findOne({ buildingId });
         if (primerDepto) {
           departmentId = primerDepto._id;
         }
       }
-      if (!departmentId || !status) {
-        return res.status(400).send("Datos incompletos: falta vincular departamento o estado.");
+
+      // 3. Validación final estricta
+      if (!departmentId || !status || !buildingId) {
+        return res.status(400).send("Datos incompletos: se requiere departamento, edificio y estado.");
       }
-      const visit = new Visit({ departmentId, status, note });
+
+      // 4. Creamos la visita asegurándonos de pasarle SÍ O SÍ el buildingId que exige tu modelo
+      const visit = new Visit({ 
+        departmentId, 
+        buildingId, // <--- Esto es lo que hacía explotar a MongoDB
+        status, 
+        note 
+      });
+
       await visit.save();
       res.json(visit);
     } catch (err) {
