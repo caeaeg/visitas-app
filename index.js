@@ -177,22 +177,30 @@ app.post(
   }
 );
 
-// 🔹 VISITA
+// 🔹 VISITA (Corregida para evitar Error 500 si no se especifica departamento)
 app.post(
   "/visit",
   requireLogin,
   requireRole(["admin","conductor","predi"]),
   async (req, res) => {
     try {
-      const { departmentId, status, note } = req.body;
+      let { departmentId, status, note, buildingId } = req.body;
+      // Safe-guard: Si no viene departmentId pero sí buildingId, le asignamos el primer depto disponible
+      if (!departmentId && buildingId) {
+        const primerDepto = await Department.findOne({ buildingId });
+        if (primerDepto) {
+          departmentId = primerDepto._id;
+        }
+      }
       if (!departmentId || !status) {
-        return res.status(400).send("Datos incompletos");
+        return res.status(400).send("Datos incompletos: falta vincular departamento o estado.");
       }
       const visit = new Visit({ departmentId, status, note });
       await visit.save();
       res.json(visit);
     } catch (err) {
-      res.status(500).send("Error guardando visita");
+      console.error("❌ Error guardando visita en index.js:", err.message);
+      res.status(500).send("Error guardando visita: " + err.message);
     }
   }
 );
@@ -415,7 +423,7 @@ app.get(
   }
 );
 
-// 🔹 BUILDING INFO
+// 🔹 BUILDING INFO (Actualizada para inyectar la lista de historial completa)
 app.get(
   "/building-info/:id",
   requireLogin,
@@ -425,12 +433,34 @@ app.get(
       const building = await Building.findById(req.params.id);
       if (!building) return res.status(404).send("Edificio no encontrado");
 
-      const deptIds = await Department.find({ buildingId: building._id }).distinct("_id");
+      // Buscamos todos los departamentos y sus IDs para este edificio
+      const departments = await Department.find({ buildingId: building._id });
+      const deptIds = departments.map(d => d._id);
+
+      // Traemos las visitas asociadas a esos departamentos
       const lastVisit = await Visit.findOne({ departmentId: { $in: deptIds } }).sort({ date: -1 });
       const issue = await Issue.findOne({ buildingId: building._id, status: { $ne: "RESUELTO" } }).sort({ createdAt: -1 });
       
-      res.json({ building, lastVisit, issue });
+      // 🚀 INYECCIÓN CRUCIAL: Buscamos todas las visitas del edificio para alimentar el botón de Historial
+      const rawVisits = await Visit.find({ departmentId: { $in: deptIds } }).sort({ date: -1 }).limit(50);
+      
+      // Creamos un mapa rápido en memoria para cruzar el ID del depto con su nombre legible (ej: "PB A", "1B")
+      const deptoMap = {};
+      departments.forEach(d => { deptoMap[d._id.toString()] = d.number; });
+
+      // Transformamos el historial agregándole el número de puerta/departamento para que el Frontend lo renderice lindo
+      const history = rawVisits.map(v => ({
+        _id: v._id,
+        date: v.date,
+        status: v.status,
+        notes: v.note,
+        department: deptoMap[v.departmentId?.toString()] || "-"
+      }));
+
+      // Ahora enviamos todo junto de manera segura
+      res.json({ building, lastVisit, issue, history });
     } catch (err) {
+      console.error("❌ Error en GET /building-info:", err.message);
       res.status(500).send("Error obteniendo info de edificio");
     }
   }
