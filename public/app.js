@@ -1513,14 +1513,14 @@ async function verListado() {
 
 
 
-
+// ------------------------------------------------------------- ENVIAR NUEVO EDIFICIO O MODIFICACIONES ---
 
 
 
 function crearEdificio() {
   abrirEditorEdificio();
 }
-// --- ENVIAR NUEVO EDIFICIO O MODIFICACIONES ---
+
 
 async function guardarEdificio(id = null) {
   // Captura segura de datos
@@ -1540,6 +1540,9 @@ async function guardarEdificio(id = null) {
 
   const url = id ? `/building/${id}` : "/building";
   const method = id ? "PUT" : "POST";
+
+  // 🕵️‍♂️ AGREGÁ ESTA LÍNEA ACÁ PARA ESPIAR:
+  console.log("📦 PAYLOAD QUE SALE AL SERVIDOR:", payload);
 
   try {
     const res = await apiFetch(url, {
