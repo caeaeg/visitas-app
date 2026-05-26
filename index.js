@@ -118,13 +118,28 @@ app.get(
 );
 
 // 🔹 CREAR BUILDING (Arreglado el bug de pisos y preparado para Leaflet con lat/lng)
+// 🔹 CREAR BUILDING (Arreglado: Ahora guarda address2, name y description sin perder datos)
 app.post(
   "/building",
   requireLogin,
   requireRole(["admin", "conductor", "predi"]),
   async (req, res) => {
     try {
-      let { address, floors, unitsPerFloor, hasGroundFloor, hasDoorman, latitude, longitude, territory } = req.body;
+      // 🕵️‍♂️ AGREGADOS: address2, name, description al desempaquetar el req.body
+      let { 
+        address, 
+        address2, 
+        name, 
+        description, 
+        floors, 
+        unitsPerFloor, 
+        hasGroundFloor, 
+        hasDoorman, 
+        latitude, 
+        longitude, 
+        territory 
+      } = req.body;
+
       if (!address || !floors || !unitsPerFloor) {
         return res.status(400).json({ error: "DATOS_INCOMPLETOS" });
       }
@@ -141,9 +156,13 @@ app.post(
         return res.json({ message: "EXISTS", building: existing });
       }
       
+      // 📦 Guardamos el edificio pasando absolutamente todos los campos a MongoDB
       const building = new Building({
         code: normalizedAddress,
         address: normalizedAddress,
+        address2: address2 ? address2.trim() : "", // ⬅️ Guardado seguro
+        name: name ? name.trim() : "",             // ⬅️ Guardado seguro
+        description: description ? description.trim() : "", // ⬅️ Guardado seguro
         floors,
         unitsPerFloor,
         hasGroundFloor,
@@ -172,6 +191,7 @@ app.post(
       }
       res.json({ message: "CREATED", building });
     } catch (err) {
+      console.error("Error al crear edificio en backend:", err);
       res.status(500).send("Error creando edificio");
     }
   }
