@@ -358,49 +358,40 @@ async function mostrarInfoEdificio() {
       reportBtn.style.display = "none"; 
     }
 
-    infoEdificio.style.display = "block";
+    // Activamos el contenedor principal
+    infoEdificio.style.display = "flex";
+    
     infoEdificio.innerHTML = `
-      <div class="sectionCard" style="background: #1e1e1e; border: 1px solid #2b2b2b; padding: 16px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-        ${cartelNuevoHtml}
-        
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 12px;">
-          <div>
-            <div style="font-size:22px; font-weight:bold; color:white; line-height:1.2;">${b.address}</div>
-            <div style="color:#a1a1aa; font-size:13px; margin-top:4px;">${b.address2 || "Sin datos adicionales"}</div>
-          </div>
-          <div style="background:#2b2b2b; padding:6px 10px; border-radius:10px; font-size:12px; font-weight:600; white-space:nowrap; color:#e4e4e7;">🏢 ${b.name || "Edificio"}</div>
+      ${cartelNuevoHtml}
+      
+      <div class="edificio-header">
+        <div class="edificio-title-wrapper">
+          <h2>${b.address}</h2>
+          <span>${b.address2 || "Sin datos adicionales"}</span>
         </div>
-
-        <div style="display: flex; gap: 14px; align-items: stretch;">
-          
-          <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; font-size: 13px; color:#e4e4e7;">
-            <div style="display:flex; flex-direction:column; gap:6px;">
-              <div>🗺️ <b>Territorio:</b> <span style="color:#a1a1aa;">${b.territory || "-"}</span></div>
-              <div>🔢 <b>Pisos:</b> <span style="color:#a1a1aa;">${b.floors || 0}</span></div>
-              <div>📋 <b>Notas:</b> <span style="color:#a1a1aa; font-style: italic;">${b.description || "Sin anotaciones de administración."}</span></div>
-            </div>
-            
-            <div style="margin-top: 10px; font-size: 11px; color:#71717a; border-top: 1px solid #2b2b2b; padding-top: 6px;">
-              🕒 <b>Última visita:</b> ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString() : "Nunca"}
-            </div>
-          </div>
-
-          <div style="width: 140px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;">
-            <div id="miniMapaPredi" class="mapaBox" style="width: 140px; height: 140px; border-radius: 12px; border: 1px solid #3f3f46; background:#252525; pointer-events: none;"></div>
-            
-            <button onclick="abrirReporte()" style="width:100%; min-height:34px; background:#3f1f1f; color:#f87171; border:1px solid #ef4444; padding:6px 4px; border-radius:10px; font-size:11px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:4px; margin:0; white-space: nowrap;">
-              ⚠️ Reportar problema
-            </button>
-          </div>
-
-        </div>
-
-        ${data.issue ? `
-          <div style="background:#451a1a; color:#fca5a5; border:1px solid #b91c1c; padding:10px; border-radius:10px; margin-top:14px; font-size:12px; font-weight:500; line-height:1.4;">
-            ⚠ <b>Alerta activa (${data.issue.type}):</b> ${data.issue.description || "Sin detalles"}
-          </div>
-        ` : ""}
+        <div class="edificio-badge">🏢 ${b.name || "Edificio"}</div>
       </div>
+
+      <div class="edificio-body">
+        <div class="edificio-info-list">
+          <div class="edificio-info-item">🗺️ <strong>Territorio:</strong> <span>${b.territory || "-"}</span></div>
+          <div class="edificio-info-item">🔢 <strong>Pisos:</strong> <span>${b.floors || 0}</span></div>
+          <div class="edificio-notas">📝 <strong>Notas:</strong> <span>${b.description || "Sin anotaciones de administración."}</span></div>
+        </div>
+
+        <div id="miniMapaPredi" style="width: 110px; height: 110px; border-radius: 8px; border: 1px solid #3f3f46; background:#252525; pointer-events: none; flex-shrink: 0;"></div>
+      </div>
+
+      <div class="edificio-footer">
+        <span>🕒 Última visita: ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString() : "Nunca"}</span>
+        <button class="btn-reportar-sutil" onclick="abrirReporte()">⚠️ Reportar problema</button>
+      </div>
+
+      ${data.issue ? `
+        <div style="background:#451a1a; color:#fca5a5; border:1px solid #b91c1c; padding:10px; border-radius:10px; margin-top:10px; font-size:12px; font-weight:500; line-height:1.4; width: 100%;">
+          ⚠ <b>Alerta activa (${data.issue.type}):</b> ${data.issue.description || "Sin detalles"}
+        </div>
+      ` : ""}
     `;
 
     // --- RENDERIZACIÓN DEL MAPA CON FILTRADO O COORDENADAS ---
@@ -438,7 +429,7 @@ async function mostrarInfoEdificio() {
         }).addTo(prediMiniMap);
 
         if (capaGeoJSON.getLayers().length > 0) {
-          prediMiniMap.fitBounds(capaGeoJSON.getBounds(), { padding: [10, 10] });
+          prediMiniMap.fitBounds(capaGeoJSON.getBounds(), { padding: [5, 5] });
           centradoExitoso = true;
         }
       }
@@ -448,7 +439,7 @@ async function mostrarInfoEdificio() {
         prediMiniMap.setView([-27.36708, -55.89608], 14);
       }
 
-      // El timeout asegura que Leaflet lea el nuevo tamaño cuadrado (140x140) perfectamente
+      // Ajustado el recalculo de tamaño al nuevo formato de 110x110
       setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 220);
     }
   } catch (error) {
