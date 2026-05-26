@@ -26,7 +26,7 @@ app.listen(PORT, () => {
 
 app.post("/login", auth);
 
-// 🔹 NEXT (Optimizado a 4 meses y filtrado por edificio específico)
+// 🔹 NEXT (¡Corregido y Optimizado a 4 meses!)
 app.get(
   "/next/:buildingId",
   requireLogin,
@@ -47,34 +47,34 @@ app.get(
         return res.json({ message: "NO_AVAILABLE" });
       }
 
-      // 3. Buscamos qué departamentos de ESTE edificio fueron atendidos en los últimos 4 meses
+      // 3. Buscamos qué departamentos de ESTE edificio fueron atendidos recientemente
       const visitasRecientes = await Visit.find({
-        buildingId: buildingId, // 🛡️ Filtro crucial para que no lea toda la base de datos de Posadas
+        buildingId: buildingId, // 🛡️ Filtro por edificio para no colapsar la BD
         status: "ATENDIO",
         date: { $gte: cuatroMesesAtras }
       });
       
       const deptosBloqueadosIds = visitasRecientes.map(v => v.departmentId.toString());
       
-      // 4. Filtramos la lista localmente dejando solo los disponibles para sorteo
-      const deptosDisponibles = todosLosDeltaDelEdificio.filter(d => 
+      // 4. 🛠️ CORREGIDO ACÁ: Usamos el nombre de variable correcto para filtrar
+      const deptosDisponibles = todosLosDeptosDelEdificio.filter(d => 
         !deptosBloqueadosIds.includes(d._id.toString())
       );
       
-      // 5. Si no queda ninguno que cumpla los requisitos, cerramos el edificio
+      // 5. Si no queda ninguno disponible, avisamos al frontend para cerrar el circuito
       if (!deptosDisponibles.length) {
         return res.json({ message: "NO_AVAILABLE" });
       }
       
-      // 6. Sorteo aleatorio puro entre los que sí están disponibles
+      // 6. Sorteo aleatorio puro entre las opciones libres
       const dept = deptosDisponibles[Math.floor(Math.random() * deptosDisponibles.length)];
       
-      // 7. Buscamos la última visita de este departamento en particular para mostrar de historial
+      // 7. Buscamos el historial de la última visita de este departamento en particular
       const lastVisit = await Visit.findOne({ departmentId: dept._id }).sort({ date: -1 });
       
       res.json({ dept, lastVisit });
     } catch (err) {
-      console.error("Error en ruta NEXT:", err);
+      console.error("Error real en ruta NEXT:", err);
       res.status(500).send("Error en NEXT");
     }
   }
