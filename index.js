@@ -26,36 +26,55 @@ app.listen(PORT, () => {
 
 app.post("/login", auth);
 
-// 🔹 NEXT (Optimizado)
+// 🔹 NEXT (Optimizado a 4 meses y filtrado por edificio específico)
 app.get(
   "/next/:buildingId",
   requireLogin,
   requireRole(["admin", "conductor", "predi"]),
   async (req, res) => {
     try {
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      const buildingId = req.params.buildingId;
+
+      // 1. Calculamos la veda estricta de 4 meses atrás
+      const cuatroMesesAtras = new Date();
+      cuatroMesesAtras.setMonth(cuatroMesesAtras.getMonth() - 4);
       
-      const visits = await Visit.find({
+      // 2. Traemos SOLO los departamentos que pertenecen a ESTE edificio
+      const todosLosDeptosDelEdificio = await Department.find({ buildingId: buildingId });
+      const idsDeptos = todosLosDeptosDelEdificio.map(d => d._id);
+
+      if (!idsDeptos.length) {
+        return res.json({ message: "NO_AVAILABLE" });
+      }
+
+      // 3. Buscamos qué departamentos de ESTE edificio fueron atendidos en los últimos 4 meses
+      const visitasRecientes = await Visit.find({
+        buildingId: buildingId, // 🛡️ Filtro crucial para que no lea toda la base de datos de Posadas
         status: "ATENDIO",
-        date: { $gte: sixMonthsAgo }
-      });
-      const blockedIds = visits.map(v => v.departmentId.toString());
-      
-      const departments = await Department.find({
-        buildingId: req.params.buildingId,
-        _id: { $nin: blockedIds }
+        date: { $gte: cuatroMesesAtras }
       });
       
-      if (!departments.length) {
+      const deptosBloqueadosIds = visitasRecientes.map(v => v.departmentId.toString());
+      
+      // 4. Filtramos la lista localmente dejando solo los disponibles para sorteo
+      const deptosDisponibles = todosLosDeltaDelEdificio.filter(d => 
+        !deptosBloqueadosIds.includes(d._id.toString())
+      );
+      
+      // 5. Si no queda ninguno que cumpla los requisitos, cerramos el edificio
+      if (!deptosDisponibles.length) {
         return res.json({ message: "NO_AVAILABLE" });
       }
       
-      const dept = departments[Math.floor(Math.random() * departments.length)];
+      // 6. Sorteo aleatorio puro entre los que sí están disponibles
+      const dept = deptosDisponibles[Math.floor(Math.random() * deptosDisponibles.length)];
+      
+      // 7. Buscamos la última visita de este departamento en particular para mostrar de historial
       const lastVisit = await Visit.findOne({ departmentId: dept._id }).sort({ date: -1 });
       
       res.json({ dept, lastVisit });
     } catch (err) {
+      console.error("Error en ruta NEXT:", err);
       res.status(500).send("Error en NEXT");
     }
   }
