@@ -24,7 +24,7 @@
   </script>
 
   <style>
-    /* --- CSS: CONFIGURACIÓN BASE Y REINICIO --- */
+    /* --- CSS: CONFIGURACIÓN BASE Y REINICIO (Optimizado para Accesibilidad Visual) --- */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -32,13 +32,13 @@
     }
     
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      font-size: 15px;
-      line-height: 1.5;
-      letter-spacing: 0.1px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 17px; /* 👓 Aumentado para mejorar lectura en calle */
+      line-height: 1.6; /* 👓 Mayor separación entre líneas */
+      letter-spacing: 0.2px;
       padding: 16px;
       background: #09090b;
-      color: #e4e4e7;
+      color: #f4f4f7; /* 👓 Mayor contraste de blancos */
     }
 
     /* --- CSS: COMPONENTES GLOBALES DE FORMULARIOS --- */
@@ -46,13 +46,13 @@
       box-sizing: border-box;
       font-family: inherit;
       width: 100%;
-      padding: 12px 14px;
+      padding: 14px 16px; /* 👓 Más amplio para tocar con comodidad */
       margin: 8px 0;
-      font-size: 15px;
+      font-size: 17px; /* 👓 Letras notablemente más grandes en toda la interfaz */
       border-radius: 8px;
       background: #18181b;
       color: #ffffff;
-      border: 1px solid #27272a;
+      border: 1px solid #3f3f46; /* 👓 Bordes con mejor contraste visual */
       transition: background 0.2s ease, border 0.2s ease, transform 0.1s ease;
     }
 
@@ -63,18 +63,19 @@
     }
 
     input::placeholder, textarea::placeholder {
-      color: #71717a;
+      color: #a1a1aa; /* 👓 Gris más claro para que sea legible */
     }
 
     /* --- CSS: BOTONES Y ACCIONES --- */
     button {
       cursor: pointer;
-      font-weight: 600;
+      font-weight: 700; /* 👓 Mayor grosor tipográfico */
       border: none;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
+      font-size: 17px;
     }
 
     button:active {
@@ -86,27 +87,28 @@
 
     .secondary {
       background: #27272a;
-      color: #f4f4f5;
-      border: 1px solid #3f3f46;
+      color: #ffffff;
+      border: 1px solid #52525b; /* 👓 Mayor definición de borde secundario */
     }
     .secondary:hover { background: #3f3f46; }
 
+    /* 🎨 Estilo Cuadrado Estético y Compacto para Fila Única */
     .ok {
-      background: linear-gradient(135deg, #22c55e, #15803d);
+      background: #16a34a; /* Verde plano de alta visibilidad */
       color: #ffffff;
-      min-height: 56px;
-      font-size: 16px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+      height: 54px;
+      font-size: 17px;
+      border-radius: 6px; /* 📐 Estilo cuadrado pulido */
+      box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25);
     }
 
     .no {
-      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      background: #dc2626; /* Rojo plano de alta visibilidad */
       color: #ffffff;
-      min-height: 56px;
-      font-size: 16px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+      height: 54px;
+      font-size: 17px;
+      border-radius: 6px; /* 📐 Estilo cuadrado pulido */
+      box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
     }
 
     /* --- CSS: SECCIONES GENERALES Y VISTAS --- */
@@ -125,7 +127,7 @@
     }
 
     h2 {
-      font-size: 24px;
+      font-size: 26px; /* 👓 Letra más imponente */
       font-weight: 700;
       margin-bottom: 16px;
       color: #ffffff;
@@ -153,29 +155,30 @@
 
     #infoEdificio {
       background: #18181b;
-      padding: 12px;
+      padding: 14px;
       border-radius: 8px;
       margin-top: 12px;
       display: none;
-      font-size: 13px;
-      border: 1px solid #27272a;
+      font-size: 15px; /* 👓 Aumentado */
+      border: 1px solid #3f3f46;
     }
 
     #listaTerritorio button {
       text-align: left;
       background: #18181b;
-      border: 1px solid #27272a;
-      padding: 12px;
+      border: 1px solid #3f3f46;
+      padding: 14px;
+      font-size: 16px;
     }
 
     .link {
-      color: #3b82f6;
+      color: #60a5fa; /* 👓 Azul más claro y brillante para el modo oscuro */
       cursor: pointer;
       text-decoration: none;
-      font-size: 14px;
+      font-size: 16px; /* 👓 Aumentado */
       text-align: center;
-      margin: 12px 0;
-      font-weight: 500;
+      margin: 14px 0;
+      font-weight: 600;
     }
     .link:hover { text-decoration: underline; }
 
@@ -184,14 +187,14 @@
       position: fixed;
       top: 12px;
       right: 15px;
-      width: 42px;
-      height: 42px;
+      width: 46px;
+      height: 46px;
       border-radius: 10px;
       background: #18181b;
       color: white;
-      font-size: 18px;
+      font-size: 20px;
       z-index: 999;
-      border: 1px solid #27272a;
+      border: 1px solid #3f3f46;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
 
@@ -202,10 +205,10 @@
       transform: translateX(-50%);
       background: #ef4444;
       color: white;
-      width: 56px;
-      height: 56px;
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
-      font-size: 22px;
+      font-size: 24px;
       display: none;
       align-items: center;
       justify-content: center;
@@ -218,21 +221,21 @@
     .alerta { background: #ef4444 !important; }
     
     #loginScreen {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start; /* ⬅️ Lo empuja hacia el techo de la pantalla */
-    align-items: center;         /* Mantiene el centrado horizontal */
-    padding-top: 7vh;            /* ⬅️ Margen superior inteligente para que no pegue al borde */
-    min-height: 100vh;           /* Usa min-height en vez de height fijo para que sea elástico */
-    box-sizing: border-box;
-}
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      padding-top: 7vh;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
 
-  .loginCard {
-      width: 90%;                  /* Se adapta bien a pantallas chicas */
-      max-width: 360px;            /* No se deforma en pantallas grandes */
+    .loginCard {
+      width: 90%;
+      max-width: 360px;
       margin: 0 auto;
       background: #111113;
-      border: 1px solid #27272a;
+      border: 1px solid #3f3f46;
       padding: 24px;
       border-radius: 16px;
       box-shadow: 0 20px 40px rgba(0,0,0,0.6);
@@ -241,8 +244,8 @@
     #loginMsg {
       text-align: center;
       margin-top: 8px;
-      color: #ef4444;
-      font-size: 13px;
+      color: #f87171;
+      font-size: 15px;
       min-height: 18px;
     }
 
@@ -264,7 +267,7 @@
       width: 100%;
       max-width: 440px;
       background: #18181b !important;
-      border: 1px solid #27272a;
+      border: 1px solid #3f3f46;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
       transform: scale(0.96);
       animation: scaleUpModal 0.2s forwards ease-out;
@@ -276,7 +279,7 @@
     /* --- CSS: REGLAS ESPECÍFICAS DE LEAFLET --- */
     .leaflet-container {
       text-align: left;
-      font-size: 12px;
+      font-size: 14px; /* 👓 Aumentado */
       font-family: inherit !important;
     }
     .texto-territorio-elegante {
@@ -284,8 +287,8 @@
       border: 1px solid rgba(59, 130, 246, 0.5) !important;
       color: #ffffff !important;
       font-weight: 700 !important;
-      font-size: 11px !important;
-      padding: 3px 6px !important;
+      font-size: 13px !important; /* 👓 Letras del mapa más claras */
+      padding: 4px 8px !important;
       border-radius: 4px !important;
       box-shadow: 0 4px 6px rgba(0,0,0,0.5) !important;
       white-space: nowrap !important;
@@ -307,7 +310,7 @@
       justify-content: space-between;
       align-items: center;
       background: #111113;
-      padding: 10px 16px;
+      padding: 12px 16px;
       border-radius: 12px;
       margin-bottom: 16px;
       border: 1px solid #27272a;
@@ -316,22 +319,23 @@
     .btn-atras-sutil {
       background: #27272a;
       color: #fff;
-      font-size: 14px;
-      width: 32px;
-      height: 32px;
+      font-size: 16px;
+      width: 36px;
+      height: 36px;
       border-radius: 6px;
       margin: 0; padding: 0;
     }
     .btn-atras-sutil:hover { background: #3f3f46; }
-    .nav-title { font-size: 16px; font-weight: 600; color: #ffffff; display: block; }
-    .nav-subtitle { font-size: 11px; color: #71717a; display: block; }
+    .nav-title { font-size: 18px; font-weight: 700; color: #ffffff; display: block; }
+    .nav-subtitle { font-size: 13px; color: #a1a1aa; display: block; }
     
     .btn-salir-sutil {
       background: #451a03;
       color: #fcd34d;
-      padding: 6px 12px;
+      padding: 8px 14px;
       border-radius: 6px;
-      font-size: 12px;
+      font-size: 13px;
+      font-weight: bold;
       width: auto; margin: 0;
     }
     .btn-salir-sutil:hover { background: #78350f; }
@@ -347,19 +351,19 @@
       background: #111113;
       border: 1px solid #27272a;
       border-radius: 10px;
-      padding: 10px 12px;
+      padding: 12px;
       display: flex;
       align-items: center;
       gap: 12px;
     }
     .stat-icon {
-      width: 36px;
-      height: 36px;
+      width: 40px;
+      height: 40px;
       border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 18px;
       flex-shrink: 0;
     }
     .b-blue { background: rgba(37, 99, 235, 0.15); }
@@ -367,8 +371,8 @@
     .b-orange { background: rgba(217, 119, 6, 0.15); }
     .b-red { background: rgba(220, 38, 38, 0.15); }
     
-    .stat-data h3 { margin: 0; font-size: 16px; font-weight: 700; color: #ffffff; }
-    .stat-data p { margin: 0; font-size: 11px; color: #a1a1aa; font-weight: 400; }
+    .stat-data h3 { margin: 0; font-size: 18px; font-weight: 700; color: #ffffff; }
+    .stat-data p { margin: 0; font-size: 13px; color: #a1a1aa; font-weight: 400; }
 
     /* --- CSS: PANEL DE ADMINISTRACIÓN - DISTRIBUCIÓN DE COLUMNAS --- */
     .workspace-grid {
@@ -379,7 +383,7 @@
 
     @media (min-width: 1024px) {
       .workspace-grid {
-        grid-template-columns: 260px 1fr 310px;
+        grid-template-columns: 280px 1fr 330px;
         align-items: start;
       }
     }
@@ -389,16 +393,16 @@
       background: #111113;
       border: 1px solid #27272a;
       border-radius: 12px;
-      padding: 12px;
+      padding: 14px;
       margin-bottom: 12px;
     }
-    .card-header-sm h3 { margin: 0 0 8px 0; font-size: 11px; color: #71717a; text-transform: uppercase; letter-spacing: 0.5px; }
+    .card-header-sm h3 { margin: 0 0 8px 0; font-size: 13px; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.5px; }
 
     .filtros-compactos { display: flex; flex-direction: column; gap: 4px; }
     .filtros-compactos input, .filtros-compactos select {
       background: #09090b;
-      padding: 8px 10px;
-      font-size: 13px;
+      padding: 10px 12px;
+      font-size: 15px;
       margin: 4px 0;
     }
     .filtro-doble-fila { display: flex; gap: 6px; }
@@ -417,8 +421,8 @@
       flex: 1;
       background: #18181b;
       border: 1px solid #27272a;
-      padding: 8px;
-      font-size: 12px;
+      padding: 10px;
+      font-size: 14px;
       margin: 0;
     }
     .btn-pag:hover { background: #27272a; }
@@ -452,7 +456,7 @@
       background: #111113;
       border: 1px solid #27272a;
       border-radius: 14px;
-      padding: 16px 20px;
+      padding: 18px 20px;
       cursor: pointer;
       transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
       display: flex;
@@ -473,16 +477,16 @@
     }
 
     .dashboardCard .icon {
-      font-size: 28px;
-      width: 50px;
-      height: 50px;
+      font-size: 32px;
+      width: 54px;
+      height: 54px;
       background: #18181b;
       border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      border: 1px solid #27272a;
+      border: 1px solid #3f3f46;
     }
 
     .dashboardCard-content {
@@ -495,13 +499,13 @@
     .dashboardCard h3 {
       color: #ffffff;
       margin: 0;
-      font-size: 16px;
-      font-weight: 600;
+      font-size: 18px; /* 👓 Letra del menú principal más clara */
+      font-weight: 700;
     }
 
     .dashboardCard p {
       color: #a1a1aa;
-      font-size: 13px;
+      font-size: 14px;
       margin: 0;
     }
 
@@ -510,7 +514,7 @@
       background: #18181b;
       border: 1px solid #27272a;
       border-radius: 8px;
-      padding: 10px 12px;
+      padding: 12px;
       margin-bottom: 8px;
       display: flex;
       justify-content: space-between;
@@ -528,16 +532,16 @@
       gap: 2px;
     }
     .edif-dir {
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 600;
       color: #ffffff;
     }
     .edif-sub {
-      font-size: 11px;
+      font-size: 13px;
       color: #a1a1aa;
     }
     .btn-ver-flecha {
-      font-size: 14px;
+      font-size: 16px;
       color: #71717a;
     }
     .edificio-item-lista:hover .btn-ver-flecha {
@@ -578,9 +582,9 @@
       background: transparent;
       border: none;
       color: #a1a1aa;
-      padding: 6px 10px;
-      font-size: 12px;
-      font-weight: 500;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-weight: 600;
       border-radius: 6px;
       margin: 0;
       cursor: pointer;
@@ -772,34 +776,32 @@
     
     <div id="infoEdificio"></div>
     <div id="listaTerritorio"></div>
-    <h3 id="resultado" style="text-align:center;"></h3>
-    
-    <textarea id="nota" placeholder="Nota de la visita..." style="display:none;"></textarea>
-    
-    <button id="btnOk" class="ok" onclick="marcar('ATENDIO')" style="display:none;">✔ ATENDIÓ</button>
-    <button id="btnNo" class="no" onclick="marcar('NO_EN_CASA')" style="display:none;">✖ NO EN CASA</button>
-    <button id="btnSiguiente" class="secondary" onclick="siguiente()" style="display:none;">➡ Siguiente depto</button>
-    <button id="btnNuevoEdificio" class="secondary" onclick="crearEdificio()" style="display:none;">➕ Agregar edificio</button>
+    <h3 id="resultado" style="text-align:center; margin-top: 10px; margin-bottom: 10px;"></h3>
+    <textarea id="nota" placeholder="Nota de la visita..." style="display:none; height: 100px; font-size: 18px;"></textarea>
+    <div id="botoneraVotacion" style="display: flex; gap: 10px; margin-top: 8px; width: 100%;">
+      <button id="btnOk" class="ok" onclick="marcar('ATENDIO')" style="display:none; flex: 1; margin: 0;">✔ ATENDIÓ</button>
+      <button id="btnNo" class="no" onclick="marcar('NO_EN_CASA')" style="display:none; flex: 1; margin: 0;">✕ NO EN CASA</button>
+    </div>
+    <button id="btnSiguiente" class="secondary" onclick="siguiente()" style="display:none; margin-top: 12px;">➡ Siguiente depto</button>
+    <button id="btnNuevoEdificio" class="secondary" onclick="crearEdificio()" style="display:none; margin-top: 12px;">➕ Agregar edificio</button>
   </div>
 </div>
-
 <div id="modalReporte" class="modal">
   <div class="modal-content" style="background:#1c1c1e; color:white; padding:20px; border-radius:16px;">
     <h3>⚠️ Reportar Inconveniente</h3>
-    <label style="display:block; font-size:12px; color:#a1a1aa; margin-bottom:4px; margin-top:10px;">Tu Nombre (Quien reporta):</label>
+    <label style="display:block; font-size:14px; color:#a1a1aa; margin-bottom:4px; margin-top:10px;">Tu Nombre (Quien reporta):</label>
     <input type="text" id="edit_nombre_reporta" placeholder="Ej: Juan Bezuz" style="width:100%; margin-bottom:12px; background:#2c2c2e; border:1px solid #3a3a3c; color:white; padding:10px; border-radius:8px;">
     
-    <label style="display:block; font-size:12px; color:#a1a1aa; margin-bottom:4px;">Tipo de Inconveniente:</label>
+    <label style="display:block; font-size:14px; color:#a1a1aa; margin-bottom:4px;">Tipo de Inconveniente:</label>
     <select id="tipoProblema" style="width:100%; margin-bottom:12px; background:#2c2c2e; border:1px solid #3a3a3c; color:white; padding:10px; border-radius:8px;">
       <option value="Problema de Acceso">Problema de Acceso</option>
       <option value="Dato Incorrecto">Dato Incorrecto</option>
       <option value="Problema en Portero Eléctrico">Problema en Portero Eléctrico</option>
       <option value="Otro">Otro / Alerta general</option>
     </select>
-    
-    <label style="display:block; font-size:12px; color:#a1a1aa; margin-bottom:4px;">Detalles:</label>
+  
+    <label style="display:block; font-size:14px; color:#a1a1aa; margin-bottom:4px;">Detalles:</label>
     <textarea id="descProblema" rows="4" placeholder="Escribe aquí los detalles..." style="width:100%; margin-bottom:15px; background:#2c2c2e; border:1px solid #3a3a3c; color:white; padding:10px; border-radius:8px; resize:none;"></textarea>
-    
     <div style="display:flex; gap:10px; margin-top:5px;">
       <button class="secondary" onclick="cerrarReporte()" style="flex:1; margin:0;">Cancelar</button>
       <button class="buscar" onclick="enviarReporte()" style="flex:1; margin:0; background:#ef4444; color:white;">Enviar Reporte</button>
@@ -809,25 +811,21 @@
 
 <div id="modalHistorial" class="modal">
   <div class="modal-content" style="background: #1c1c1e; color: white; padding: 25px; border-radius: 16px; max-width: 700px; max-height: 85vh; overflow-y: auto; border: 1px solid #2c2c2e;">
-    
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2c2c2e; padding-bottom: 12px; margin-bottom: 15px;">
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 22px;">📜</span>
+        <span style="font-size: 24px;">📜</span>
         <div>
-          <h3 style="margin: 0; font-size: 18px;" id="historialTituloEdificio">Historial de Visitas</h3>
-          <p style="margin: 0; font-size: 12px; color: #a1a1aa;">Registro cronológico departamento por departamento</p>
+          <h3 style="margin: 0; font-size: 20px;" id="historialTituloEdificio">Historial de Visitas</h3>
+          <p style="margin: 0; font-size: 13px; color: #a1a1aa;">Registro cronológico departamento por departamento</p>
         </div>
       </div>
-      <button onclick="cerrarHistorial()" style="background: none; border: none; color: #a1a1aa; font-size: 20px; cursor: pointer;">&times;</button>
+      <button onclick="cerrarHistorial()" style="background: none; border: none; color: #a1a1aa; font-size: 24px; cursor: pointer;">&times;</button>
     </div>
-
     <div id="historialContenido" style="display: flex; flex-direction: column; gap: 12px;"></div>
-    
     <div style="margin-top: 20px; text-align: right;">
-      <button onclick="cerrarHistorial()" style="background: #2c2c2e; border: 1px solid #3a3a3c; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;">Cerrar</button>
+      <button onclick="cerrarHistorial()" style="background: #2c2c2e; border: 1px solid #3a3a3c; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 15px;">Cerrar</button>
     </div>
   </div>
 </div>
-
 </body>
 </html>
