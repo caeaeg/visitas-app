@@ -1552,16 +1552,19 @@ async function guardarEdificio(id = null) {
     if (res.ok) {
       alert("Edificio guardado exitosamente");
       
-      // 🔄 Sincronización crucial: Refrescamos los listados globales en memoria
-      if (typeof cargarEdificios === "function") await cargarEdificios();
-      if (typeof mostrarInfoEdificio === "function") await mostrarInfoEdificio();
-      
-      // Si es predi, simula una cancelación para regresar limpio a la vista móvil, sino va al dashboard
-      if (currentRole === "predi") {
+      // 🛡️ SINCRO INTELIGENTE POR ROL: Evita que el predi intente cargar rutas de admin
+      if (currentRole === "admin") {
+        if (typeof cargarEdificios === "function") await cargarEdificios();
+        if (typeof mostrarInfoEdificio === "function") await mostrarInfoEdificio();
+        abrirVista("dashboardView");
+      } else if (currentRole === "predi") {
+        // El predi no necesita recargar las listas globales del admin, regresa directo y limpio
         cancelarEdificioMovil();
       } else {
-        abrirVista("dashboardView");
+        // Por si acaso hay otro rol, cerramos por defecto
+        cancelarEdificioMovil();
       }
+
     } else {
       alert("Error: " + (data.message || "Error desconocido en el servidor"));
     }
