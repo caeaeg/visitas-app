@@ -1523,18 +1523,19 @@ function crearEdificio() {
 // --- ENVIAR NUEVO EDIFICIO O MODIFICACIONES ---
 
 async function guardarEdificio(id = null) {
+  // Captura segura de datos
   const payload = {
-    address: document.getElementById("edit_address").value,
-    address2: document.getElementById("edit_address2").value,
-    name: document.getElementById("edit_name").value,
-    territory: document.getElementById("edit_territory").value,
-    floors: parseInt(document.getElementById("edit_floors").value) || 0,
-    unitsPerFloor: parseInt(document.getElementById("edit_units").value) || 0,
-    latitude: parseFloat(document.getElementById("edit_lat").value) || null,
-    longitude: parseFloat(document.getElementById("edit_lng").value) || null,
-    hasGroundFloor: document.getElementById("edit_pb").checked,
-    hasDoorman: document.getElementById("edit_portero").checked,
-    description: document.getElementById("edit_description").value
+    address: document.getElementById("edit_address")?.value || "",
+    address2: document.getElementById("edit_address2")?.value || "",
+    name: document.getElementById("edit_name")?.value || "",
+    territory: document.getElementById("edit_territory")?.value || "",
+    floors: parseInt(document.getElementById("edit_floors")?.value) || 0,
+    unitsPerFloor: parseInt(document.getElementById("edit_units")?.value) || 0,
+    latitude: parseFloat(document.getElementById("edit_lat")?.value) || null,
+    longitude: parseFloat(document.getElementById("edit_lng")?.value) || null,
+    hasGroundFloor: document.getElementById("edit_pb")?.checked || false,
+    hasDoorman: document.getElementById("edit_portero")?.checked || false,
+    description: document.getElementById("edit_description")?.value || ""
   };
 
   const url = id ? `/building/${id}` : "/building";
@@ -1545,10 +1546,16 @@ async function guardarEdificio(id = null) {
       method: method,
       body: JSON.stringify(payload)
     });
-    const data = await res.json();
     
-    if(res.ok) {
+    const data = await res.json().catch(() => ({}));
+    
+    if (res.ok) {
       alert("Edificio guardado exitosamente");
+      
+      // 🔄 Sincronización crucial: Refrescamos los listados globales en memoria
+      if (typeof cargarEdificios === "function") await cargarEdificios();
+      if (typeof mostrarInfoEdificio === "function") await mostrarInfoEdificio();
+      
       // Si es predi, simula una cancelación para regresar limpio a la vista móvil, sino va al dashboard
       if (currentRole === "predi") {
         cancelarEdificioMovil();
@@ -1556,13 +1563,14 @@ async function guardarEdificio(id = null) {
         abrirVista("dashboardView");
       }
     } else {
-      alert("Error: " + data.message);
+      alert("Error: " + (data.message || "Error desconocido en el servidor"));
     }
   } catch (error) {
-    console.error(error);
+    console.error("Error crítico al guardar el edificio:", error);
     alert("Error crítico en comunicación con servidor.");
   }
 }
+
 // 📐 EDITOR DINÁMICO COMPLETO CON CAPTURA VISUAL DE COORDENADAS
 function abrirEditorEdificio(building = null) {
   abrirVista("editarView");
@@ -1760,12 +1768,23 @@ function inicializarMapaLeaflet(lat, lng, address = null) {
 // --- AUXILIARES Y LIMPIEZA DE INTERFAZ ---
 // Función auxiliar para cuando el usuario móvil cancela la creación
 function cancelarEdificioMovil() {
-  document.getElementById("editarView").classList.remove("active");
-  document.getElementById("mainDashboard").style.display = "none";
-  document.getElementById("appContainer").style.display = "block";
+  const editarView = document.getElementById("editarView");
+  const mainDashboard = document.getElementById("mainDashboard");
+  const appContainer = document.getElementById("appContainer");
+  
+  if (editarView) editarView.classList.remove("active");
+  
+  // 🛡️ Evitamos el error null protegiendo con condicionales:
+  if (mainDashboard) mainDashboard.style.display = "none";
+  if (appContainer) appContainer.style.display = "block";
+  
   limpiarVista();
-  mensajeInicial.style.display = "block";
+  
+  if (typeof mensajeInicial !== 'undefined' && mensajeInicial) {
+    mensajeInicial.style.display = "block";
+  }
 }
+
 function normalizarDireccion(dir) {
   return dir
     .toLowerCase()
