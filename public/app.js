@@ -251,7 +251,6 @@ async function cargarDepto() {
 
     // 🏁 CASO A: Edificio Completado (Regla de los 4 meses o fin de circuito)
     if (data.message === "NO_AVAILABLE" || !data.dept) {
-      // Dibujamos el aviso elegante directamente ocupando el espacio de las dos columnas
       resultado.innerHTML = `
         <div style="font-size:30px; margin-bottom:5px;">🏁</div>
         <div style="font-size:14px; font-weight:bold; color:white;">¡Completado!</div>
@@ -261,17 +260,17 @@ async function cargarDepto() {
       `;
       
       // Ocultamos de forma segura los elementos que no se van a usar
-      if (typeof nota !== 'undefined' && nota) nota.style.display = "none";
+      if (typeof nota !== 'undefined' && nota) {
+        nota.value = ""; // Vaciamos la nota si ya se terminó el edificio
+        nota.style.display = "none";
+      }
       if (typeof btnOk !== 'undefined' && btnOk) btnOk.style.display = "none";
       if (typeof btnNo !== 'undefined' && btnNo) btnNo.style.display = "none";
       if (typeof reportBtn !== 'undefined' && reportBtn) reportBtn.style.display = "none";
-      
-      // El botón siguiente se oculta por completo de la grilla en este caso límite
       if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.display = "none";
       
       await mostrarInfoEdificio();
       
-      // Se devuelve al predicador limpio al mapa tras 3.5 segundos
       setTimeout(() => {
         if (typeof cancelarEdificioMovil === "function") {
           cancelarEdificioMovil();
@@ -284,23 +283,22 @@ async function cargarDepto() {
     // 🎉 CASO B: Hay departamento aleatorio disponible
     currentDept = data.dept;
 
-    // Aseguramos que la estructura de visualización del botón sea correcta
+    // ✨ ASEGURAMOS LIMPIEZA: Al recibir un depto nuevo de verdad, la nota vieja se va
+    if (typeof nota !== 'undefined' && nota) {
+      nota.value = ""; 
+      nota.style.display = "block";
+    }
+
     if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.display = "block";
 
-    // 🌟 CAMBIO CLAVE: Inyectamos únicamente el texto del depto (Ej: "PB C", "1 A")
-    // Esto evita que se pise la estructura de dos columnas que armamos en el HTML
     resultado.innerText = data.dept.number;
     
-    // Ocultamos el botón Siguiente dejando su espacio reservado de forma invisible
     if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "hidden";
 
-    // Mostramos y reseteamos la botonera para el timbre actual
-    if (typeof nota !== 'undefined' && nota) nota.style.display = "block";
     if (typeof btnOk !== 'undefined' && btnOk) { btnOk.style.display = "block"; btnOk.disabled = false; }
     if (typeof btnNo !== 'undefined' && btnNo) { btnNo.style.display = "block"; btnNo.disabled = false; }
     if (typeof reportBtn !== 'undefined' && reportBtn) reportBtn.style.display = "none";
 
-    // Actualizamos la tarjeta de información del edificio
     await mostrarInfoEdificio();
 
   } catch (error) {
@@ -308,7 +306,6 @@ async function cargarDepto() {
     alert("Error de comunicación al traer el próximo departamento.");
   }
 }
-
 
 // =========================================================================
 // ✔/✕ FUNCIÓN: MARCAR ESTADO DE LA VISITA (ATENDIÓ o NO EN CASA)
@@ -318,7 +315,7 @@ async function marcar(status) {
   btnOk.disabled = true;
   btnNo.disabled = true;
 
-  // Armamos el paquete de la visita
+  // Armamos el paquete leyendo el cuadro de texto ANTES de hacer cualquier otra acción
   const datosVisita = {
     departmentId: currentDept._id,
     buildingId: currentDept.buildingId || currentBuildingId,
@@ -326,18 +323,17 @@ async function marcar(status) {
     note: nota.value.trim()
   };
   
-  // 🛰️ CASO INTERNET OFFLINE: Si el celular pierde la señal en el palier
+  // 🛰️ CASO INTERNET OFFLINE: Guardado en la memoria interna del celu
   if (!navigator.onLine) {
     guardarEnMochilaLocal("visitas_pendientes", datosVisita);
     alert("⏳ Visita guardada localmente (Sin Señal). Se enviará sola apenas recuperes internet.");
     
-    nota.value = ""; 
-    // Hacemos visible el botón Siguiente en su lugar reservado de la derecha
+    // 🌟 QUITAMOS 'nota.value = ""' de acá: Esperamos a que toquen "Siguiente" para borrarla visualmente
     if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "visible";
     return;
   }
   
-  // CASO INTERNET ONLINE: Envíos normales al servidor
+  // CASO INTERNET ONLINE: Envíos normales al servidor de Render
   try {
     const res = await apiFetch("/visit", {
       method: "POST",
@@ -346,8 +342,7 @@ async function marcar(status) {
     
     if (!res.ok) throw new Error(`Servidor respondió con código: ${res.status}`);
     
-    nota.value = ""; 
-    // Revelamos el botón Siguiente manteniendo la alineación del diseño intacta
+    // 🌟 QUITAMOS 'nota.value = ""' de acá también: Mantenemos el texto en pantalla hasta cambiar de depto
     if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "visible";
 
   } catch (error) {
@@ -355,11 +350,9 @@ async function marcar(status) {
     guardarEnMochilaLocal("visitas_pendientes", datosVisita);
     alert("⏳ Hubo un problema de red. La visita quedó guardada en el celu para no perderse.");
     
-    nota.value = "";
     if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "visible";
   }
 }
-
 
 // =========================================================================
 // ➡️ FUNCIÓN: PASAR AL SIGUIENTE DEPARTAMENTO DE FORMA BLINDADA
@@ -367,16 +360,14 @@ async function marcar(status) {
 async function siguiente() {
   console.log("➡️ Botón Siguiente presionado. Buscando próximo departamento aleatorio...");
   
+  // Acá sí limpiamos la pantalla por completo porque el usuario explícitamente decidió avanzar
   if (typeof nota !== 'undefined' && nota) nota.value = "";
   
-  // Volvemos a ocultar el botón Siguiente usando la propiedad visibility
   if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "hidden";
 
-  // Reactivamos los botones de votación para que se puedan presionar de nuevo
   if (typeof btnOk !== 'undefined' && btnOk) btnOk.disabled = false;
   if (typeof btnNo !== 'undefined' && btnNo) btnNo.disabled = false;
 
-  // Ejecutamos el algoritmo central para buscar la próxima puerta
   if (typeof cargarDepto === "function") {
     await cargarDepto();
   } else {
