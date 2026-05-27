@@ -350,7 +350,7 @@ async function mostrarInfoEdificio() {
       
       if (diferenciaDias <= 30) {
         const fechaFormateada = fechaCreacion.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        cartelNuevoHtml = `<div style="background:#1e3a8a; color:#93c5fd; border: 1px solid #2563eb; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; margin-bottom: 10px; display: inline-block;">🏢 Edificio creado el ${fechaFormateada}</div>`;
+        cartelNuevoHtml = `<div style="background:#1e3a8a; color:#e0f2fe; border: 1px solid #3b82f6; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; margin-bottom: 12px; display: inline-block; width: 100%; text-align: center;">🏢 Edificio creado el ${fechaFormateada}</div>`;
       }
     }
 
@@ -359,42 +359,49 @@ async function mostrarInfoEdificio() {
     }
 
     // Activamos el contenedor principal
-    infoEdificio.style.display = "flex";
+    infoEdificio.style.display = "block";
     
     infoEdificio.innerHTML = `
-      ${cartelNuevoHtml}
-      
-      <div class="edificio-header">
-        <div class="edificio-title-wrapper">
-          <h2>${b.address}</h2>
-          <span>${b.address2 || "Sin datos adicionales"}</span>
-        </div>
-        <div class="edificio-badge">🏢 ${b.name || "Edificio"}</div>
-      </div>
-
-      <div class="edificio-body">
-        <div class="edificio-info-list">
-          <div class="edificio-info-item">🗺️ <strong>Territorio:</strong> <span>${b.territory || "-"}</span></div>
-          <div class="edificio-info-item">🔢 <strong>Pisos:</strong> <span>${b.floors || 0}</span></div>
-          <div class="edificio-notas">📝 <strong>Notas:</strong> <span>${b.description || "Sin anotaciones de administración."}</span></div>
+      <div class="sectionCard" style="background: #121214; border: 1px solid #27272a; padding: 16px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
+        ${cartelNuevoHtml}
+        
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 14px;">
+          <div>
+            <div style="font-size:24px; font-weight:800; color:#ffffff; line-height:1.2; letter-spacing: -0.5px;">${b.address}</div>
+            <div style="color:#d4d4d8; font-size:14px; margin-top:4px; font-weight: 500;">${b.address2 || "Sin datos adicionales"}</div>
+          </div>
+          <div style="background:#27272a; padding:6px 10px; border-radius:8px; font-size:13px; font-weight:700; white-space:nowrap; color:#ffffff; border: 1px solid #3f3f46;">🏢 ${b.name || "Edificio"}</div>
         </div>
 
-        <div id="miniMapaPredi" style="width: 110px; height: 110px; border-radius: 8px; border: 1px solid #3f3f46; background:#252525; pointer-events: none; flex-shrink: 0;"></div>
-      </div>
+        <div style="display: flex; gap: 14px; align-items: center; justify-content: space-between;">
+          
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; font-size: 14px; color:#ffffff;">
+            <div>🗺️ <b>Territorio:</b> <span style="background: #27272a; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${b.territory || "-"}</span></div>
+            <div>🔢 <b>Pisos:</b> <span style="font-weight: 600; color: #3b82f6;">${b.floors || 0}</span></div>
+            <div style="color:#e4e4e7; font-size: 13px; line-height: 1.3;">📋 <b>Notas:</b> <span style="font-style: italic; color: #d4d4d8;">${b.description || "Sin anotaciones."}</span></div>
+          </div>
 
-      <div class="edificio-footer">
-        <span>🕒 Última visita: ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString() : "Nunca"}</span>
-        <button class="btn-reportar-sutil" onclick="abrirReporte()">⚠️ Reportar problema</button>
-      </div>
-
-      ${data.issue ? `
-        <div style="background:#451a1a; color:#fca5a5; border:1px solid #b91c1c; padding:10px; border-radius:10px; margin-top:10px; font-size:12px; font-weight:500; line-height:1.4; width: 100%;">
-          ⚠ <b>Alerta activa (${data.issue.type}):</b> ${data.issue.description || "Sin detalles"}
+          <div id="miniMapaPredi" style="width: 115px; height: 115px; border-radius: 10px; border: 1px solid #4b5563; background:#1f1f22; pointer-events: none; flex-shrink: 0;"></div>
         </div>
-      ` : ""}
+
+        <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #27272a; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+          <span style="font-size: 12px; color:#a1a1aa; font-weight: 500;">
+            🕒 <b>Visita:</b> ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca"}
+          </span>
+          <button onclick="abrirReporte()" style="background:#451a1a; color:#f87171; border:1px solid #ef4444; padding:6px 10px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; white-space: nowrap;">
+            ⚠️ Reportar
+          </button>
+        </div>
+
+        ${data.issue ? `
+          <div style="background:#7f1d1d; color:#fef2f2; border:1px solid #dc2626; padding:10px; border-radius:10px; margin-top:12px; font-size:13px; font-weight:600; line-height:1.4;">
+            ⚠ <b>Alerta (${data.issue.type}):</b> ${data.issue.description || "Sin detalles"}
+          </div>
+        ` : ""}
+      </div>
     `;
 
-    // --- RENDERIZACIÓN DEL MAPA CON FILTRADO O COORDENADAS ---
+    // --- RENDERIZACIÓN DEL MAPA ---
     const miniMapaDiv = document.getElementById("miniMapaPredi");
     if (miniMapaDiv) {
       if (prediMiniMap) {
@@ -410,7 +417,6 @@ async function mostrarInfoEdificio() {
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(prediMiniMap);
       let centradoExitoso = false;
 
-      // Opción A: Si tiene coordenadas, ponemos marcador
       if (b.latitude && b.longitude) {
         const lat = parseFloat(b.latitude);
         const lng = parseFloat(b.longitude);
@@ -421,11 +427,10 @@ async function mostrarInfoEdificio() {
         }
       }
 
-      // Opción B: Si falla o no tiene, pero hay territorio informado, mostramos el polígono del territorio
       if (!centradoExitoso && b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON) {
         let capaGeoJSON = L.geoJSON(misTerritoriosGeoJSON, {
           filter: (f) => String(f.properties.name || f.properties.Territorio_N) === String(b.territory),
-          style: { color: '#2196F3', weight: 2, fillColor: '#2196F3', fillOpacity: 0.15 }
+          style: { color: '#2563eb', weight: 2, fillColor: '#2563eb', fillOpacity: 0.15 }
         }).addTo(prediMiniMap);
 
         if (capaGeoJSON.getLayers().length > 0) {
@@ -434,12 +439,10 @@ async function mostrarInfoEdificio() {
         }
       }
 
-      // Caída por defecto si no hay nada de info geográfica (Posadas, Misiones)
       if (!centradoExitoso) {
         prediMiniMap.setView([-27.36708, -55.89608], 14);
       }
 
-      // Ajustado el recalculo de tamaño al nuevo formato de 110x110
       setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 220);
     }
   } catch (error) {
