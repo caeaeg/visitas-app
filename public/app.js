@@ -322,7 +322,8 @@ async function mostrarInfoEdificio() {
       
       if (diferenciaDias <= 30) {
         const fechaFormateada = fechaCreacion.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        cartelNuevoHtml = `<div style="background:#1e3a8a; color:#e0f2fe; border: 1px solid #3b82f6; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; margin-bottom: 12px; display: inline-block; width: 100%; text-align: center;">🏢 Edificio creado el ${fechaFormateada}</div>`;
+        // Ahora se diseña de manera más sutil para el footer izquierdo
+        cartelNuevoHtml = `Edificio creado el ${fechaFormateada}`;
       }
     }
 
@@ -333,9 +334,11 @@ async function mostrarInfoEdificio() {
     // Activamos el contenedor principal
     infoEdificio.style.display = "block";
     
+    // Formateamos la fecha de la última visita
+    const fechaUltimaVisita = data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca";
+    
     infoEdificio.innerHTML = `
       <div class="sectionCard" style="background: #121214; border: 1px solid #27272a; padding: 16px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
-        ${cartelNuevoHtml}
         
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 14px;">
           <div>
@@ -353,16 +356,24 @@ async function mostrarInfoEdificio() {
             <div style="color:#e4e4e7; font-size: 13px; line-height: 1.3;">📋 <b>Notas:</b> <span style="font-style: italic; color: #d4d4d8;">${b.description || "Sin anotaciones."}</span></div>
           </div>
 
-          <div id="miniMapaPredi" style="width: 115px; height: 115px; border-radius: 10px; border: 1px solid #4b5563; background:#1f1f22; pointer-events: none; flex-shrink: 0;"></div>
+          <div style="display: flex; flex-direction: column; gap: 6px; align-items: center; flex-shrink: 0;">
+            <div id="miniMapaPredi" style="width: 115px; height: 95px; border-radius: 10px; border: 1px solid #4b5563; background:#1f1f22; pointer-events: none;"></div>
+            
+            <div style="background: #27272a; border: 1px solid #3f3f46; border-radius: 6px; padding: 4px 6px; display: flex; align-items: center; gap: 4px; font-size: 11px; color: #e4e4e7; width: 115px; justify-content: center; box-sizing: border-box;">
+              <span>🗓️</span> <span>${fechaUltimaVisita}</span>
+            </div>
+          </div>
         </div>
 
         <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #27272a; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-          <span style="font-size: 12px; color:#a1a1aa; font-weight: 500;">
-            🕒 <b>Visita:</b> ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca"}
-          </span>
-          <button onclick="abrirReporte()" style="background:#451a1a; color:#f87171; border:1px solid #ef4444; padding:6px 10px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; white-space: nowrap;">
-            ⚠️ Reportar
-          </button>
+          <div style="flex: 1; font-size: 12px; color:#a1a1aa; font-weight: 500; text-align: left;">
+            ${cartelNuevoHtml ? `🏢 ${cartelNuevoHtml}` : ""}
+          </div>
+          <div style="flex: 1; display: flex; justify-content: flex-end;">
+            <button onclick="abrirReporte()" style="background:#451a1a; color:#f87171; border:1px solid #ef4444; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; white-space: nowrap; width: auto; margin: 0;">
+              ⚠️ Informar problema
+            </button>
+          </div>
         </div>
 
         ${data.issue ? `
