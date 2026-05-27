@@ -233,7 +233,7 @@
     /* Adaptación del mini-mapa Leaflet al layout */
     #infoEdificio .leaflet-container {
       width: 110px !important;
-      height: 110px !important;
+      height: 90px !important; /* Lo achicamos un poquito para darle espacio al cuadradito de abajo */
       border-radius: 8px;
       border: 1px solid #3f3f46;
     }
@@ -249,17 +249,20 @@
       color: #71717a;
     }
 
-    /* Botón Reportar integrado y minimalista */
+    /* Botón Informar Problema integrado y ajustado */
     .btn-reportar-sutil {
-      padding: 4px 8px;
-      font-size: 12px;
-      background: transparent;
+      padding: 6px 8px;
+      font-size: 11px;
+      background: rgba(239, 68, 68, 0.1);
       border: 1px solid #ef4444;
       color: #ef4444;
       border-radius: 6px;
       font-weight: 600;
-      width: auto;
-      margin: 0;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
     }
     .btn-reportar-sutil:hover {
       background: #ef4444;
