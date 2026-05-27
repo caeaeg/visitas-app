@@ -725,7 +725,6 @@
   </div>
 </div>
 
-
 <div id="dashboardView" class="view active">
     <div class="admin-nav-bar">
       <div class="nav-left">
@@ -765,7 +764,6 @@
       </div>
     </div>
 </div>
-
 
 <div id="territorioView" class="view">
     <div class="admin-nav-bar">
@@ -852,7 +850,6 @@
 <div id="editarView" class="view"></div>
 <div id="problemasView" class="view"></div>
 
-
 <div class="container" id="appContainer" style="display:none;">
   <div class="card-container">
     
@@ -876,17 +873,15 @@
     
     <p id="mensajeInicial" style="text-align:center; font-size: 15px; color: #a1a1aa; margin-bottom: 10px;">Ingresá una dirección para comenzar</p>
     
-    <div id="infoEdificio"></div>
-    
-    <div id="contenedorDepartamento" style="margin-top: 20px; margin-bottom: 15px; background: #121214; border: 1px solid #27272a; padding: 16px; border-radius: 16px;">
+    <div id="contenedorDepartamento" style="margin-top: 10px; margin-bottom: 15px; background: #121214; border: 1px solid #27272a; padding: 16px; border-radius: 16px;">
       <div style="display: flex; gap: 16px; align-items: center; justify-content: space-between;">
         
         <div style="flex: 1; text-align: left;">
-          <p style="margin: 0; font-size: 11px; color: #a1a1aa; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
-            Departamento a visitar
+          <p style="margin: 0; font-size: 12px; color: #a1a1aa; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
+            Departamento
           </p>
-          <p style="margin: 6px 0 0 0; font-size: 13px; color: #d4d4d8; line-height: 1.4; font-weight: 500;">
-            Por favor, intente predicar en el departamento indicado a la derecha.
+          <p style="margin: 4px 0 0 0; font-size: 14px; color: #ffffff; font-weight: 700;">
+            A VISITAR:
           </p>
         </div>
 
@@ -905,15 +900,16 @@
     
     <textarea id="nota" placeholder="Nota de la visita..." style="display:none; height: 100px; font-size: 18px; margin-bottom: 12px;"></textarea>
     
-    <div id="botoneraVotacion" style="display: flex; gap: 10px; margin-top: 8px; width: 100%;">
+    <div id="botoneraVotacion" style="display: flex; gap: 10px; margin-top: 8px; margin-bottom: 15px; width: 100%;">
       <button id="btnOk" class="ok" onclick="marcar('ATENDIO')" style="display:none; flex: 1; margin: 0;">✔ ATENDIÓ</button>
       <button id="btnNo" class="no" onclick="marcar('NO_EN_CASA')" style="display:none; flex: 1; margin: 0;">✕ NO EN CASA</button>
     </div>
 
+    <div id="infoEdificio"></div>
+
     <button id="btnNuevoEdificio" class="secondary" onclick="crearEdificio()" style="display:none; margin-top: 12px;">➕ Agregar edificio</button>
   </div>
 </div>
-
 
 <div id="modalReporte" class="modal">
   <div class="modal-content" style="background:#1c1c1e; color:white; padding:20px; border-radius:16px;">
