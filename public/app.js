@@ -194,34 +194,6 @@ window.addEventListener("load", async () => {
 
 
 
-async function buscarPorTerritorio() {
-  limpiarVista();
-  const territorio = prompt("Número de territorio:");
-  if (!territorio) return;
-
-  try {
-    const res = await apiFetch(`/territory/${territory}`);
-    const data = await res.json();
-    
-    if (!data.length) {
-      listaTerritorio.innerHTML = "<p style='text-align:center;'>No hay edificios asignados</p>";
-      return;
-    }
-    
-    listaTerritorio.innerHTML = "";
-    data.forEach(b => {
-      const btn = document.createElement("button");
-      btn.innerText = b.address;
-      btn.onclick = () => {
-        currentBuildingId = b._id;
-        cargarDepto();
-      };
-      listaTerritorio.appendChild(btn);
-    });
-  } catch (error) {
-    console.error(error);
-  }
-}
 
 async function buscar() {
   limpiarVista();
