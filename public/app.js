@@ -192,9 +192,9 @@ window.addEventListener("load", async () => {
 //--------------------------------------------------------gestion de usuarios ------------------------//
 
 
-
-
-
+// =========================================================================
+// 🔍 FUNCIÓN: BUSCAR EDIFICIO POR DIRECCIÓN O CÓDIGO
+// =========================================================================
 async function buscar() {
   limpiarVista();
   const input = normalizarDireccion(buildingId.value);
@@ -206,40 +206,39 @@ async function buscar() {
   try {
     const b = await apiFetch(`/building/${encodeURIComponent(input)}`);
     
-    // --- NUEVA VALIDACIÓN ADAPTADA PARA MANEJAR EL 404 DEL SERVIDOR ---
+    // --- MANEJO DEL 404 DEL SERVIDOR ---
     if (!b.ok) {
       if (b.status === 404) {
         resultado.innerText = "Edificio no encontrado";
         btnNuevoEdificio.style.display = "block";
-        btnNuevoEdificio.onclick = function() {
-          crearEdificio();
-        };
+        btnNuevoEdificio.onclick = function() { crearEdificio(); };
         return;
       }
       throw new Error(`Error en servidor: ${b.status}`);
     }
+
     const building = await b.json();
     if (!building || !building._id) {
       resultado.innerText = "Edificio no encontrado";
       btnNuevoEdificio.style.display = "block";
-      btnNuevoEdificio.onclick = function() {
-        crearEdificio();
-      };
+      btnNuevoEdificio.onclick = function() { crearEdificio(); };
       return;
     }
+
     currentBuildingId = building._id;
     await cargarDepto();
+
   } catch (error) {
     console.error("Detalle del error en buscar:", error);
-    // Si la API falló con 404 pero saltó al catch por el fetch nativo, también le damos la opción de crear
     resultado.innerText = "Edificio no encontrado o error de red";
     btnNuevoEdificio.style.display = "block";
-    btnNuevoEdificio.onclick = function() {
-      crearEdificio();
-    };
+    btnNuevoEdificio.onclick = function() { crearEdificio(); };
   }
 }
 
+// =========================================================================
+// 🚪 FUNCIÓN: CARGAR PRÓXIMO DEPARTAMENTO DISPONIBLE
+// =========================================================================
 async function cargarDepto() {
   try {
     // 1. Limpieza de ID por si viene como objeto completo
@@ -250,29 +249,29 @@ async function cargarDepto() {
     
     if (typeof listaTerritorio !== 'undefined' && listaTerritorio) listaTerritorio.innerHTML = "";
 
-    // 🏁 CASO: Si el Backend avisa que no hay departamentos válidos (Regla 4 meses activa o Fin de circuito)
+    // 🏁 CASO A: Edificio Completado (Regla de los 4 meses o fin de circuito)
     if (data.message === "NO_AVAILABLE" || !data.dept) {
-      // Dibujamos un aviso elegante integrado a tu modo oscuro
+      // Dibujamos el aviso elegante directamente ocupando el espacio de las dos columnas
       resultado.innerHTML = `
-        <div style="margin-top:25px; text-align:center; padding: 20px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);">
-          <div style="font-size:40px; margin-bottom:10px;">🏁</div>
-          <div style="font-size:18px; font-weight:bold; color:white; margin-bottom:5px;">¡Edificio Completado!</div>
-          <div style="font-size:14px; color:#9e9e9e; max-width:250px; margin:0 auto; line-height:1.4;">
-            No quedan departamentos disponibles por visitar en este momento (respetando el margen de 4 meses).
-          </div>
+        <div style="font-size:30px; margin-bottom:5px;">🏁</div>
+        <div style="font-size:14px; font-weight:bold; color:white;">¡Completado!</div>
+        <div style="font-size:11px; color:#9e9e9e; max-width:180px; margin:0 auto; line-height:1.3;">
+          No quedan departamentos disponibles por visitar en este momento.
         </div>
       `;
       
-      // Ocultamos de forma segura la botonera de votación vieja
+      // Ocultamos de forma segura los elementos que no se van a usar
       if (typeof nota !== 'undefined' && nota) nota.style.display = "none";
       if (typeof btnOk !== 'undefined' && btnOk) btnOk.style.display = "none";
       if (typeof btnNo !== 'undefined' && btnNo) btnNo.style.display = "none";
-      if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.display = "none";
       if (typeof reportBtn !== 'undefined' && reportBtn) reportBtn.style.display = "none";
+      
+      // El botón siguiente se oculta por completo de la grilla en este caso límite
+      if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.display = "none";
       
       await mostrarInfoEdificio();
       
-      // 🚀 Después de 3 segundos, sacamos al predicador de ahí y lo devolvemos limpio al mapa
+      // Se devuelve al predicador limpio al mapa tras 3.5 segundos
       setTimeout(() => {
         if (typeof cancelarEdificioMovil === "function") {
           cancelarEdificioMovil();
@@ -282,28 +281,107 @@ async function cargarDepto() {
       return;
     }
 
-    // 🎉 CASO: Hay departamento aleatorio disponible
+    // 🎉 CASO B: Hay departamento aleatorio disponible
     currentDept = data.dept;
-    resultado.innerHTML = `
-      <div style="margin-top:18px; text-align:center;">
-        <div style="font-size:18px; color:#9e9e9e; margin-bottom:10px;">Departamento</div>
-        <div style="font-size:72px; font-weight:bold; color:white; line-height:1; text-shadow: 0 5px 20px rgba(0,0,0,.35);">${data.dept.number}</div>
-      </div>
-    `;
+
+    // Aseguramos que la estructura de visualización del botón sea correcta
+    if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.display = "block";
+
+    // 🌟 CAMBIO CLAVE: Inyectamos únicamente el texto del depto (Ej: "PB C", "1 A")
+    // Esto evita que se pise la estructura de dos columnas que armamos en el HTML
+    resultado.innerText = data.dept.number;
     
-    // Mostramos y reseteamos la botonera para el nuevo timbre
+    // Ocultamos el botón Siguiente dejando su espacio reservado de forma invisible
+    if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "hidden";
+
+    // Mostramos y reseteamos la botonera para el timbre actual
     if (typeof nota !== 'undefined' && nota) nota.style.display = "block";
     if (typeof btnOk !== 'undefined' && btnOk) { btnOk.style.display = "block"; btnOk.disabled = false; }
     if (typeof btnNo !== 'undefined' && btnNo) { btnNo.style.display = "block"; btnNo.disabled = false; }
-    if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.display = "none";
     if (typeof reportBtn !== 'undefined' && reportBtn) reportBtn.style.display = "none";
 
-    // ✨ Actualizamos la info del edificio para que tome el contexto del depto actual
+    // Actualizamos la tarjeta de información del edificio
     await mostrarInfoEdificio();
 
   } catch (error) {
     console.error("Error al cargar el siguiente departamento:", error);
     alert("Error de comunicación al traer el próximo departamento.");
+  }
+}
+
+
+// =========================================================================
+// ✔/✕ FUNCIÓN: MARCAR ESTADO DE LA VISITA (ATENDIÓ o NO EN CASA)
+// =========================================================================
+async function marcar(status) {
+  if (!currentDept) return;
+  btnOk.disabled = true;
+  btnNo.disabled = true;
+
+  // Armamos el paquete de la visita
+  const datosVisita = {
+    departmentId: currentDept._id,
+    buildingId: currentDept.buildingId || currentBuildingId,
+    status: status,
+    note: nota.value.trim()
+  };
+  
+  // 🛰️ CASO INTERNET OFFLINE: Si el celular pierde la señal en el palier
+  if (!navigator.onLine) {
+    guardarEnMochilaLocal("visitas_pendientes", datosVisita);
+    alert("⏳ Visita guardada localmente (Sin Señal). Se enviará sola apenas recuperes internet.");
+    
+    nota.value = ""; 
+    // Hacemos visible el botón Siguiente en su lugar reservado de la derecha
+    if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "visible";
+    return;
+  }
+  
+  // CASO INTERNET ONLINE: Envíos normales al servidor
+  try {
+    const res = await apiFetch("/visit", {
+      method: "POST",
+      body: JSON.stringify(datosVisita)
+    });
+    
+    if (!res.ok) throw new Error(`Servidor respondió con código: ${res.status}`);
+    
+    nota.value = ""; 
+    // Revelamos el botón Siguiente manteniendo la alineación del diseño intacta
+    if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "visible";
+
+  } catch (error) {
+    console.error("Falla de red al marcar visita, respaldando...", error);
+    guardarEnMochilaLocal("visitas_pendientes", datosVisita);
+    alert("⏳ Hubo un problema de red. La visita quedó guardada en el celu para no perderse.");
+    
+    nota.value = "";
+    if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "visible";
+  }
+}
+
+
+// =========================================================================
+// ➡️ FUNCIÓN: PASAR AL SIGUIENTE DEPARTAMENTO DE FORMA BLINDADA
+// =========================================================================
+async function siguiente() {
+  console.log("➡️ Botón Siguiente presionado. Buscando próximo departamento aleatorio...");
+  
+  if (typeof nota !== 'undefined' && nota) nota.value = "";
+  
+  // Volvemos a ocultar el botón Siguiente usando la propiedad visibility
+  if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "hidden";
+
+  // Reactivamos los botones de votación para que se puedan presionar de nuevo
+  if (typeof btnOk !== 'undefined' && btnOk) btnOk.disabled = false;
+  if (typeof btnNo !== 'undefined' && btnNo) btnNo.disabled = false;
+
+  // Ejecutamos el algoritmo central para buscar la próxima puerta
+  if (typeof cargarDepto === "function") {
+    await cargarDepto();
+  } else {
+    console.error("Error crítico: La función cargarDepto() no está definida en app.js");
+    alert("No se pudo cargar el siguiente departamento. Intenta recargar el edificio.");
   }
 }
 
@@ -430,75 +508,6 @@ async function mostrarInfoEdificio() {
     }
   } catch (error) {
     console.error("Error en mostrarInfoEdificio:", error);
-  }
-}
-
-async function marcar(status) {
-  if (!currentDept) return;
-  btnOk.disabled = true;
-  btnNo.disabled = true;
-
-  // Armamos el paquete de la visita
-  const datosVisita = {
-    departmentId: currentDept._id,
-    buildingId: currentDept.buildingId || currentBuildingId,
-    status: status,
-    note: nota.value.trim()
-  };
-  
-  // 🛰️ CASO 1: Si el celular detecta nativamente que NO tiene internet
-  if (!navigator.onLine) {
-    guardarEnMochilaLocal("visitas_pendientes", datosVisita);
-    alert("⏳ Visita guardada localmente (Sin Señal). Se enviará sola apenas recuperes internet.");
-    
-    // Dejamos que el flujo continúe para que puedan pasar al siguiente departamento sin trabarse
-    nota.value = ""; // Limpiamos la nota anterior
-    btnSiguiente.style.display = "block";
-    return;
-  }
-  
-  // CASO 2: Intentamos enviar normalmente
-  try {
-    const res = await apiFetch("/visit", {
-      method: "POST",
-      body: JSON.stringify(datosVisita)
-    });
-    
-    if (!res.ok) throw new Error(`Servidor respondió con código: ${res.status}`);
-    
-    nota.value = ""; // Limpiamos nota tras éxito
-    btnSiguiente.style.display = "block";
-  } catch (error) {
-    console.error("Falla de red al marcar visita, respaldando...", error);
-    
-    // Si falló por micro-corte o timeout del servidor, lo guardamos en la mochila por las dudas
-    guardarEnMochilaLocal("visitas_pendientes", datosVisita);
-    alert("⏳ Hubo un problema de red. La visita quedó guardada en el celu para no perderse.");
-    
-    nota.value = "";
-    btnSiguiente.style.display = "block";
-  }
-}
-// ➡️ SIGUIENTE DEPTO (Estructura Original Aleatoria y Blindada)
-async function siguiente() {
-  console.log("➡️ Botón Siguiente presionado. Buscando próximo departamento aleatorio...");
-  
-  // 1. Limpieza segura de la interfaz
-  if (typeof nota !== 'undefined' && nota) nota.value = "";
-  
-  const btnSiguiente = document.getElementById("btnSiguiente") || document.querySelector("button[onclick='siguiente()']");
-  if (btnSiguiente) btnSiguiente.style.display = "none";
-
-  // Reactivamos los botones de votación para el próximo depto
-  if (typeof btnOk !== 'undefined' && btnOk) btnOk.disabled = false;
-  if (typeof btnNo !== 'undefined' && btnNo) btnNo.disabled = false;
-
-  // 2. Ejecutamos tu lógica central que selecciona el depto del algoritmo de 4 meses
-  if (typeof cargarDepto === "function") {
-    await cargarDepto();
-  } else {
-    console.error("Error crítico: La función cargarDepto() no está definida en app.js");
-    alert("No se pudo cargar el siguiente departamento. Intenta recargar el edificio.");
   }
 }
 //---------------------------------------------------------------------------------------------//
