@@ -1811,7 +1811,7 @@ function normalizarDireccion(dir) {
     .trim();
 }
 function limpiarVista() {
-  listaTerritorio.innerHTML = "";
+  
   resultado.innerText = "";
   infoEdificio.style.display = "none";
   nota.style.display = "none";
