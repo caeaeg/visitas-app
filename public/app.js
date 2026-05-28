@@ -1589,14 +1589,21 @@ function mostrarPanelMaestroSuperAdmin() {
   `;
 }
 
+// Versión blindada contra valores nulos o indefinidos
 function filtrarSuperAdmin(valor) {
-  const query = valor.toLowerCase().trim();
+  const query = (valor || "").toLowerCase().trim();
+  
   window.superAdminFiltrados = window.todosLosEdificiosDB.filter(b => {
+    // Validamos y aseguramos que cada propiedad sea una cadena de texto válida
     const dir = (b.address || b.direccion || "").toLowerCase();
     const nom = (b.name || b.nombre || "").toLowerCase();
-    return dir.includes(query) || nom.includes(query);
+    const terr = (b.territory || b.territorio || "").toString();
+
+    // El registro pasa si coincide con la dirección, el nombre o el número de territorio
+    return dir.includes(query) || nom.includes(query) || terr.includes(query);
   });
-  window.superAdminPaginaActual = 1;
+
+  window.superAdminPaginaActual = 1; // Reseteamos siempre a la primera página al buscar
   mostrarPanelMaestroSuperAdmin();
 }
 
