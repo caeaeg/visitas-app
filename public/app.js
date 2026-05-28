@@ -1390,8 +1390,8 @@ function abrirAccesoSuperAdmin() {
   const clave = prompt("🔑 Ingrese la clave maestra de SuperAdmin para habilitar modificaciones críticas:");
   if (!clave) return;
 
-  // Podés cambiar "admin1234" por la contraseña que quieras usar
-  if (clave === "admin1234") {
+  // CLAVE SUPERADMIN
+  if (clave === "2414") {
     window.superAdminAutenticado = true;
     alert("✅ Autenticación exitosa. Desplegando listado maestro global.");
     mostrarPanelMaestroSuperAdmin();
