@@ -1251,12 +1251,18 @@ async function cargarDashboard() {
   }
 }
 
+// Variable global para proteger los datos y que no se alteren al buscar
+window.todosLosEdificiosDB = []; 
+window.superAdminAutenticado = false;
+
+// =========================================================================
+// 🏢 FUNCIÓN: CARGAR EDIFICIOS (CON FIX DE DATOS REALES Y FILTRO COMPLETO)
+// =========================================================================
 async function cargarEdificios() {
   const listaContenedor = document.getElementById("listaEdificios");
   const paginadorAdmin = document.getElementById("paginadorAdmin");
   if (!listaContenedor) return;
 
-  // 1. OBTENER FILTROS DEL HTML
   const busquedaInput = document.getElementById("busquedaDireccionAdmin");
   const territorioInput = document.getElementById("busquedaTerritorio");
   const filtroOrdenInput = document.getElementById("filtroOrden");
@@ -1265,37 +1271,26 @@ async function cargarEdificios() {
   const territorioFiltro = territorioInput ? territorioInput.value.trim() : "";
   const criterioOrden = filtroOrdenInput ? filtroOrdenInput.value : "address";
 
-  // 🌟 CONTROL DE ESTADO INICIAL: Si no hay parámetros escritos, no procesamos la lista masiva
-  if (!busqueda && !territorioFiltro) {
-    listaContenedor.innerHTML = `
-      <p style="color:#71717a; text-align:center; padding:30px; font-size:13px; line-height:1.4;">
-        🔍 Ingresá un criterio de búsqueda o seleccioná un territorio para desplegar los registros.
-      </p>
-    `;
-    if (paginadorAdmin) paginadorAdmin.style.display = "none";
-    return;
-  }
-
   try {
-    listaContenedor.innerHTML = `<p style="color:#71717a; text-align:center; padding:20px; font-size:13px;">Buscando coincidencias...</p>`;
-    
-    // Consulta al servidor backend
-    const res = await apiFetch('/admin/buildings');
-    if (!res.ok) throw new Error(`Error en el servidor: ${res.status}`);
-    
-    const resData = await res.json();
-    const edificiosListaGlobal = resData.data || []; 
-    let edificiosFiltrados = [...edificiosListaGlobal];
+    // Si es la primera vez o la lista está vacía, buscamos de verdad al servidor
+    if (!window.todosLosEdificiosDB || window.todosLosEdificiosDB.length === 0) {
+      listaContenedor.innerHTML = `<p style="color:#71717a; text-align:center; padding:20px; font-size:13px;">Sincronizando base de datos...</p>`;
+      const res = await apiFetch('/admin/buildings');
+      if (!res.ok) throw new Error(`Error: ${res.status}`);
+      const resData = await res.json();
+      
+      // Guardamos TODOS los edificios (los 42 o los que existan) de forma segura
+      window.todosLosEdificiosDB = resData.data || resData || [];
+    }
 
-    // 2. PROCESAMIENTO DE ESTADÍSTICAS GENERALES (Se mantiene intacto para los paneles superiores)
-    const MS_POR_DIA = 24 * 60 * 60 * 1000;
+    // Procesamos estadísticas SIEMPRE sobre el total real de la base de datos
     const hoy = new Date();
-    let total = edificiosListaGlobal.length;
+    let total = window.todosLosEdificiosDB.length;
     let visitadosHoy = 0;
     let nuncaVisitados = 0;
     let alertasActivas = 0;
 
-    edificiosListaGlobal.forEach(edif => {
+    window.todosLosEdificiosDB.forEach(edif => {
       if (edif.lastVisit || edif.ultimaVisita) {
         const fechaVisita = new Date(edif.lastVisit || edif.ultimaVisita);
         if (fechaVisita.toDateString() === hoy.toDateString()) visitadosHoy++;
@@ -1305,12 +1300,26 @@ async function cargarEdificios() {
       if (edif.hasIssue || edif.tieneProblema || edif.issue || edif.alerts) alertasActivas++;
     });
 
+    // Pintamos los paneles superiores con la verdad absoluta del servidor
     if (document.getElementById("totalEdificios")) document.getElementById("totalEdificios").innerText = total;
     if (document.getElementById("visitados")) document.getElementById("visitados").innerText = visitadosHoy;
     if (document.getElementById("nuncaVisitados")) document.getElementById("nuncaVisitados").innerText = nuncaVisitados;
     if (document.getElementById("problemasActivos")) document.getElementById("problemasActivos").innerText = alertasActivas;
 
-    // 3. APLICACIÓN DE FILTROS AGRESIVOS MULTI-CAMPO (Abarca address, address2, name, etc.)
+    // 🌟 CONTROL DE ESTADO INICIAL: Si no buscó nada, mostramos el cartel de espera
+    if (!busqueda && !territorioFiltro) {
+      listaContenedor.innerHTML = `
+        <p style="color:#71717a; text-align:center; padding:30px; font-size:13px; line-height:1.4;">
+          🔍 Ingresá un criterio de búsqueda o seleccioná un territorio para desplegar los registros.
+        </p>
+      `;
+      if (paginadorAdmin) paginadorAdmin.style.display = "none";
+      return;
+    }
+
+    // Aplicamos los filtros en memoria sobre la lista completa blindada
+    let edificiosFiltrados = [...window.todosLosEdificiosDB];
+
     if (busqueda) {
       edificiosFiltrados = edificiosFiltrados.filter(e => {
         const dir1 = (e.address || "").toLowerCase();
@@ -1320,50 +1329,43 @@ async function cargarEdificios() {
         return dir1.includes(busqueda) || dir2.includes(busqueda) || nom.includes(busqueda) || idStr.includes(busqueda);
       });
     }
+
     if (territorioFiltro) {
       edificiosFiltrados = edificiosFiltrados.filter(e => String(e.territory || e.territorio) === territorioFiltro);
     }
 
-    // 4. ORDENAR RESULTADOS
+    // Ordenamiento
     if (criterioOrden === "address") {
       edificiosFiltrados.sort((a, b) => (a.address || "").localeCompare(b.address || ""));
     } else if (criterioOrden === "territory") {
       edificiosFiltrados.sort((a, b) => Number(a.territory || 0) - Number(b.territory || 0));
-    } else if (criterioOrden === "recent") {
-      edificiosFiltrados.sort((a, b) => {
-        const fechaA = a.createdAt ? new Date(a.createdAt) : new Date(0);
-        const fechaB = b.createdAt ? new Date(b.createdAt) : new Date(0);
-        return fechaB - fechaA;
-      });
     }
 
-    // 5. MOSTRAR RESULTADOS FILTRADOS
+    // Renderizado en la barra lateral
     listaContenedor.innerHTML = "";
 
     if (edificiosFiltrados.length === 0) {
       listaContenedor.innerHTML = `
-        <p style="color:#71717a; text-align:center; padding:20px; font-size:13px; line-height:1.4;">
-          ⚠️ No se encontraron edificios que coincidan con "${busqueda || 'Territorio ' + territorioFiltro}".
+        <p style="color:#71717a; text-align:center; padding:20px; font-size:13px;">
+          ⚠️ No se encontraron edificios con "${busqueda || 'Territorio ' + territorioFiltro}".
         </p>
       `;
       if (paginadorAdmin) paginadorAdmin.style.display = "none";
       return;
     }
 
-    // Activamos paginador si hay elementos
     if (paginadorAdmin) paginadorAdmin.style.display = "flex";
 
     edificiosFiltrados.forEach(edif => {
-      let descripcionExtra = `Territorio: ${edif.territory || edif.territorio || "-"}`;
-      
+      // Si el edificio está bloqueado por el superadmin, le ponemos un estilo visual descriptivo
+      const decoracionBloqueado = edif.isBlocked ? `<span style="color:#ef4444; font-size:11px; font-weight:bold;">🚫 BLOQUEADO</span>` : `Territorio: ${edif.territory || "-"}`;
       const tituloMostrar = edif.name || edif.nombre || edif.address || edif.direccion;
-      const subtituloMostrar = (edif.name || edif.nombre) ? (edif.address || edif.direccion) : descripcionExtra;
 
       const itemHTML = `
-        <div class="edificio-item-lista" onclick="if(typeof verDetalleEdificioAdmin === 'function') { verDetalleEdificioAdmin('${edif._id || edif.id}') } else { abrirEditorEdificio(${JSON.stringify(edif)}) }">
+        <div class="edificio-item-lista" style="${edif.isBlocked ? 'border-left: 4px solid #ef4444;' : ''}" onclick="verDetalleEdificioAdmin('${edif._id || edif.id}')">
           <div class="edificio-info-txt">
             <span class="edif-dir">${tituloMostrar}</span>
-            <span class="edif-sub">${subtituloMostrar}</span>
+            <span class="edif-sub">${edif.name ? edif.address : decoracionBloqueado}</span>
           </div>
           <span class="btn-ver-flecha">→</span>
         </div>
@@ -1371,34 +1373,125 @@ async function cargarEdificios() {
       listaContenedor.insertAdjacentHTML("beforeend", itemHTML);
     });
 
-    // 6. ENCUADRE DINÁMICO DEL MAPA
     if (typeof actualizarMarcadoresMapa === "function") {
       actualizarMarcadoresMapa(edificiosFiltrados);
     }
 
-    const miMapaReal = (typeof mapaGeneral !== 'undefined' && mapaGeneral !== null) ? mapaGeneral : 
-                       (typeof leafletMap !== 'undefined' && leafletMap !== null) ? leafletMap : 
-                       (typeof map !== 'undefined' && map !== null) ? map : null;
-
-    if (miMapaReal && edificiosFiltrados.length > 0) {
-      const conCoordenadas = edificiosFiltrados.filter(e => {
-        const lat = parseFloat(e.latitude || e.lat);
-        const lng = parseFloat(e.longitude || e.lng);
-        return !isNaN(lat) && !isNaN(lng) && lat !== 0;
-      });
-
-      if (conCoordenadas.length === 1) {
-        const unico = conCoordenadas[0];
-        miMapaReal.setView([parseFloat(unico.latitude || unico.lat), parseFloat(unico.longitude || unico.lng)], 16);
-      } else if (conCoordenadas.length > 1) {
-        const grupoPuntos = conCoordenadas.map(e => [parseFloat(e.latitude || e.lat), parseFloat(e.longitude || e.lng)]);
-        miMapaReal.fitBounds(grupoPuntos, { padding: [30, 30], maxZoom: 16 });
-      }
-    }
-
   } catch (error) {
     console.error("Error en cargarEdificios:", error);
-    listaContenedor.innerHTML = `<p style="color:#f44336; text-align:center; padding:20px; font-size:13px;">Error de red al procesar la solicitud.</p>`;
+    listaContenedor.innerHTML = `<p style="color:#f44336; text-align:center; padding:20px; font-size:13px;">Error de sincronización.</p>`;
+  }
+}
+
+// =========================================================================
+// 🔐 SECCIÓN: SEGURIDAD Y PANEL SUPERADMIN
+// =========================================================================
+function abrirAccesoSuperAdmin() {
+  const clave = prompt("🔑 Ingrese la clave maestra de SuperAdmin para habilitar modificaciones críticas:");
+  if (!clave) return;
+
+  // Podés cambiar "admin1234" por la contraseña que quieras usar
+  if (clave === "admin1234") {
+    window.superAdminAutenticado = true;
+    alert("✅ Autenticación exitosa. Desplegando listado maestro global.");
+    mostrarPanelMaestroSuperAdmin();
+  } else {
+    alert("❌ Clave incorrecta. Acceso denegado.");
+  }
+}
+
+function mostrarPanelMaestroSuperAdmin() {
+  // Creamos o buscamos una vista de pantalla completa para listar todo sin el mapa
+  let superView = document.getElementById("superAdminView");
+  if (!superView) {
+    superView = document.createElement("div");
+    superView.id = "superAdminView";
+    superView.className = "vista-pantalla-completa"; // Estilizado oscuro de tu app
+    document.body.appendChild(superView);
+  }
+
+  superView.style.display = "block";
+  
+  let tablaFilas = "";
+  window.todosLosEdificiosDB.forEach((b, index) => {
+    tablaFilas += `
+      <tr style="border-bottom: 1px solid #27272a;">
+        <td style="padding:12px; font-size:13px;"><b>${b.name || 'Sin Nombre'}</b><br><span style="color:#a1a1aa; font-size:12px;">${b.address}</span></td>
+        <td style="padding:12px; text-align:center;">${b.territory || '-'}</td>
+        <td style="padding:12px; text-align:center;">${b.isBlocked ? '🔴 Bloqueado' : '🟢 Activo'}</td>
+        <td style="padding:12px; text-align:right; display:flex; gap:6px; justify-content:flex-end;">
+          <button class="secondary" onclick="alert('Historial próximamente')" style="padding:4px 8px; font-size:12px;">📋 Historial</button>
+          <button class="secondary" onclick="cambiarBloqueoEdificio('${b._id || b.id}', ${b.isBlocked || false})" style="padding:4px 8px; font-size:12px; background-color:${b.isBlocked ? '#22c55e' : '#eab308'}">
+            ${b.isBlocked ? '🔓 Desbloquear' : '🚫 Bloquear'}
+          </button>
+          <button class="danger" onclick="eliminarEdificioCrítico('${b._id || b.id}', '${b.address}')" style="padding:4px 8px; font-size:12px; background-color:#ef4444; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ BORRAR</button>
+        </td>
+      </tr>
+    `;
+  });
+
+  superView.innerHTML = `
+    <div style="padding:20px; max-width:1100px; margin:0 auto; background:#09090b; color:white; min-height:100vh;">
+      <div style="display:flex; justify-content:between; align-items:center; margin-bottom:20px; border-bottom:1px solid #27272a; padding-bottom:15px;">
+        <h2>🛠️ Panel Maestro SuperAdmin (Acceso Total)</h2>
+        <button onclick="document.getElementById('superAdminView').style.display='none'" class="secondary" style="background:#27272a; padding:8px 16px;">❌ Salir del Panel</button>
+      </div>
+      <table style="width:100%; border-collapse:collapse; background:#18181b; border-radius:8px; overflow:hidden;">
+        <thead>
+          <tr style="background:#27272a; text-align:left; color:#a1a1aa;">
+            <th style="padding:12px;">Edificio / Dirección</th>
+            <th style="padding:12px; text-align:center;">Territorio</th>
+            <th style="padding:12px; text-align:center;">Estado</th>
+            <th style="padding:12px; text-align:right;">Acciones Autorizadas</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tablaFilas}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function cambiarBloqueoEdificio(id, estadoActual) {
+  try {
+    const res = await apiFetch(`/admin/building/toggle-block/${id}`, {
+      method: "POST",
+      body: JSON.stringify({ isBlocked: !estadoActual })
+    });
+    if(res.ok) {
+      alert("Estado de bloqueo modificado correctamente.");
+      window.todosLosEdificiosDB = []; // Forzamos recarga limpia
+      await cargarEdificios();
+      mostrarPanelMaestroSuperAdmin();
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function eliminarEdificioCrítico(id, direccion) {
+  if (!window.superAdminAutenticado) return;
+  
+  // Advertencia Nivel 1
+  const conf1 = confirm(`⚠️ ADVERTENCIA CRÍTICA:\n¿Está seguro de que desea eliminar el edificio en "${direccion}"?\nEsta acción borrará todos sus departamentos y el historial de visitas asociado.`);
+  if (!conf1) return;
+
+  // Advertencia Nivel 2 (Confirmación por Texto)
+  const confTexto = prompt(`🚨 CONFIRMACIÓN DE SEGURIDAD:\nPara proceder con la eliminación definitiva, escriba la palabra "ELIMINAR" en mayúsculas:`);
+  
+  if (confTexto === "ELIMINAR") {
+    try {
+      const res = await apiFetch(`/admin/building/delete/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        alert("🗑️ Edificio y registros eliminados de la base de datos de manera permanente.");
+        window.todosLosEdificiosDB = []; // Reseteamos caché local
+        await cargarEdificios();
+        mostrarPanelMaestroSuperAdmin();
+      } else {
+        alert("Error en el servidor al intentar eliminar.");
+      }
+    } catch(e) { console.error(e); }
+  } else {
+    alert("❌ Validación incorrecta. Operación cancelada automáticamente.");
   }
 }
 
