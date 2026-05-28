@@ -1,3 +1,6 @@
+// 🌐 CONFIGURACIÓN DEL SERVIDOR CENTRAL (BACKEND)
+const API_BASE_URL = "https://visitas-app-inxa.onrender.com"; 
+
 // =========================================================================
 // 🚀 PARTE 1: CONFIGURACIÓN ESTRUCTURAL, ESTADOS GLOBALES Y ENRUTADOR DE VISTAS
 // =========================================================================
