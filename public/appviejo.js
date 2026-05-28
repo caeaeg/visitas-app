@@ -1013,8 +1013,6 @@ async function cargarDashboard() {
 
 // Variable global para proteger los datos y que no se alteren al buscar
 window.todosLosEdificiosDB = []; 
-
-
 // =========================================================================
 // 🏢 FUNCIÓN: CARGAR EDIFICIOS (CON FIX DE DATOS REALES Y FILTRO COMPLETO)
 // =========================================================================
@@ -1673,23 +1671,11 @@ async function verDetalleEdificioAdmin(buildingId) {
   }
 }
 
-
-
-
-
-
-
-
-
 // ------------------------------------------------------------- ENVIAR NUEVO EDIFICIO O MODIFICACIONES ---
-
-
 
 function crearEdificio() {
   abrirEditorEdificio();
 }
-
-
 async function guardarEdificio(id = null) {
   // Captura segura de datos
   const payload = {
