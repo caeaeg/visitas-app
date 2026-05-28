@@ -164,11 +164,14 @@ async function buscar() {
   limpiarVista();
   const input = normalizarDireccion(buildingId.value);
   if (!input) return;
-    mensajeInicial.style.display = "none";
+  
+  mensajeInicial.style.display = "none";
   resultado.innerText = "Buscando...";
+  
   try {
     const b = await apiFetch(`/building/${encodeURIComponent(input)}`);
-        // --- MANEJO DEL 404 DEL SERVIDOR ---
+    
+    // Si el servidor nos devuelve un código de error (como un 404 o un rebote de bloqueo)
     if (!b.ok) {
       if (b.status === 404) {
         resultado.innerText = "Edificio no encontrado";
@@ -178,24 +181,29 @@ async function buscar() {
       }
       throw new Error(`Error en servidor: ${b.status}`);
     }
+    
     const building = await b.json();
+    
+    // 🛡️ 1. CONTROL DE SEGURIDAD ABSOLUTO (Ataja el rebote o la propiedad de bloqueo de la BD)
+    if (building.error === "EDIFICIO_BLOQUEADO" || building.isBlocked) {
+      alert("🚫 ACCESO DENEGADO:\nEste edificio está bloqueado por el Administrador y no puede ser visitado en este momento.");
+      
+      // Limpiamos la interfaz para no dejar textos fantasmas colgados
+      resultado.innerText = ""; 
+      if (document.getElementById("departamentoVisitar")) {
+        document.getElementById("departamentoVisitar").innerText = "--";
+      }
+      return; // ✋ Corta acá mismo de forma limpia: No procesa nada de visitas
+    }
+    
     if (!building || !building._id) {
       resultado.innerText = "Edificio no encontrado";
       btnNuevoEdificio.style.display = "block";
       btnNuevoEdificio.onclick = function() { crearEdificio(); };
       return;
     }
-    // 🚀 1. INTERCEPCIÓN INMEDIATA SI ESTÁ BLOQUEADO POR SUPERADMIN
-    if (building.isBlocked) {
-      alert("🚫 Edificio temporalmente bloqueado por la administración.");
-            // Limpiamos los textos de carga para que no quede el "Buscando..." colgado
-      resultado.innerText = ""; 
-      if (document.getElementById("departamentoVisitar")) {
-        document.getElementById("departamentoVisitar").innerText = "--";
-      }
-      return; // ✋ Corta acá mismo: No guarda la ID ni ejecuta cargarDepto()
-    }
-    // 2. SI NO ESTÁ BLOQUEADO, CONTINÚA EL FLUJO NORMAL
+
+    // 2. SI PASÓ TODAS LAS VALIDACIONES, CONTINÚA EL FLUJO NORMAL
     currentBuildingId = building._id;
     await cargarDepto();
   } catch (error) {
@@ -213,9 +221,19 @@ async function cargarDepto() {
   try {
     // 1. Limpieza de ID por si viene como objeto completo
     let idLimpia = typeof currentBuildingId === 'object' ? (currentBuildingId._id || currentBuildingId.id) : currentBuildingId;
-        const res = await apiFetch(`/next/${idLimpia}`);
+    
+    const res = await apiFetch(`/next/${idLimpia}`);
     const data = await res.json();
-        if (typeof listaTerritorio !== 'undefined' && listaTerritorio) listaTerritorio.innerHTML = "";
+    
+    // 🛡️ CONTROL EXTRA: Si entran al sorteo de departamentos pero el backend avisa que está bloqueado
+    if (data.message === "EDIFICIO_BLOQUEADO" || data.error === "EDIFICIO_BLOQUEADO") {
+      alert("🚫 ACCESO DENEGADO:\nEste edificio se encuentra bloqueado administrativamente.");
+      resultado.innerText = "";
+      return;
+    }
+    
+    if (typeof listaTerritorio !== 'undefined' && listaTerritorio) listaTerritorio.innerHTML = "";
+    
     // 🏁 CASO A: Edificio Completado (Regla de los 4 meses o fin de circuito)
     if (data.message === "NO_AVAILABLE" || !data.dept) {
       resultado.innerHTML = `
@@ -225,7 +243,8 @@ async function cargarDepto() {
           No quedan departamentos disponibles por visitar en este momento.
         </div>
       `;
-            // Ocultamos de forma segura los elementos que no se van a usar
+      
+      // Ocultamos de forma segura los elementos que no se van a usar
       if (typeof nota !== 'undefined' && nota) {
         nota.value = ""; // Vaciamos la nota si ya se terminó el edificio
         nota.style.display = "none";
@@ -234,27 +253,34 @@ async function cargarDepto() {
       if (typeof btnNo !== 'undefined' && btnNo) btnNo.style.display = "none";
       if (typeof reportBtn !== 'undefined' && reportBtn) reportBtn.style.display = "none";
       if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.display = "none";
-            await mostrarInfoEdificio();
-            setTimeout(() => {
+      
+      await mostrarInfoEdificio();
+      
+      setTimeout(() => {
         if (typeof cancelarEdificioMovil === "function") {
           cancelarEdificioMovil();
         }
       }, 3500);
-            return;
+      return;
     }
+    
     // 🎉 CASO B: Hay departamento aleatorio disponible
     currentDept = data.dept;
+    
     // ✨ ASEGURAMOS LIMPIEZA: Al recibir un depto nuevo de verdad, la nota vieja se va
     if (typeof nota !== 'undefined' && nota) {
       nota.value = ""; 
       nota.style.display = "block";
     }
-    if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.display = "block";
+    if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.block = "block";
+    
     resultado.innerText = data.dept.number;
-     if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "hidden";
+    
+    if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "hidden";
     if (typeof btnOk !== 'undefined' && btnOk) { btnOk.style.display = "block"; btnOk.disabled = false; }
     if (typeof btnNo !== 'undefined' && btnNo) { btnNo.style.display = "block"; btnNo.disabled = false; }
     if (typeof reportBtn !== 'undefined' && reportBtn) reportBtn.style.display = "none";
+    
     await mostrarInfoEdificio();
   } catch (error) {
     console.error("Error al cargar el siguiente departamento:", error);
