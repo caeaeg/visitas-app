@@ -1635,24 +1635,33 @@ async function cambiarBloqueoEdificio(id, estadoActual) {
 async function eliminarEdificioCrítico(id, direccion) {
   if (!window.superAdminAutenticado) return;
   
-  const conf1 = confirm(`⚠️ ADVERTENCIA CRÍTICA:\n¿Está seguro de que desea eliminar definitivamente el edificio en "${direccion}"?\nEsta acción es irreversible.`);
+  const conf1 = confirm(`⚠️ ADVERTENCIA CRÍTICA:\n¿Está seguro de que desea eliminar definitivamente el edificio en "${direccion}"?\nEsta acción es irreversible y borrará todo su historial.`);
   if (!conf1) return;
 
-  const confTexto = prompt(`🚨 CONFIRMACIÓN FINAL:\nEscriba la palabra "SI" para proceder:`);
+  // 📝 Pedimos la confirmación simple
+  const confTexto = prompt(`🚨 CONFIRMACIÓN FINAL:\nPara proceder con la eliminación definitiva, escriba la palabra "SI":`);
   
-  if (confTexto === "si") {
+  // Normalizamos el texto ingresado: lo pasamos a mayúsculas y removemos el acento si lo tuviera
+  const respuestaLimpia = confTexto ? confTexto.toUpperCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+
+  if (respuestaLimpia === "SI") {
     try {
       const res = await apiFetch(`/admin/building/${id}`, { method: "DELETE" });
       if (res.ok) {
-        alert("🗑️ Edificio eliminado con éxito.");
-        window.todosLosEdificiosDB = []; // Forzar recarga completa
+        alert("🗑️ Edificio eliminado con éxito de la base de datos.");
+        window.todosLosEdificiosDB = []; // Forzar recarga completa en la app
         await cargarEdificios();
         window.superAdminFiltrados = [...window.todosLosEdificiosDB];
         mostrarPanelMaestroSuperAdmin();
       } else {
-        alert("Error en el servidor al intentar eliminar.");
+        alert("Error en el servidor al intentar eliminar el registro.");
       }
-    } catch(e) { console.error(e); }
+    } catch(e) { 
+      console.error(e); 
+      alert("Error de red al intentar eliminar.");
+    }
+  } else {
+    alert("❌ Confirmación incorrecta. Operación cancelada automáticamente.");
   }
 }
 
