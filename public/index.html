@@ -711,6 +711,37 @@
     .tab-content.active {
       display: block;
     }
+    /* Estilos para el Panel Maestro SuperAdmin */
+.vista-pantalla-completa {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #09090b;
+  z-index: 9999; /* Se superpone a todo, incluyendo el mapa */
+  overflow-y: auto; /* Permite scroll si hay muchos edificios */
+  display: none; /* Se activa dinámicamente por JS */
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.vista-pantalla-completa table th {
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.vista-pantalla-completa table tbody tr:hover {
+  background-color: #27272a !important; /* Efecto hover en las filas */
+  transition: background 0.2s ease;
+}
+
+/* Botón peligroso para la acción de borrar */
+.vista-pantalla-completa .danger:hover {
+  background-color: #dc2626 !important;
+  box-shadow: 0 0 8px rgba(220, 38, 38, 0.4);
+}
   </style>
 </head>
 <body>
@@ -735,7 +766,7 @@
       </div>
       <div class="nav-right">
         <button class="btn-salir-sutil" onclick="logout()">Salir</button>
-        <button class="secondary" onclick="abrirAccesoSuperAdmin()" style="background: #18181b; border: 1px solid #27272a; font-size: 12px; color: #a1a1aa;">
+        <button class="secondary" onclick="abrirAccesoSuperAdmin()" style="background: #1c1c1e; border: 1px solid #2c2c2e; font-size: 13px; color: #a1a1aa; padding: 8px 14px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
   🛠️ SuperAdmin
 </button>
       </div>
@@ -799,6 +830,21 @@
         <div class="stat-icon b-red">⚠️</div>
         <div class="stat-data"><h3 id="problemasActivos">-</h3><p>Alertas Activas</p></div>
       </div>
+      <div class="stat-card">
+  <span class="stat-icon">🚫</span>
+  <div>
+    <h3 id="edificiosBloqueados">0</h3>
+    <p>Bloqueados por Admin</p>
+  </div>
+</div>
+
+<div class="stat-card">
+  <span class="stat-icon">✨</span>
+  <div>
+    <h3 id="edificiosNuevos">0</h3>
+    <p>Nuevos (Últimos 30 días)</p>
+  </div>
+</div>
     </div>
 
     <div class="workspace-grid">
