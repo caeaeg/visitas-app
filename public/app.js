@@ -1242,12 +1242,83 @@ async function verDetalleEdificioAdmin(buildingId) {
 
 async function cargarDashboard() {
   try {
-    const res = await apiFetch("/stats");
-    const data = await res.json();
-    totalEdificios.innerText = data.totalEdificios || 0;
-    visitados.innerText = data.visitados || 0;
+    // 1. Si la lista global aún no se descargó, la sincronizamos primero
+    if (!window.todosLosEdificiosDB || window.todosLosEdificiosDB.length === 0) {
+      const res = await apiFetch('/admin/buildings');
+      if (res.ok) {
+        const resData = await res.json();
+        window.todosLosEdificiosDB = resData.data || resData || [];
+      }
+    }
+
+    // 2. Definimos las variables para nuestras estadísticas
+    const hoy = new Date();
+    const MS_POR_DIA = 24 * 60 * 60 * 1000;
+
+    let total = window.todosLosEdificiosDB.length;
+    let visitadosHoy = 0;
+    let nuncaVisitados = 0;
+    let alertasActivas = 0;
+    let bloqueados = 0;
+    let nuevos30Dias = 0;
+
+    // 3. Recorremos la base de datos real en memoria una sola vez
+    window.todosLosEdificiosDB.forEach(edif => {
+      // Contador de Bloqueados
+      if (edif.isBlocked) {
+        bloqueados++;
+      }
+
+      // Contador de Visitas Hoy
+      if (edif.lastVisit || edif.ultimaVisita) {
+        const fechaVisita = new Date(edif.lastVisit || edif.ultimaVisita);
+        if (fechaVisita.toDateString() === hoy.toDateString()) {
+          visitadosHoy++;
+        }
+      } else {
+        nuncaVisitados++;
+      }
+
+      // Contador de Alertas Activas
+      if (edif.hasIssue || edif.tieneProblema || edif.issue || edif.alerts) {
+        alertasActivas++;
+      }
+
+      // Contador de Edificios Nuevos (Creados en los últimos 30 días)
+      const fechaBase = edif.createdAt || edif.fechaCreacion;
+      if (fechaBase) {
+        const fechaCreacion = new Date(fechaBase);
+        const diferenciaDias = Math.floor((hoy - fechaCreacion) / MS_POR_DIA);
+        if (diferenciaDias <= 30 && diferenciaDias >= 0) {
+          nuevos30Dias++;
+        }
+      }
+    });
+
+    // 4. Inyectamos los datos en los elementos del HTML (si existen en la vista actual)
+    if (document.getElementById("totalEdificios")) {
+      document.getElementById("totalEdificios").innerText = total;
+    }
+    if (document.getElementById("visitados")) {
+      document.getElementById("visitados").innerText = visitadosHoy;
+    }
+    if (document.getElementById("nuncaVisitados")) {
+      document.getElementById("nuncaVisitados").innerText = nuncaVisitados;
+    }
+    if (document.getElementById("problemasActivos")) {
+      document.getElementById("problemasActivos").innerText = alertasActivas;
+    }
+
+    // ✨ NUEVAS MÉTRICAS: Agrega estos IDs en tus tarjetas del HTML si querés mostrarlos visualmente
+    if (document.getElementById("edificiosBloqueados")) {
+      document.getElementById("edificiosBloqueados").innerText = bloqueados;
+    }
+    if (document.getElementById("edificiosNuevos")) {
+      document.getElementById("edificiosNuevos").innerText = nuevos30Dias;
+    }
+
   } catch (error) {
-    console.error(error);
+    console.error("Error al cargar las estadísticas del Dashboard:", error);
   }
 }
 
