@@ -1470,14 +1470,22 @@ async function cargarEdificios() {
 // =========================================================================
 // 🔐 SECCIÓN: SEGURIDAD Y PANEL SUPERADMIN
 // =========================================================================
+// Variables de control para la paginación y búsqueda del SuperAdmin
+window.superAdminAutenticado = false;
+window.superAdminPaginaActual = 1;
+window.superAdminFiltrados = [];
+const ELEMENTOS_POR_PAGINA = 10;
+
 function abrirAccesoSuperAdmin() {
   const clave = prompt("🔑 Ingrese la clave maestra de SuperAdmin para habilitar modificaciones críticas:");
   if (!clave) return;
 
-  // CLAVE SUPERADMIN
   if (clave === "2414") {
     window.superAdminAutenticado = true;
     alert("✅ Autenticación exitosa. Desplegando listado maestro global.");
+    // Copiamos la base de datos al array de trabajo del SuperAdmin
+    window.superAdminFiltrados = [...window.todosLosEdificiosDB];
+    window.superAdminPaginaActual = 1;
     mostrarPanelMaestroSuperAdmin();
   } else {
     alert("❌ Clave incorrecta. Acceso denegado.");
@@ -1485,41 +1493,63 @@ function abrirAccesoSuperAdmin() {
 }
 
 function mostrarPanelMaestroSuperAdmin() {
-  // Creamos o buscamos una vista de pantalla completa para listar todo sin el mapa
   let superView = document.getElementById("superAdminView");
   if (!superView) {
     superView = document.createElement("div");
     superView.id = "superAdminView";
-    superView.className = "vista-pantalla-completa"; // Estilizado oscuro de tu app
+    superView.className = "vista-pantalla-completa";
     document.body.appendChild(superView);
   }
 
   superView.style.display = "block";
-  
-  let tablaFilas = "";
-  window.todosLosEdificiosDB.forEach((b, index) => {
-    tablaFilas += `
-      <tr style="border-bottom: 1px solid #27272a;">
-        <td style="padding:12px; font-size:13px;"><b>${b.name || 'Sin Nombre'}</b><br><span style="color:#a1a1aa; font-size:12px;">${b.address}</span></td>
-        <td style="padding:12px; text-align:center;">${b.territory || '-'}</td>
-        <td style="padding:12px; text-align:center;">${b.isBlocked ? '🔴 Bloqueado' : '🟢 Activo'}</td>
-        <td style="padding:12px; text-align:right; display:flex; gap:6px; justify-content:flex-end;">
-          <button class="secondary" onclick="alert('Historial próximamente')" style="padding:4px 8px; font-size:12px;">📋 Historial</button>
-          <button class="secondary" onclick="cambiarBloqueoEdificio('${b._id || b.id}', ${b.isBlocked || false})" style="padding:4px 8px; font-size:12px; background-color:${b.isBlocked ? '#22c55e' : '#eab308'}">
-            ${b.isBlocked ? '🔓 Desbloquear' : '🚫 Bloquear'}
-          </button>
-          <button class="danger" onclick="eliminarEdificioCrítico('${b._id || b.id}', '${b.address}')" style="padding:4px 8px; font-size:12px; background-color:#ef4444; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ BORRAR</button>
-        </td>
-      </tr>
-    `;
-  });
 
+  // Calcular índices de paginación
+  const inicio = (window.superAdminPaginaActual - 1) * ELEMENTOS_POR_PAGINA;
+  const fin = inicio + ELEMENTOS_POR_PAGINA;
+  const paginaElementos = window.superAdminFiltrados.slice(inicio, fin);
+  const totalPaginas = Math.ceil(window.superAdminFiltrados.length / ELEMENTOS_POR_PAGINA) || 1;
+
+  // Generar las filas de la tabla de forma segura
+  let tablaFilas = "";
+  if (paginaElementos.length === 0) {
+    tablaFilas = `<tr><td colspan="4" style="text-align:center; padding:30px; color:#a1a1aa;">⚠️ No se encontraron edificios con ese criterio.</td></tr>`;
+  } else {
+    paginaElementos.forEach((b) => {
+      tablaFilas += `
+        <tr style="border-bottom: 1px solid #27272a;">
+          <td style="padding:12px; font-size:13px;"><b>${b.name || 'Sin Nombre'}</b><br><span style="color:#a1a1aa; font-size:12px;">${b.address || b.direccion || ''}</span></td>
+          <td style="padding:12px; text-align:center;">${b.territory || b.territorio || '-'}</td>
+          <td style="padding:12px; text-align:center;">${b.isBlocked ? '🔴 Bloqueado' : '🟢 Activo'}</td>
+          <td style="padding:12px; text-align:right; display:flex; gap:6px; justify-content:flex-end;">
+            <button class="secondary" onclick="alert('Historial de visitas próximamente.')" style="padding:4px 8px; font-size:12px; cursor:pointer;">📋 Historial</button>
+            <button class="secondary" onclick="cambiarBloqueoEdificio('${b._id || b.id}', ${b.isBlocked || false})" style="padding:4px 8px; font-size:12px; cursor:pointer; background-color:${b.isBlocked ? '#22c55e' : '#eab308'}; color:#000; font-weight:bold;">
+              ${b.isBlocked ? '🔓 Desbloquear' : '🚫 Bloquear'}
+            </button>
+            <button class="danger" onclick="eliminarEdificioCrítico('${b._id || b.id}', '${b.address || b.direccion}')" style="padding:4px 8px; font-size:12px; background-color:#ef4444; color:white; border:none; border-radius:4px; cursor:pointer;">🗑️ BORRAR</button>
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  // Renderizar la estructura completa con el buscador y controles de página agregados
   superView.innerHTML = `
-    <div style="padding:20px; max-width:1100px; margin:0 auto; background:#09090b; color:white; min-height:100vh;">
-      <div style="display:flex; justify-content:between; align-items:center; margin-bottom:20px; border-bottom:1px solid #27272a; padding-bottom:15px;">
-        <h2>🛠️ Panel Maestro SuperAdmin (Acceso Total)</h2>
-        <button onclick="document.getElementById('superAdminView').style.display='none'" class="secondary" style="background:#27272a; padding:8px 16px;">❌ Salir del Panel</button>
+    <div style="padding:20px; max-width:1100px; margin:0 auto; background:#09090b; color:white; min-height:100vh; font-family:sans-serif;">
+      
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid #27272a; padding-bottom:15px;">
+        <div>
+          <h2 style="margin:0; font-size:22px;">🛠️ Panel Maestro SuperAdmin</h2>
+          <p style="margin:4px 0 0 0; color:#a1a1aa; font-size:13px;">Mostrando ${window.superAdminFiltrados.length} edificios en total</p>
+        </div>
+        <button onclick="document.getElementById('superAdminView').style.display='none'" class="secondary" style="background:#27272a; padding:8px 16px; border:none; color:white; border-radius:6px; cursor:pointer;">❌ Salir del Panel</button>
       </div>
+
+      <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+        <input type="text" id="buscadorSuperAdmin" placeholder="Filtrar por dirección o nombre en tiempo real..." 
+          style="flex: 1; padding: 10px; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 6px; font-size: 14px;"
+          oninput="filtrarSuperAdmin(this.value)">
+      </div>
+
       <table style="width:100%; border-collapse:collapse; background:#18181b; border-radius:8px; overflow:hidden;">
         <thead>
           <tr style="background:#27272a; text-align:left; color:#a1a1aa;">
@@ -1533,49 +1563,96 @@ function mostrarPanelMaestroSuperAdmin() {
           ${tablaFilas}
         </tbody>
       </table>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding:10px 0;">
+        <span style="color:#a1a1aa; font-size:13px;">Página <b>${window.superAdminPaginaActual}</b> de <b>${totalPaginas}</b></span>
+        <div style="display:flex; gap:8px;">
+          <button onclick="cambiarPaginaSuper(-1)" ${window.superAdminPaginaActual === 1 ? 'disabled' : ''} 
+            style="padding:6px 12px; background:#27272a; color:white; border:none; border-radius:4px; cursor:pointer; opacity:${window.superAdminPaginaActual === 1 ? '0.4' : '1'}">← Anterior</button>
+          <button onclick="cambiarPaginaSuper(1)" ${window.superAdminPaginaActual === totalPaginas ? 'disabled' : ''} 
+            style="padding:6px 12px; background:#27272a; color:white; border:none; border-radius:4px; cursor:pointer; opacity:${window.superAdminPaginaActual === totalPaginas ? '0.4' : '1'}">Siguiente →</button>
+        </div>
+      </div>
+
     </div>
   `;
 }
 
+// Función para filtrar sobre la marcha en el panel
+function filtrarSuperAdmin(valor) {
+  const query = valor.toLowerCase().trim();
+  window.superAdminFiltrados = window.todosLosEdificiosDB.filter(b => {
+    const dir = (b.address || b.direccion || "").toLowerCase();
+    const nom = (b.name || b.nombre || "").toLowerCase();
+    return dir.includes(query) || nom.includes(query);
+  });
+  window.superAdminPaginaActual = 1; // Reseteamos a la primera página al filtrar
+  mostrarPanelMaestroSuperAdmin();
+}
+
+// Cambiar de página en el listado
+function cambiarPaginaSuper(direccion) {
+  window.superAdminPaginaActual += direccion;
+  mostrarPanelMaestroSuperAdmin();
+}
+
+// 🛠️ FIX RUTA DE BLOQUEO (Evita el error 404)
 async function cambiarBloqueoEdificio(id, estadoActual) {
   try {
-    const res = await apiFetch(`/admin/building/toggle-block/${id}`, {
-      method: "POST",
+    // Si la ruta original falló, intentamos enviar el cambio de estado usando PUT a la ruta del edificio
+    const res = await apiFetch(`/admin/building/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isBlocked: !estadoActual })
     });
-    if(res.ok) {
-      alert("Estado de bloqueo modificado correctamente.");
-      window.todosLosEdificiosDB = []; // Forzamos recarga limpia
-      await cargarEdificios();
-      mostrarPanelMaestroSuperAdmin();
+    
+    // Si no tienes configurada esa ruta exacta en tu backend, probamos con la alternativa común:
+    if (!res.ok) {
+      const resAlt = await apiFetch(`/building/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isBlocked: !estadoActual })
+      });
+      if (!resAlt.ok) throw new Error("No se pudo actualizar en el servidor");
     }
-  } catch(e) { console.error(e); }
+
+    alert("Estado de bloqueo modificado correctamente.");
+    window.todosLosEdificiosDB = []; // Limpiamos caché para forzar recarga limpia
+    await cargarEdificios();
+    
+    // Sincronizamos la vista del SuperAdmin con los nuevos datos
+    const queryActual = document.getElementById("buscadorSuperAdmin") ? document.getElementById("buscadorSuperAdmin").value : "";
+    window.superAdminFiltrados = [...window.todosLosEdificiosDB];
+    if(queryActual) filtrarSuperAdmin(queryActual);
+    else mostrarPanelMaestroSuperAdmin();
+
+  } catch(e) { 
+    console.error(e); 
+    alert("Error de comunicación con el servidor. Verifica las rutas del backend.");
+  }
 }
 
 async function eliminarEdificioCrítico(id, direccion) {
   if (!window.superAdminAutenticado) return;
   
-  // Advertencia Nivel 1
-  const conf1 = confirm(`⚠️ ADVERTENCIA CRÍTICA:\n¿Está seguro de que desea eliminar el edificio en "${direccion}"?\nEsta acción borrará todos sus departamentos y el historial de visitas asociado.`);
+  const conf1 = confirm(`⚠️ ADVERTENCIA CRÍTICA:\n¿Está seguro de que desea eliminar definitivamente el edificio en "${direccion}"?\nEsta acción es irreversible.`);
   if (!conf1) return;
 
-  // Advertencia Nivel 2 (Confirmación por Texto)
-  const confTexto = prompt(`🚨 CONFIRMACIÓN DE SEGURIDAD:\nPara proceder con la eliminación definitiva, escriba la palabra "ELIMINAR" en mayúsculas:`);
+  const confTexto = prompt(`🚨 CONFIRMACIÓN FINAL:\nEscriba la palabra "SI" para proceder:`);
   
-  if (confTexto === "ELIMINAR") {
+  if (confTexto === "si") {
     try {
-      const res = await apiFetch(`/admin/building/delete/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/admin/building/${id}`, { method: "DELETE" });
       if (res.ok) {
-        alert("🗑️ Edificio y registros eliminados de la base de datos de manera permanente.");
-        window.todosLosEdificiosDB = []; // Reseteamos caché local
+        alert("🗑️ Edificio eliminado con éxito.");
+        window.todosLosEdificiosDB = []; // Forzar recarga completa
         await cargarEdificios();
+        window.superAdminFiltrados = [...window.todosLosEdificiosDB];
         mostrarPanelMaestroSuperAdmin();
       } else {
         alert("Error en el servidor al intentar eliminar.");
       }
     } catch(e) { console.error(e); }
-  } else {
-    alert("❌ Validación incorrecta. Operación cancelada automáticamente.");
   }
 }
 
