@@ -26,7 +26,7 @@ app.listen(PORT, () => {
 
 app.post("/login", auth);
 
-// 🔹 NEXT (¡Corregido y Optimizado a 4 meses!)
+// 🔹 NEXT (Validación de bloqueo añadida)
 app.get(
   "/next/:buildingId",
   requireLogin,
@@ -35,11 +35,15 @@ app.get(
     try {
       const buildingId = req.params.buildingId;
 
-      // 1. Calculamos la veda estricta de 4 meses atrás
+      // 🛡️ Verificamos si el edificio no está bloqueado primero
+      const building = await Building.findById(buildingId);
+      if (building && building.isBlocked && req.user?.role === "predi") {
+        return res.json({ message: "EDIFICIO_BLOQUEADO" });
+      }
+
       const cuatroMesesAtras = new Date();
       cuatroMesesAtras.setMonth(cuatroMesesAtras.getMonth() - 4);
       
-      // 2. Traemos SOLO los departamentos que pertenecen a ESTE edificio
       const todosLosDeptosDelEdificio = await Department.find({ buildingId: buildingId });
       const idsDeptos = todosLosDeptosDelEdificio.map(d => d._id);
 
@@ -47,29 +51,23 @@ app.get(
         return res.json({ message: "NO_AVAILABLE" });
       }
 
-      // 3. Buscamos qué departamentos de ESTE edificio fueron atendidos recientemente
       const visitasRecientes = await Visit.find({
-        buildingId: buildingId, // 🛡️ Filtro por edificio para no colapsar la BD
+        buildingId: buildingId,
         status: "ATENDIO",
         date: { $gte: cuatroMesesAtras }
       });
       
       const deptosBloqueadosIds = visitasRecientes.map(v => v.departmentId.toString());
       
-      // 4. 🛠️ CORREGIDO ACÁ: Usamos el nombre de variable correcto para filtrar
       const deptosDisponibles = todosLosDeptosDelEdificio.filter(d => 
         !deptosBloqueadosIds.includes(d._id.toString())
       );
       
-      // 5. Si no queda ninguno disponible, avisamos al frontend para cerrar el circuito
       if (!deptosDisponibles.length) {
         return res.json({ message: "NO_AVAILABLE" });
       }
       
-      // 6. Sorteo aleatorio puro entre las opciones libres
       const dept = deptosDisponibles[Math.floor(Math.random() * deptosDisponibles.length)];
-      
-      // 7. Buscamos el historial de la última visita de este departamento en particular
       const lastVisit = await Visit.findOne({ departmentId: dept._id }).sort({ date: -1 });
       
       res.json({ dept, lastVisit });
