@@ -1,5 +1,4 @@
 // * Sistema de Gestión de Territorios y Visitas
- 
 // --- VARIABLES GLOBALES DEL NAVEGADOR ---
 let paginaActual = 1;
 let currentDept = null;
@@ -12,50 +11,38 @@ let leafletMarker = null;
 let miTemporizadorMapa = null; 
 let miniMapaAdminInstance = null;
 let mapaIncidenteAdminInstance = null;
-
 let listaProblemasGlobal = [];
-
 //--------------------------------------------------------------------------------------------//
-
-
-
 // --- SISTEMA DE AUTENTICACIÓN (LOGIN / LOGOUT) ---
 async function login() {
   const username = loginUser.value.trim();
   const password = loginPass.value.trim();
   loginMsg.innerText = "";
-
   if (!username || !password) {
     loginMsg.innerText = "Completá usuario y contraseña";
     return;
   }
-
   try {
     const res = await fetch("/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password })
     });
-    
     const data = await res.json();
-    
     if (!data.ok) {
       loginMsg.innerText = data.message || "Usuario o contraseña incorrectos";
       return;
     }
-
     currentUser = data.username;
     currentRole = data.role;
     localStorage.setItem("user", data.username);
     localStorage.setItem("role", data.role);
-    
-    iniciarApp();
+  iniciarApp();
   } catch (error) {
     console.error("Error en login:", error);
     loginMsg.innerText = "Error al conectar con el servidor";
   }
 }
-
 // --- FUNCIÓN CENTRAL DE PETICIONES HTTP (API FETCH NATIVA) ---
 async function apiFetch(url, options = {}) {
   const headers = {
@@ -80,36 +67,29 @@ async function apiFetch(url, options = {}) {
 function tienePermiso(roles) {
   return roles.includes(currentRole);
 }
-
 function iniciarApp() {
   // 1. Ocultamos la pantalla de login de forma segura
   const elLogin = document.getElementById("loginScreen") || (typeof loginScreen !== 'undefined' ? loginScreen : null);
   if (elLogin) elLogin.style.display = "none";
-  
-  // 2. Evaluamos botones del panel control según el rol logueado
+    // 2. Evaluamos botones del panel control según el rol logueado
   aplicarPermisos();
-  
-  // 3. Redirección absoluta de pantallas contenedoras principales
+    // 3. Redirección absoluta de pantallas contenedoras principales
   const appContainer = document.getElementById("appContainer");
   const mainDashboard = document.getElementById("mainDashboard");
-
   if (currentRole === "predi") {
     // 📱 INTERFAZ MÓVIL FORZADA: Apagamos el dashboard grande y sus vistas internas por completo
     if (mainDashboard) mainDashboard.style.display = "none";
     if (appContainer) appContainer.style.display = "block";
-    
-    // Desactivamos cualquier sub-vista de administrador activa por las dudas
+        // Desactivamos cualquier sub-vista de administrador activa por las dudas
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
   } else {
     // 💻 PANEL DE CONTROL GENERAL (Admin / Conductor)
     if (mainDashboard) mainDashboard.style.display = "block";
     if (appContainer) appContainer.style.display = "none";
-    
-    // Abrimos directamente la vista del menú de tarjetas principales
+        // Abrimos directamente la vista del menú de tarjetas principales
     abrirVista("dashboardView");
   }
 }
-
 function abrirVista(id) {
   // 🚨 REGLA DE ORO DE SEGURIDAD: Si es predi y la vista NO es el editor, no lo dejamos tocar el dashboard admin
   if (currentRole === "predi" && id !== "editarView") {
@@ -117,43 +97,34 @@ function abrirVista(id) {
     if (document.getElementById("appContainer")) document.getElementById("appContainer").style.display = "block";
     return; // Frenamos la ejecución acá
   }
-
   // Ocultar todas las sub-vistas internas
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-  
-  // Activar la sub-vista objetivo
+    // Activar la sub-vista objetivo
   const vistaObjetivo = document.getElementById(id);
   if (vistaObjetivo) vistaObjetivo.classList.add("active");
-
   // --- SOLUCIÓN DE FLUJO DE CONTENEDORES PARA MÓVIL ---
   if (id === "editarView" && currentRole === "predi") {
     if (document.getElementById("appContainer")) document.getElementById("appContainer").style.display = "none";
     if (document.getElementById("mainDashboard")) document.getElementById("mainDashboard").style.display = "block";
   }
-
   // Acciones específicas según la vista
   if (id === "territorioView") {
     if (typeof cargarDashboard === "function") cargarDashboard();
     if (typeof cargarEdificios === "function") cargarEdificios(); 
-    
     if (leafletMap) {
       setTimeout(() => { leafletMap.invalidateSize(); }, 100);
     } else if (typeof inicializarMapaLeaflet === "function") {
       inicializarMapaLeaflet(-27.36708, -55.89608);
     }
   }
-
   if (id === "problemasView" && typeof verProblemas === "function") {
     verProblemas();
   }
 }
-
 function aplicarPermisos() {
   // Buscamos la tarjeta de reportes de problemas en el menú principal
   const btnProblemas = document.querySelector('#dashboardView [onclick="abrirVista(\'problemasView\')"]');
-
   if (!btnProblemas) return;
-
   // Control estricto de herramientas según rol
   if (currentRole === "admin") {
     btnProblemas.style.display = "flex"; // El admin ve y gestiona los problemas abiertos
@@ -161,25 +132,21 @@ function aplicarPermisos() {
     btnProblemas.style.display = "none"; // El conductor tiene un flujo limpio sin alertas
   }
 }
-
 function logout() {
   localStorage.removeItem("user");
   localStorage.removeItem("role");
   location.reload();
 }
-
 // Oidor de carga inicial de la página
 window.addEventListener("load", async () => {
   const savedUser = localStorage.getItem("user");
   const savedRole = localStorage.getItem("role");
-  
-  if (savedUser && savedRole) {
+    if (savedUser && savedRole) {
     currentUser = savedUser;
     currentRole = savedRole;
     iniciarApp();
   }
-  
-  // Soporte para links directos por escaneo QR (?building=ID)
+    // Soporte para links directos por escaneo QR (?building=ID)
   const params = new URLSearchParams(window.location.search);
   const buildingIdParam = params.get("building");
   if (buildingIdParam && typeof cargarDepto === "function") {
@@ -188,9 +155,7 @@ window.addEventListener("load", async () => {
     await cargarDepto();
   }
 });
-
 //--------------------------------------------------------gestion de usuarios ------------------------//
-
 
 // =========================================================================
 // 🔍 FUNCIÓN: BUSCAR EDIFICIO POR DIRECCIÓN O CÓDIGO (CON CONTROL DE BLOQUEO FIX)
@@ -199,14 +164,11 @@ async function buscar() {
   limpiarVista();
   const input = normalizarDireccion(buildingId.value);
   if (!input) return;
-  
-  mensajeInicial.style.display = "none";
+    mensajeInicial.style.display = "none";
   resultado.innerText = "Buscando...";
-
   try {
     const b = await apiFetch(`/building/${encodeURIComponent(input)}`);
-    
-    // --- MANEJO DEL 404 DEL SERVIDOR ---
+        // --- MANEJO DEL 404 DEL SERVIDOR ---
     if (!b.ok) {
       if (b.status === 404) {
         resultado.innerText = "Edificio no encontrado";
@@ -216,7 +178,6 @@ async function buscar() {
       }
       throw new Error(`Error en servidor: ${b.status}`);
     }
-
     const building = await b.json();
     if (!building || !building._id) {
       resultado.innerText = "Edificio no encontrado";
@@ -224,23 +185,19 @@ async function buscar() {
       btnNuevoEdificio.onclick = function() { crearEdificio(); };
       return;
     }
-
     // 🚀 1. INTERCEPCIÓN INMEDIATA SI ESTÁ BLOQUEADO POR SUPERADMIN
     if (building.isBlocked) {
       alert("🚫 Edificio temporalmente bloqueado por la administración.");
-      
-      // Limpiamos los textos de carga para que no quede el "Buscando..." colgado
+            // Limpiamos los textos de carga para que no quede el "Buscando..." colgado
       resultado.innerText = ""; 
       if (document.getElementById("departamentoVisitar")) {
         document.getElementById("departamentoVisitar").innerText = "--";
       }
       return; // ✋ Corta acá mismo: No guarda la ID ni ejecuta cargarDepto()
     }
-
     // 2. SI NO ESTÁ BLOQUEADO, CONTINÚA EL FLUJO NORMAL
     currentBuildingId = building._id;
     await cargarDepto();
-
   } catch (error) {
     console.error("Detalle del error en buscar:", error);
     resultado.innerText = "Edificio no encontrado o error de red";
@@ -256,12 +213,9 @@ async function cargarDepto() {
   try {
     // 1. Limpieza de ID por si viene como objeto completo
     let idLimpia = typeof currentBuildingId === 'object' ? (currentBuildingId._id || currentBuildingId.id) : currentBuildingId;
-    
-    const res = await apiFetch(`/next/${idLimpia}`);
+        const res = await apiFetch(`/next/${idLimpia}`);
     const data = await res.json();
-    
-    if (typeof listaTerritorio !== 'undefined' && listaTerritorio) listaTerritorio.innerHTML = "";
-
+        if (typeof listaTerritorio !== 'undefined' && listaTerritorio) listaTerritorio.innerHTML = "";
     // 🏁 CASO A: Edificio Completado (Regla de los 4 meses o fin de circuito)
     if (data.message === "NO_AVAILABLE" || !data.dept) {
       resultado.innerHTML = `
@@ -271,8 +225,7 @@ async function cargarDepto() {
           No quedan departamentos disponibles por visitar en este momento.
         </div>
       `;
-      
-      // Ocultamos de forma segura los elementos que no se van a usar
+            // Ocultamos de forma segura los elementos que no se van a usar
       if (typeof nota !== 'undefined' && nota) {
         nota.value = ""; // Vaciamos la nota si ya se terminó el edificio
         nota.style.display = "none";
@@ -281,39 +234,28 @@ async function cargarDepto() {
       if (typeof btnNo !== 'undefined' && btnNo) btnNo.style.display = "none";
       if (typeof reportBtn !== 'undefined' && reportBtn) reportBtn.style.display = "none";
       if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.display = "none";
-      
-      await mostrarInfoEdificio();
-      
-      setTimeout(() => {
+            await mostrarInfoEdificio();
+            setTimeout(() => {
         if (typeof cancelarEdificioMovil === "function") {
           cancelarEdificioMovil();
         }
       }, 3500);
-      
-      return;
+            return;
     }
-
     // 🎉 CASO B: Hay departamento aleatorio disponible
     currentDept = data.dept;
-
     // ✨ ASEGURAMOS LIMPIEZA: Al recibir un depto nuevo de verdad, la nota vieja se va
     if (typeof nota !== 'undefined' && nota) {
       nota.value = ""; 
       nota.style.display = "block";
     }
-
     if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.display = "block";
-
     resultado.innerText = data.dept.number;
-    
-    if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "hidden";
-
+     if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "hidden";
     if (typeof btnOk !== 'undefined' && btnOk) { btnOk.style.display = "block"; btnOk.disabled = false; }
     if (typeof btnNo !== 'undefined' && btnNo) { btnNo.style.display = "block"; btnNo.disabled = false; }
     if (typeof reportBtn !== 'undefined' && reportBtn) reportBtn.style.display = "none";
-
     await mostrarInfoEdificio();
-
   } catch (error) {
     console.error("Error al cargar el siguiente departamento:", error);
     alert("Error de comunicación al traer el próximo departamento.");
@@ -327,7 +269,6 @@ async function marcar(status) {
   if (!currentDept) return;
   btnOk.disabled = true;
   btnNo.disabled = true;
-
   // Armamos el paquete leyendo el cuadro de texto ANTES de hacer cualquier otra acción
   const datosVisita = {
     departmentId: currentDept._id,
@@ -335,35 +276,28 @@ async function marcar(status) {
     status: status,
     note: nota.value.trim()
   };
-  
-  // 🛰️ CASO INTERNET OFFLINE: Guardado en la memoria interna del celu
+    // 🛰️ CASO INTERNET OFFLINE: Guardado en la memoria interna del celu
   if (!navigator.onLine) {
     guardarEnMochilaLocal("visitas_pendientes", datosVisita);
     alert("⏳ Visita guardada localmente (Sin Señal). Se enviará sola apenas recuperes internet.");
-    
-    // 🌟 QUITAMOS 'nota.value = ""' de acá: Esperamos a que toquen "Siguiente" para borrarla visualmente
+      // 🌟 QUITAMOS 'nota.value = ""' de acá: Esperamos a que toquen "Siguiente" para borrarla visualmente
     if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "visible";
     return;
   }
-  
-  // CASO INTERNET ONLINE: Envíos normales al servidor de Render
+    // CASO INTERNET ONLINE: Envíos normales al servidor de Render
   try {
     const res = await apiFetch("/visit", {
       method: "POST",
       body: JSON.stringify(datosVisita)
     });
-    
-    if (!res.ok) throw new Error(`Servidor respondió con código: ${res.status}`);
-    
-    // 🌟 QUITAMOS 'nota.value = ""' de acá también: Mantenemos el texto en pantalla hasta cambiar de depto
+        if (!res.ok) throw new Error(`Servidor respondió con código: ${res.status}`);
+        // 🌟 QUITAMOS 'nota.value = ""' de acá también: Mantenemos el texto en pantalla hasta cambiar de depto
     if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "visible";
-
   } catch (error) {
     console.error("Falla de red al marcar visita, respaldando...", error);
     guardarEnMochilaLocal("visitas_pendientes", datosVisita);
     alert("⏳ Hubo un problema de red. La visita quedó guardada en el celu para no perderse.");
-    
-    if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "visible";
+      if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "visible";
   }
 }
 
@@ -372,15 +306,11 @@ async function marcar(status) {
 // =========================================================================
 async function siguiente() {
   console.log("➡️ Botón Siguiente presionado. Buscando próximo departamento aleatorio...");
-  
-  // Acá sí limpiamos la pantalla por completo porque el usuario explícitamente decidió avanzar
+    // Acá sí limpiamos la pantalla por completo porque el usuario explícitamente decidió avanzar
   if (typeof nota !== 'undefined' && nota) nota.value = "";
-  
-  if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "hidden";
-
+    if (typeof btnSiguiente !== 'undefined' && btnSiguiente) btnSiguiente.style.visibility = "hidden";
   if (typeof btnOk !== 'undefined' && btnOk) btnOk.disabled = false;
   if (typeof btnNo !== 'undefined' && btnNo) btnNo.disabled = false;
-
   if (typeof cargarDepto === "function") {
     await cargarDepto();
   } else {
@@ -388,38 +318,31 @@ async function siguiente() {
     alert("No se pudo cargar el siguiente departamento. Intenta recargar el edificio.");
   }
 }
-
 async function mostrarInfoEdificio() {
   try {
     const res = await apiFetch(`/building-info/${currentBuildingId}`);
     const data = await res.json();
     const b = data.building;
-
     // ✨ Cálculo de Edificio Nuevo (Lapso de 30 días)
     let cartelNuevoHtml = "";
     if (b.createdAt || b.fechaCreacion) { 
       const fechaCreacion = new Date(b.createdAt || b.fechaCreacion);
       const hoy = new Date();
       const diferenciaDias = Math.floor((hoy - fechaCreacion) / (1000 * 60 * 60 * 24));
-      
-      if (diferenciaDias <= 30) {
+            if (diferenciaDias <= 30) {
         const fechaFormateada = fechaCreacion.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
         // Ahora se diseña de manera más sutil para el footer izquierdo
         cartelNuevoHtml = `Edificio creado el ${fechaFormateada}`;
       }
     }
-
     if (typeof reportBtn !== 'undefined' && reportBtn) {
       reportBtn.style.display = "none"; 
     }
-
     // Activamos el contenedor principal
     infoEdificio.style.display = "block";
-    
-    // Formateamos la fecha de la última visita
+        // Formateamos la fecha de la última visita
     const fechaUltimaVisita = data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca";
-    
-    infoEdificio.innerHTML = `
+        infoEdificio.innerHTML = `
       <div class="sectionCard" style="background: #121214; border: 1px solid #27272a; padding: 16px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
         
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 14px;">
@@ -429,15 +352,12 @@ async function mostrarInfoEdificio() {
           </div>
           <div style="background:#27272a; padding:6px 10px; border-radius:8px; font-size:13px; font-weight:700; white-space:nowrap; color:#ffffff; border: 1px solid #3f3f46;">🏢 ${b.name || "Edificio"}</div>
         </div>
-
         <div style="display: flex; gap: 14px; align-items: center; justify-content: space-between;">
-          
-          <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; font-size: 14px; color:#ffffff;">
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; font-size: 14px; color:#ffffff;">
             <div>🗺️ <b>Territorio:</b> <span style="background: #27272a; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${b.territory || "-"}</span></div>
             <div>🔢 <b>Pisos:</b> <span style="font-weight: 600; color: #3b82f6;">${b.floors || 0}</span></div>
             <div style="color:#e4e4e7; font-size: 13px; line-height: 1.3;">📋 <b>Notas:</b> <span style="font-style: italic; color: #d4d4d8;">${b.description || "Sin anotaciones."}</span></div>
           </div>
-
           <div style="display: flex; flex-direction: column; gap: 6px; align-items: center; flex-shrink: 0;">
             <div id="miniMapaPredi" style="width: 115px; height: 95px; border-radius: 10px; border: 1px solid #4b5563; background:#1f1f22; pointer-events: none;"></div>
             
@@ -446,7 +366,6 @@ async function mostrarInfoEdificio() {
             </div>
           </div>
         </div>
-
         <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #27272a; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
           <div style="flex: 1; font-size: 12px; color:#a1a1aa; font-weight: 500; text-align: left;">
             ${cartelNuevoHtml ? `🏢 ${cartelNuevoHtml}` : ""}
@@ -457,7 +376,6 @@ async function mostrarInfoEdificio() {
             </button>
           </div>
         </div>
-
         ${data.issue ? `
           <div style="background:#7f1d1d; color:#fef2f2; border:1px solid #dc2626; padding:10px; border-radius:10px; margin-top:12px; font-size:13px; font-weight:600; line-height:1.4;">
             ⚠ <b>Alerta (${data.issue.type}):</b> ${data.issue.description || "Sin detalles"}
@@ -465,7 +383,6 @@ async function mostrarInfoEdificio() {
         ` : ""}
       </div>
     `;
-
     // --- RENDERIZACIÓN DEL MAPA ---
     const miniMapaDiv = document.getElementById("miniMapaPredi");
     if (miniMapaDiv) {
@@ -473,15 +390,12 @@ async function mostrarInfoEdificio() {
         prediMiniMap.remove();
         prediMiniMap = null;
       }
-
       prediMiniMap = L.map('miniMapaPredi', {
         zoomControl: false, dragging: false, touchZoom: false,
         scrollWheelZoom: false, doubleClickZoom: false
       });
-
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(prediMiniMap);
       let centradoExitoso = false;
-
       if (b.latitude && b.longitude) {
         const lat = parseFloat(b.latitude);
         const lng = parseFloat(b.longitude);
@@ -491,23 +405,19 @@ async function mostrarInfoEdificio() {
           centradoExitoso = true;
         }
       }
-
       if (!centradoExitoso && b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON) {
         let capaGeoJSON = L.geoJSON(misTerritoriosGeoJSON, {
           filter: (f) => String(f.properties.name || f.properties.Territorio_N) === String(b.territory),
           style: { color: '#2563eb', weight: 2, fillColor: '#2563eb', fillOpacity: 0.15 }
         }).addTo(prediMiniMap);
-
         if (capaGeoJSON.getLayers().length > 0) {
           prediMiniMap.fitBounds(capaGeoJSON.getBounds(), { padding: [5, 5] });
           centradoExitoso = true;
         }
       }
-
       if (!centradoExitoso) {
         prediMiniMap.setView([-27.36708, -55.89608], 14);
       }
-
       setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 220);
     }
   } catch (error) {
@@ -519,7 +429,6 @@ async function mostrarInfoEdificio() {
 // ==========================================
 // ⚠️ --- MÓDULO REPORTES DE PROBLEMAS ---
 // ==========================================
-
 function abrirReporte() { 
   if(typeof modalReporte !== 'undefined') {
     modalReporte.style.display = "flex"; 
@@ -528,7 +437,6 @@ function abrirReporte() {
     if(modal) modal.style.display = "flex";
   }
 }
-
 function cerrarReporte() { 
   if(typeof modalReporte !== 'undefined') {
     modalReporte.style.display = "none"; 
@@ -537,20 +445,16 @@ function cerrarReporte() {
     if(modal) modal.style.display = "none";
   }
 }
-
 // 📱 Predicador: Envía el reporte capturando correctamente los nuevos campos (Blindada Sin Internet)
 async function enviarReporte() {
   // Capturamos la descripción
   const descripcion = descProblema.value.trim();
-  
-  // Capturamos el nuevo campo de Nombre que agregamos en el index.html
+    // Capturamos el nuevo campo de Nombre que agregamos en el index.html
   const inputNombre = document.getElementById("edit_nombre_reporta");
   const nombreReporta = inputNombre ? inputNombre.value.trim() : "";
-  
-  // Capturamos el tipo del selector select
+    // Capturamos el tipo del selector select
   const selectorTipo = document.getElementById("tipoProblema");
   const tipo = selectorTipo ? selectorTipo.value : "Otro";
-
   // 1. Validaciones obligatorias en el Frontend antes de gastar datos/red
   if (!nombreReporta) {
     alert("Por favor, introduce tu nombre para saber quién reporta el problema.");
@@ -566,13 +470,11 @@ async function enviarReporte() {
   if (currentBuildingId && typeof currentBuildingId === 'object') {
     idEdificioLimpia = currentBuildingId._id || currentBuildingId.id;
   }
-
   // VALIDACIÓN EXTRA: Si no hay ID válida, no permitimos el envío
   if (!idEdificioLimpia || idEdificioLimpia === "[object Object]") {
     alert("Error local: No se pudo identificar el edificio actual. Intenta recargar la página del edificio.");
     return;
   }
-
   // Armamos el paquete de datos del reporte idéntico a tu esquema original
   const datosReporte = {
     buildingId: idEdificioLimpia, 
@@ -583,30 +485,24 @@ async function enviarReporte() {
     reportedBy: nombreReporta, 
     status: "PENDIENTE" 
   };
-
   // Imprimimos en consola para auditar qué estamos procesando
   console.log("🚀 Procesando reporte con ID de edificio:", idEdificioLimpia);
-
   // 🛰️ CASO 1: Si el celular detecta de antemano que está sin conexión a internet
   if (!navigator.onLine) {
     guardarEnMochilaLocal("reportes_pendientes", datosReporte);
-    
-    // Dejamos fluir la interfaz para comodidad del usuario
+        // Dejamos fluir la interfaz para comodidad del usuario
     cerrarReporte();
     descProblema.value = "";
     if (inputNombre) inputNombre.value = ""; 
-    
-    alert("⚠️ Guardado localmente (Sin Internet). El reporte de problemas se enviará solo cuando recuperes señal.");
+        alert("⚠️ Guardado localmente (Sin Internet). El reporte de problemas se enviará solo cuando recuperes señal.");
     return;
   }
-
   // CASO 2: Intentamos enviar normalmente por red
   try {
     const res = await apiFetch("/issues", {
       method: "POST",
       body: JSON.stringify(datosReporte)
     });
-
     if (res.ok) {
       cerrarReporte();
       descProblema.value = "";
@@ -619,23 +515,19 @@ async function enviarReporte() {
     }
   } catch (error) {
     console.error("Error crítico al enviar reporte, respaldando...", error);
-    
-    // Si da un error de red imprevisto en plena carga, lo guardamos en el celular para salvarlo
+        // Si da un error de red imprevisto en plena carga, lo guardamos en el celular para salvarlo
     guardarEnMochilaLocal("reportes_pendientes", datosReporte);
-    
-    cerrarReporte();
+        cerrarReporte();
     descProblema.value = "";
     if (inputNombre) inputNombre.value = ""; 
-
     alert("⏳ Problema temporal de red. El reporte quedó guardado de forma segura en tu celu y se reenviará automáticamente.");
   }
 }
-// 💻 Admin (NUEVA): Carga la info total del edificio cruzada con el incidente + Mini Mapa + Historial
 
+// 💻 Admin (NUEVA): Carga la info total del edificio cruzada con el incidente + Mini Mapa + Historial
 async function verDetalleIncidenteAdmin(incidente, index) {
   const panel = document.getElementById("panelDetalleProblemaAdmin");
   panel.innerHTML = `<p style="text-align:center; color:gray; padding-top:50px;">Consultando detalles de infraestructura del edificio...</p>`;
-
   try {
     // 🚨 EXTRACCIÓN SEGURA DEL ID (Evita el error [object Object] en la URL de la API)
     let idEdificioLimpio = "";
@@ -644,24 +536,19 @@ async function verDetalleIncidenteAdmin(incidente, index) {
     } else {
       idEdificioLimpio = incidente.buildingId || "";
     }
-
     if (!idEdificioLimpio || idEdificioLimpio === "[object Object]") {
       throw new Error("El incidente no cuenta con un ID de edificio válido asociado.");
     }
-
     // Cruza los datos llamando a la info completa del edificio asignado usando el ID en formato String
     const res = await apiFetch(`/building-info/${idEdificioLimpio}`);
     if (!res.ok) {
       throw new Error(`El servidor respondió con un estado ${res.status}`);
     }
-    
     const data = await res.json();
     const b = data.building;
-
     if (!b) {
       throw new Error("No se encontraron datos de infraestructura para el edificio consultado.");
     }
-
     // Formateamos la fecha exacta si existe en el objeto i de MongoDB
     let fechaFormateada = "No informada";
     if (incidente.createdAt) {
@@ -669,7 +556,6 @@ async function verDetalleIncidenteAdmin(incidente, index) {
         day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
       }) + " hs";
     }
-
     // Estructura limpia y potente con historial compacto e información similar a la sección Admin
     panel.innerHTML = `
       <div style="background:#27272a; border:1px solid #ef4444; padding:14px; border-radius:12px; margin-bottom:15px;">
@@ -684,7 +570,6 @@ async function verDetalleIncidenteAdmin(incidente, index) {
           <span style="color:#71717a; margin-top:2px;">🕒 Fecha del reporte: ${fechaFormateada}</span>
         </div>
       </div>
-
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
         <div>
           <h4 style="margin:0; color:white; font-size:18px;">${b.address || "Dirección no disponible"}</h4>
@@ -692,7 +577,6 @@ async function verDetalleIncidenteAdmin(incidente, index) {
         </div>
         <button class="secondary" style="width:auto; min-height:34px; padding:4px 10px; font-size:12px; border-radius:8px; margin:0;" onclick='abrirEditorEdificioDirecto(${JSON.stringify(b)})'>✏️ Editar Edificio</button>
       </div>
-
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; font-size:12px; background:#252525; padding:10px; border-radius:10px; margin-bottom:15px; border: 1px solid #333;">
         <div>🏢 <b>Nombre:</b> ${b.name || "-"}</div>
         <div>🗺️ <b>Territorio:</b> ${b.territory || "-"}</div>
@@ -701,9 +585,7 @@ async function verDetalleIncidenteAdmin(incidente, index) {
         <div>🌱 <b>PB:</b> ${b.hasGroundFloor ? "Sí" : "No"}</div>
         <div>🛎️ <b>Portero:</b> ${b.hasDoorman ? "Sí" : "No"}</div>
       </div>
-
       <div id="miniMapaIncidenteAdmin" style="width:100%; height:150px; border-radius:10px; margin-bottom:15px; border:1px solid #3f3f46;"></div>
-
       <h5 style="margin:12px 0 6px; color:#3b82f6; font-size:13px; text-transform:uppercase;">🕒 Historial de Infraestructura y Visitas</h5>
       <div style="font-size:12px; background:#111; padding:10px; border-radius:8px; margin-bottom:20px; border:1px solid #222; max-height:110px; overflow-y:auto;">
         <div style="padding-bottom:6px; border-bottom:1px solid #222; color:#bdbdbd;">
@@ -713,7 +595,6 @@ async function verDetalleIncidenteAdmin(incidente, index) {
           📋 <b>Notas históricas:</b> ${b.description || "El edificio no posee anotaciones de administración todavía."}
         </div>
       </div>
-
       <h5 style="margin:0 0 8px; color:white; font-size:13px;">⚙️ Resolver o Cambiar Estado del Incidente</h5>
       <div style="display:flex; gap:10px;">
         <button onclick="cambiarEstadoIncidente('${incidente._id || incidente.id}', 'EN_PROCESO')" style="background:#eab308; color:black; font-weight:700; border:none; padding:10px; border-radius:10px; flex:1; font-size:13px; cursor:pointer; transition: opacity 0.2s;">
@@ -732,49 +613,40 @@ async function verDetalleIncidenteAdmin(incidente, index) {
           mapaIncidenteAdminInstance.remove();
           mapaIncidenteAdminInstance = null;
         }
-
         const latValida = parseFloat(b.latitude);
         const lngValida = parseFloat(b.longitude);
         const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
-
         mapaIncidenteAdminInstance = L.map('miniMapaIncidenteAdmin', {
           zoomControl: false, attributionControl: false, dragging: false, 
           touchZoom: false, doubleClickZoom: false, scrollWheelZoom: false
         });
-
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapaIncidenteAdminInstance);
-
         let mapaCentrado = false;
         if (tieneCoordenadas) {
           L.marker([latValida, lngValida]).addTo(mapaIncidenteAdminInstance);
           mapaIncidenteAdminInstance.setView([latValida, lngValida], 16);
           mapaCentrado = true;
         }
-
         // Si no tiene coordenadas cargadas, se posiciona usando el polígono de su territorio
         if (!mapaCentrado && b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON) {
           let capaGeoJSON = L.geoJSON(misTerritoriosGeoJSON, {
             filter: (f) => String(f.properties.name || f.properties.Territorio_N) === String(b.territory),
             style: { color: '#ef4444', weight: 2, fillColor: '#ef4444', fillOpacity: 0.1 }
           }).addTo(mapaIncidenteAdminInstance);
-
           if (capaGeoJSON.getLayers().length > 0) {
             mapaIncidenteAdminInstance.fitBounds(capaGeoJSON.getBounds(), { padding: [5, 5] });
             mapaCentrado = true;
           }
         }
-
         // Posicionamiento de respaldo por si todo falla
         if (!mapaCentrado) {
           mapaIncidenteAdminInstance.setView([-27.36708, -55.89608], 14);
         }
-
         mapaIncidenteAdminInstance.invalidateSize();
       } catch (mapErr) {
         console.error("Error cargando mapa de incidentes:", mapErr);
       }
     }, 120);
-
   } catch (err) {
     console.error("Error al desplegar detalle del incidente:", err);
     panel.innerHTML = `<p style="color:#ef4444; padding:20px; text-align:center;">⚠️ Error al sincronizar: ${err.message}</p>`;
@@ -785,26 +657,20 @@ async function abrirHistorialEdificio() {
     const idEdificio = currentBuildingId; 
     const contenedorHistorial = document.getElementById("historialContenido");
     const modal = document.getElementById("modalHistorial");
-    
     if (!idEdificio) {
         alert("Primero selecciona un edificio de la lista.");
         return;
     }
-
     modal.style.display = "flex";
     contenedorHistorial.innerHTML = `<p style="color:#71717a; text-align:center; padding:20px; font-size:13px;">Buscando registros...</p>`;
-
     try {
         // Usa la ruta que SI existe y que no da error 404
         const res = await apiFetch(`/building-info/${idEdificio}`);
         if (!res.ok) throw new Error("No se pudo obtener el historial");
-        
-        const resData = await res.json();
-        
-        // Mapeamos de dónde vienen las visitas en tu estructura de datos compartida
+          const resData = await res.json();
+          // Mapeamos de dónde vienen las visitas en tu estructura de datos compartida
         // Probamos con todas las variantes posibles que devuelve tu backend
         const visitas = resData.history || resData.visits || resData.visitas || (resData.lastVisit ? [resData.lastVisit] : []); 
-
         if (visitas.length === 0) {
             contenedorHistorial.innerHTML = `
                 <div style="text-align:center; padding:30px; color:#71717a;">
@@ -813,47 +679,38 @@ async function abrirHistorialEdificio() {
                 </div>`;
             return;
         }
-
-        // Ordenamos las visitas por fecha (más nuevas primero)
+// Ordenamos las visitas por fecha (más nuevas primero)
         visitas.sort((a, b) => new Date(b.date || b.fecha || b.createdAt) - new Date(a.date || a.fecha || a.createdAt));
-
         contenedorHistorial.innerHTML = "";
-
         visitas.forEach(vis => {
             const fechaRaw = vis.date || vis.fecha || vis.createdAt;
             const fechaFormateada = fechaRaw ? new Date(fechaRaw).toLocaleDateString('es-AR', {
                 day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit'
             }) : "Fecha desconocida";
-
             const depto = vis.department || vis.depto || vis.departamento || "-";
             const estado = vis.status || vis.resultado || "REGISTRADO";
             const nota = vis.notes || vis.nota || "";
             const tieneProblema = vis.hasIssue || vis.issue || vis.problema;
-
             let badgeColor = "#71717a"; 
             let badgeText = estado;
-            
-            if (estado === "ATENDIO" || estado === "ATENDIÓ") {
+                   if (estado === "ATENDIO" || estado === "ATENDIÓ") {
                 badgeColor = "#16a34a"; 
                 badgeText = "✔ ATENDIÓ";
             } else if (estado === "NO_EN_CASA" || estado === "NO EN CASA") {
                 badgeColor = "#ca8a04"; 
                 badgeText = "✖ NO EN CASA";
             }
-
             const tarjetaVisita = `
                 <div style="background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-weight: bold; color: #f4f4f5; font-size: 14px;">🚪 Depto / Unidad: <span style="color:#3b82f6;">${depto}</span></span>
                         <span style="font-size: 11px; color: #a1a1aa;">📅 ${fechaFormateada}</span>
                     </div>
-                    
-                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 2px;">
+                          <div style="display: flex; gap: 8px; align-items: center; margin-top: 2px;">
                         <span style="background: ${badgeColor}; color: white; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${badgeText}</span>
                         ${tieneProblema ? `<span style="background: #ef4444; color: white; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: bold;">⚠️ PROBLEMA</span>` : ''}
                         ${vis.user || vis.usuario ? `<span style="font-size: 11px; color: #71717a;">Por: ${vis.user || vis.usuario}</span>` : ''}
                     </div>
-
                     ${nota ? `
                     <div style="background: #1c1c1e; border-left: 3px solid #3b82f6; padding: 6px 10px; border-radius: 4px; margin-top: 4px;">
                         <p style="margin: 0; font-size: 12px; color: #d4d4d8; font-style: italic;">" ${nota} "</p>
@@ -863,24 +720,19 @@ async function abrirHistorialEdificio() {
             `;
             contenedorHistorial.insertAdjacentHTML("beforeend", tarjetaVisita);
         });
-
     } catch (error) {
         console.error("Error cargando historial:", error);
         contenedorHistorial.innerHTML = `<p style="color:#ef4444; text-align:center; padding:20px; font-size:13px;">Error al conectar con el servidor para traer el historial.</p>`;
     }
 }
-
 function cerrarHistorial() {
     document.getElementById("modalHistorial").style.display = "none";
 }
 
-
 // 💻 Admin: Lista los problemas en un Layout Premium de dos columnas (Dashboard)
-
 async function verProblemas() {
   const probView = document.getElementById("problemasView");
   if (!probView) return;
-
   // Re-estructuramos la vista para crear las dos columnas dinámicas
   probView.innerHTML = `
     <div style="padding: 20px; max-width: 1400px; margin: 0 auto;">
@@ -894,12 +746,10 @@ async function verProblemas() {
           <b id="contadorProblemasAdmin" style="font-size:20px; color:#ef4444;">-</b>
         </div>
       </div>
-
       <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; min-height: 70vh;" class="admin-grid-layout">
         <div style="background:#18181b; border:1px solid #27272a; border-radius:16px; padding:15px; display:flex; flex-direction:column; gap:10px; max-height:75vh; overflow-y:auto;" id="listaReportesAdminContenedor">
           <p style='padding:15px; color:gray; text-align:center;'>Cargando reportes en tiempo real...</p>
         </div>
-
         <div style="background:#18181b; border:1px solid #27272a; border-radius:16px; padding:20px; position:sticky; top:20px; max-height:75vh; overflow-y:auto;" id="panelDetalleProblemaAdmin">
           <div style="text-align:center; color:#71717a; margin-top:100px;">
             <span style="font-size:48px; display:block; margin-bottom:10px;">🔍</span>
@@ -909,34 +759,27 @@ async function verProblemas() {
       </div>
     </div>
   `;
-
   try {
     const res = await apiFetch("/issues");
     listaProblemasGlobal = await res.json();
-    
-    const contenedorLista = document.getElementById("listaReportesAdminContenedor");
+        const contenedorLista = document.getElementById("listaReportesAdminContenedor");
     const contador = document.getElementById("contadorProblemasAdmin");
-    
-    contador.innerText = listaProblemasGlobal.length;
-
+        contador.innerText = listaProblemasGlobal.length;
     if (!listaProblemasGlobal.length) {
       contenedorLista.innerHTML = "<p style='padding:30px; color:#a1a1aa; text-align:center; font-size:14px;'>🎉 ¡Excelente! No hay problemas pendientes en ningún edificio.</p>";
       return;
     }
-
     contenedorLista.innerHTML = "";
     listaProblemasGlobal.forEach((i, index) => {
       // Color decorativo del borde/fuente según el tipo de incidente
       let colorTipo = "#ef4444"; 
       if (i.type?.toLowerCase().includes("dato")) colorTipo = "#eab308";
       if (i.type?.toLowerCase().includes("portero")) colorTipo = "#3b82f6";
-
       // Badge visual de estado adaptado a tus enums en Mayúsculas
       let estadoBadge = `<span style="background:#3f1f1f; color:#f87171; border:1px solid #ef4444; padding:2px 6px; border-radius:6px; font-size:10px; font-weight:600;">PENDIENTE</span>`;
       if (i.status === "EN_PROCESO") {
         estadoBadge = `<span style="background:#3b2e16; color:#fde047; border:1px solid #eab308; padding:2px 6px; border-radius:6px; font-size:10px; font-weight:600;">EN PROCESO</span>`;
       }
-
       // EVITAMOS EL [object Object]: Si buildingId es un objeto, mostramos la dirección.
       let textoEdificio = "No asignado";
       if (i.buildingId) {
@@ -948,13 +791,11 @@ async function verProblemas() {
           textoEdificio = "Edificio no reconocido (Reporte Corrupto)";
         }
       }
-
       const card = document.createElement("div");
       card.className = "edificio-item-lista";
       card.style.cssText = "background:#27272a; border:1px solid #3f3f46; padding:14px; border-radius:12px; cursor:pointer; transition:all 0.2s;";
       card.onclick = () => verDetalleIncidenteAdmin(i, index);
-      
-      // 🚨 AGREGAMOS event.stopPropagation() al botón de borrar para que no interfiera al hacer clic
+            // 🚨 AGREGAMOS event.stopPropagation() al botón de borrar para que no interfiera al hacer clic
       card.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; width:100%;">
           <div style="flex-grow:1;">
@@ -966,8 +807,7 @@ async function verProblemas() {
             <p style="margin:6px 0 0 0; color:#d4d4d8; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
               ${i.description || "Sin descripción"}
             </p>
-            
-            <button onclick="event.stopPropagation(); eliminarReporteRotoDirecto(event, '${i._id || i.id}')" style="background:#451a1a; color:#f87171; border:1px solid #ef4444; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:600; cursor:pointer; margin-top:10px; transition: background 0.2s;">
+                        <button onclick="event.stopPropagation(); eliminarReporteRotoDirecto(event, '${i._id || i.id}')" style="background:#451a1a; color:#f87171; border:1px solid #ef4444; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:600; cursor:pointer; margin-top:10px; transition: background 0.2s;">
               🗑️ Eliminar Reporte
             </button>
           </div>
@@ -976,7 +816,6 @@ async function verProblemas() {
       `;
       contenedorLista.appendChild(card);
     });
-
   } catch (error) {
     console.error("Error al listar reportes en el panel de administración:", error);
     document.getElementById("listaReportesAdminContenedor").innerHTML = "<p style='color:#ef4444; padding:15px;'>Error al conectar con los servidores de reportes.</p>";
@@ -986,14 +825,11 @@ async function verProblemas() {
 async function eliminarReporteRotoDirecto(event, id) {
   // Evitamos que al hacer click en el botón se intente seleccionar la tarjeta y rompa la derecha
   event.stopPropagation();
-
   if (!confirm("¿Querés eliminar este reporte viejo de forma permanente de la base de datos?")) return;
-
   try {
     const res = await apiFetch(`/issues/${id}`, {
       method: "DELETE"
     });
-
     if (res.ok) {
       alert("Reporte eliminado correctamente.");
       await verProblemas(); // Refrescamos el panel al instante
@@ -1006,10 +842,6 @@ async function eliminarReporteRotoDirecto(event, id) {
   }
 }
 
-
-
-
-
 // 💻 Admin (NUEVA): Cambia el estado a EN_PROCESO en el servidor
 async function cambiarEstadoIncidente(id, nuevoEstado) {
   try {
@@ -1017,7 +849,6 @@ async function cambiarEstadoIncidente(id, nuevoEstado) {
       method: "PUT",
       body: JSON.stringify({ status: nuevoEstado })
     });
-
     if (res.ok) {
       alert(`El reporte ahora figura como: "${nuevoEstado.replace('_', ' ')}"`);
       await verProblemas(); // Refrescamos el Dashboard al instante
@@ -1029,16 +860,13 @@ async function cambiarEstadoIncidente(id, nuevoEstado) {
     alert("Error de comunicación al actualizar estado.");
   }
 }
-
 // 💻 Admin (NUEVA): Elimina o marca como RESUELTO el problema
 async function resolverIncidenteCompleto(id) {
   if (!confirm("¿Confirmas que el problema ha sido solucionado por completo? Se removerá la alerta activa del edificio.")) return;
-
   try {
     const res = await apiFetch(`/issues/${id}`, {
       method: "DELETE"
     });
-
     if (res.ok) {
       alert("¡Incidente solucionado con éxito!");
       await verProblemas(); // Recarga la lista y limpia la pantalla
@@ -1048,8 +876,7 @@ async function resolverIncidenteCompleto(id) {
         method: "PUT",
         body: JSON.stringify({ status: "RESUELTO" })
       });
-      
-      if (intentoPut.ok) {
+            if (intentoPut.ok) {
         alert("¡Incidente marcado como RESUELTO!");
         await verProblemas();
       } else {
@@ -1061,7 +888,6 @@ async function resolverIncidenteCompleto(id) {
     alert("Error de conexión al procesar la resolución.");
   }
 }
-
 // 🔧 Función puente para abrir el modal de edición de edificio existente
 function abrirEditorEdificioDirecto(edificioObj) {
   if (typeof abrirEditorEdificio === 'function') {
@@ -1072,185 +898,6 @@ function abrirEditorEdificioDirecto(edificioObj) {
     alert("Función de edición no encontrada. Asegúrate de tener tu modal o función de edición cargada.");
   }
 }
-
-//-------------------------------------CIERRE SECTOR REPORTES DE PROBLEMAS -------------------------------//
-
-
-// Nueva función centralizada para auditar un edificio (Detalles, Alertas, Historial y Editar)
-async function verDetalleEdificioAdmin(buildingId) {
-  // 🌟 GUARDAMOS EL ID EN TU VARIABLE ACTUAL PARA QUE LA APP SEPA QUÉ EDIFICIO ESTÁ EN PANTALLA
-  currentBuildingId = buildingId; 
-
-  const panel = document.getElementById("panelDetalleEdificio");
-  panel.style.display = "block";
-  panel.innerHTML = `<p style="text-align:center; color:gray;">Cargando historial y detalles...</p>`;
-
-  try {
-    const res = await apiFetch(`/building-info/${buildingId}`);
-    const data = await res.json();
-    const b = data.building;
-    const addrEscaped = b.address.replace(/'/g, "\\'");
-
-    // ✨ CALCULO DE EDIFICIO NUEVO EN PANEL ADMIN
-    let cartelNuevoAdminHtml = "";
-    if (b.createdAt || b.fechaCreacion) {
-      const fechaCreacion = new Date(b.createdAt || b.fechaCreacion);
-      const hoy = new Date();
-      const diferenciaDias = Math.floor((hoy - fechaCreacion) / (1000 * 60 * 60 * 24));
-      
-      if (diferenciaDias <= 30) {
-        const fechaFormateada = fechaCreacion.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        cartelNuevoAdminHtml = `
-          <div style="background:#064e3b; border: 1px solid #059669; color:#a7f3d0; padding:10px; border-radius:12px; margin-bottom:12px; font-size:14px; font-weight:600;">
-            ✨ Edificio nuevo: ingresado al sistema el ${fechaFormateada}
-          </div>
-        `;
-      }
-    }
-
-    let alertaHtml = "";
-    if (data.issue) {
-      alertaHtml = `
-        <div style="background:#3a1f1f; border: 1px solid #f44336; color:#ff8a80; padding:12px; border-radius:12px; margin-bottom:15px; font-size:15px;">
-          ⚠️ <b>Problema Reportado (${data.issue.type}):</b> ${data.issue.description || "Sin descripción adicional"}
-        </div>
-      `;
-    }
-
-    // Renderizamos la estructura base aplicando el diseño Flex (Datos izq, Botones der)
-    panel.innerHTML = `
-      ${cartelNuevoAdminHtml}
-      ${alertaHtml}
-      
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px; gap: 10px;">
-        <div>
-          <h3 style="margin:0; color:white; font-size:22px;">${b.address}</h3>
-          <p style="color:gray; margin:2px 0;">${b.address2 || ""}</p>
-        </div>
-        <div style="display:flex; gap:6px; flex-shrink:0;">
-          <button class="secondary" style="width:auto; min-height:38px; padding:6px 12px; font-size:13px; border-radius:8px; white-space:nowrap; background:#1e293b; color:#3b82f6; border-color:#1e3a8a;" onclick="abrirHistorialEdificio()">📜 Historial</button>
-          <button class="secondary" style="width:auto; min-height:38px; padding:6px 12px; font-size:13px; border-radius:8px; white-space:nowrap;" onclick='abrirEditorEdificio(${JSON.stringify(b)})'>✏️ Editar</button>
-        </div>
-      </div>
-
-      <div style="display: flex; gap: 14px; align-items: stretch; margin-bottom: 15px;">
-        
-        <div style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 13px; background:#252525; padding:12px; border-radius:12px; color: #e4e4e7;">
-          <div>🏢 <b>Nombre:</b> ${b.name || "-"}</div>
-          <div>🗺️ <b>Territorio:</b> ${b.territory || "-"}</div>
-          <div>🔢 <b>Pisos:</b> ${b.floors || 0}</div>
-          <div>🚪 <b>Deptos/Piso:</b> ${b.unitsPerFloor || 0}</div>
-          <div>🌱 <b>PB:</b> ${b.hasGroundFloor ? "Sí" : "No"} | 🛎️ <b>Portero:</b> ${b.hasDoorman ? "Sí" : "No"}</div>
-        </div>
-
-        <div id="contenedorMapaAdminSquare" style="width: 140px; height: 140px; flex-shrink: 0; position: relative;">
-          <div id="miniMapaDetalle" style="width: 140px; height: 140px; border-radius: 12px; border: 1px solid #3f3f46; background:#181818;"></div>
-        </div>
-
-      </div>
-
-      <h4 style="margin:10px 0 5px; color:#2196F3; font-size:16px;">🕒 Historial de Visitas e Información</h4>
-      <div style="font-size:14px; background:#181818; padding:10px; border-radius:10px; max-height:180px; overflow-y:auto; border:1px solid #2b2b2b;">
-        <p style="margin:0; color:#bdbdbd;">Última visita registrada: ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca"}</p>
-        ${b.description ? `<p style="margin-top:8px; color:gray; font-style: italic;"><b>Descripción interna:</b> ${b.description}</p>` : ""}
-      </div>
-    `;
-
-    if (miTemporizadorMapa) {
-      clearTimeout(miTemporizadorMapa);
-    }
-
-    miTemporizadorMapa = setTimeout(() => {
-      const miMapaReal = (typeof leafletMap !== 'undefined' && leafletMap !== null) ? leafletMap : 
-                         (typeof map !== 'undefined' && map !== null) ? map : null;
-
-      if (miMapaReal) {
-        miMapaReal.invalidateSize({ animate: false });
-
-        const latValida = parseFloat(b.latitude);
-        const lngValida = parseFloat(b.longitude);
-        
-        const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
-
-        // 📍 SI TIENE COORDENADAS: Renderizamos el mapa estático y acomodamos el mapa general
-        if (tieneCoordenadas) {
-          console.log(`📍 Inicializando mini-mapa estático para: ${latValida}, ${lngValida}`);
-          
-          miMapaReal.setView([latValida, lngValida], 16);
-
-          if (miniMapaAdminInstance !== null) {
-            try {
-              miniMapaAdminInstance.remove();
-              miniMapaAdminInstance = null;
-            } catch (e) { console.warn("Error limpiando mapa anterior:", e); }
-          }
-
-          setTimeout(() => {
-            try {
-              miniMapaAdminInstance = L.map('miniMapaDetalle', {
-                center: [latValida, lngValida],
-                zoom: 16,
-                zoomControl: false,
-                attributionControl: false,
-                dragging: false,
-                touchZoom: false,
-                doubleClickZoom: false,
-                scrollWheelZoom: false,
-                boxZoom: false,
-                keyboard: false
-              });
-
-              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMapaAdminInstance);
-              L.marker([latValida, lngValida]).addTo(miniMapaAdminInstance);
-
-              miniMapaAdminInstance.invalidateSize();
-              console.log("🟢 Mini-mapa estático cuadrado renderizado con éxito.");
-
-            } catch (miniMapError) {
-              console.error("Error creando el mini-mapa independiente:", miniMapError);
-            }
-          }, 50);
-
-        // 🗺️ SI NO TIENE COORDENADAS PERO SÍ TERRITORIO: Centramos el mapa general al polígono
-        } else if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
-          try {
-            let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
-              filter: function(feature) {
-                const numeroTerritorio = feature.properties && (feature.properties.name || feature.properties.Territorio_N);
-                return String(numeroTerritorio) === String(b.territory);
-              }
-            });
-
-            if (capaGeoJSONAdmin.getLayers().length > 0) {
-              console.log(`🗺️ [Territorio] Encuadrando BIEN DE CERCA en el Territorio ${b.territory}`);
-              miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { 
-                padding: [25, 25], 
-                maxZoom: 16
-              });
-            }
-          } catch (geoError) {
-            console.warn("Fallo al encuadrar territorio:", geoError);
-          }
-          
-          const minMapDiv = document.getElementById("miniMapaDetalle");
-          if(minMapDiv) minMapDiv.innerHTML = `<p style="color:#71717a; font-size:11px; text-align:center; padding-top:55px; margin:0;">Falta geolocalización</p>`;
-
-        } else {
-          miMapaReal.setView([-27.36708, -55.89608], 15);
-        }
-          
-      } else {
-        console.warn("⚠️ No se encontró la variable del mapa.");
-      }
-    }, 100);
-
-  } catch (error) {
-    console.error("Error al cargar detalles del edificio:", error);
-    panel.innerHTML = `<p style="color:red; text-align:center;">Error al conectar con los detalles del edificio.</p>`;
-  }
-}
-
-
 // --- MÓDULO ADMINISTRACIÓN (ESTADÍSTICAS Y TABLAS) ---------------------------------------------------------------------------------
 
 async function cargarDashboard() {
@@ -1522,11 +1169,13 @@ function mostrarPanelMaestroSuperAdmin() {
 
   superView.style.display = "block";
 
+  // 1. Calculamos la paginación sobre los elementos filtrados
   const inicio = (window.superAdminPaginaActual - 1) * ELEMENTOS_POR_PAGINA;
   const fin = inicio + ELEMENTOS_POR_PAGINA;
   const paginaElementos = window.superAdminFiltrados.slice(inicio, fin);
   const totalPaginas = Math.ceil(window.superAdminFiltrados.length / ELEMENTOS_POR_PAGINA) || 1;
 
+  // 2. Construimos las filas de la tabla
   let tablaFilas = "";
   if (paginaElementos.length === 0) {
     tablaFilas = `<tr><td colspan="4" style="text-align:center; padding:30px; color:#a1a1aa;">⚠️ No se encontraron edificios con ese criterio.</td></tr>`;
@@ -1549,8 +1198,14 @@ function mostrarPanelMaestroSuperAdmin() {
     });
   }
 
+  // 3. Guardamos temporalmente el texto que el usuario ya escribió (si existe el input) para que no se pierda al paginar o actualizar
+  const inputPrevio = document.getElementById("buscadorSuperAdmin");
+  const textoGuardado = inputPrevio ? inputPrevio.value : "";
+
+  // 4. Inyectamos la estructura base del contenedor completo
   superView.innerHTML = `
     <div style="padding:20px; max-width:1100px; margin:0 auto; background:#09090b; color:white; min-height:100vh; font-family:sans-serif;">
+      
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid #27272a; padding-bottom:15px;">
         <div>
           <h2 style="margin:0; font-size:22px;">🛠️ Panel Maestro SuperAdmin</h2>
@@ -1559,10 +1214,14 @@ function mostrarPanelMaestroSuperAdmin() {
         <button onclick="document.getElementById('superAdminView').style.display='none'; cargarDashboard();" class="secondary" style="background:#27272a; padding:8px 16px; border:none; color:white; border-radius:6px; cursor:pointer;">❌ Salir del Panel</button>
       </div>
 
-      <div style="margin-bottom: 20px;">
-        <input type="text" id="buscadorSuperAdmin" placeholder="🔍 Buscar por dirección, calle o nombre en tiempo real..." 
-          style="width: 100%; padding: 12px; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 6px; font-size: 14px;"
-          oninput="filtrarSuperAdmin(this.value)">
+      <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+        <input type="text" id="buscadorSuperAdmin" placeholder="Escriba la calle, altura o nombre y presione Buscar..." 
+          style="flex: 1; padding: 12px; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 6px; font-size: 14px;"
+          onkeydown="if(event.key === 'Enter') ejecutarBusquedaSuperAdmin()">
+        
+        <button onclick="ejecutarBusquedaSuperAdmin()" style="padding: 0 22px; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 5px;">
+          🔍 Buscar
+        </button>
       </div>
 
       <table style="width:100%; border-collapse:collapse; background:#18181b; border-radius:8px; overflow:hidden;">
@@ -1590,8 +1249,36 @@ function mostrarPanelMaestroSuperAdmin() {
       </div>
     </div>
   `;
-}
 
+  // 5. Devolvemos el texto al input y le mantenemos el foco para que puedas seguir editando con comodidad
+  const nuevoInput = document.getElementById("buscadorSuperAdmin");
+  if (nuevoInput && textoGuardado) {
+    nuevoInput.value = textoGuardado;
+    nuevoInput.focus();
+  }
+}
+// Agrega esta función de soporte al final de tu app.js
+function ejecutarBusquedaSuperAdmin() {
+  const input = document.getElementById("buscadorSuperAdmin");
+  const valor = input ? input.value : "";
+  const query = valor.toLowerCase().trim();
+  
+  if (query === "") {
+    // Si limpian el buscador, restauramos la lista global original completa
+    window.superAdminFiltrados = [...window.todosLosEdificiosDB];
+  } else {
+    // Filtramos de forma segura previniendo campos nulos de la base de datos
+    window.superAdminFiltrados = window.todosLosEdificiosDB.filter(b => {
+      const dir = (b.address || b.direccion || "").toLowerCase();
+      const nom = (b.name || b.nombre || "").toLowerCase();
+      const terr = (b.territory || b.territorio || "").toString();
+      return dir.includes(query) || nom.includes(query) || terr.includes(query);
+    });
+  }
+
+  window.superAdminPaginaActual = 1; // Reseteamos a la página 1 para ver el resultado de la búsqueda
+  mostrarPanelMaestroSuperAdmin();
+}
 // Versión blindada contra valores nulos o indefinidos
 function filtrarSuperAdmin(valor) {
   const query = (valor || "").toLowerCase().trim();
@@ -1783,6 +1470,185 @@ async function verListado() {
     console.error(error);
   }
 }
+//-------------------------------------CIERRE SECTOR REPORTES DE PROBLEMAS -------------------------------//
+
+
+// Nueva función centralizada para auditar un edificio (Detalles, Alertas, Historial y Editar)
+async function verDetalleEdificioAdmin(buildingId) {
+  // 🌟 GUARDAMOS EL ID EN TU VARIABLE ACTUAL PARA QUE LA APP SEPA QUÉ EDIFICIO ESTÁ EN PANTALLA
+  currentBuildingId = buildingId; 
+
+  const panel = document.getElementById("panelDetalleEdificio");
+  panel.style.display = "block";
+  panel.innerHTML = `<p style="text-align:center; color:gray;">Cargando historial y detalles...</p>`;
+
+  try {
+    const res = await apiFetch(`/building-info/${buildingId}`);
+    const data = await res.json();
+    const b = data.building;
+    const addrEscaped = b.address.replace(/'/g, "\\'");
+
+    // ✨ CALCULO DE EDIFICIO NUEVO EN PANEL ADMIN
+    let cartelNuevoAdminHtml = "";
+    if (b.createdAt || b.fechaCreacion) {
+      const fechaCreacion = new Date(b.createdAt || b.fechaCreacion);
+      const hoy = new Date();
+      const diferenciaDias = Math.floor((hoy - fechaCreacion) / (1000 * 60 * 60 * 24));
+      
+      if (diferenciaDias <= 30) {
+        const fechaFormateada = fechaCreacion.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        cartelNuevoAdminHtml = `
+          <div style="background:#064e3b; border: 1px solid #059669; color:#a7f3d0; padding:10px; border-radius:12px; margin-bottom:12px; font-size:14px; font-weight:600;">
+            ✨ Edificio nuevo: ingresado al sistema el ${fechaFormateada}
+          </div>
+        `;
+      }
+    }
+
+    let alertaHtml = "";
+    if (data.issue) {
+      alertaHtml = `
+        <div style="background:#3a1f1f; border: 1px solid #f44336; color:#ff8a80; padding:12px; border-radius:12px; margin-bottom:15px; font-size:15px;">
+          ⚠️ <b>Problema Reportado (${data.issue.type}):</b> ${data.issue.description || "Sin descripción adicional"}
+        </div>
+      `;
+    }
+
+    // Renderizamos la estructura base aplicando el diseño Flex (Datos izq, Botones der)
+    panel.innerHTML = `
+      ${cartelNuevoAdminHtml}
+      ${alertaHtml}
+      
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px; gap: 10px;">
+        <div>
+          <h3 style="margin:0; color:white; font-size:22px;">${b.address}</h3>
+          <p style="color:gray; margin:2px 0;">${b.address2 || ""}</p>
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="secondary" style="width:auto; min-height:38px; padding:6px 12px; font-size:13px; border-radius:8px; white-space:nowrap; background:#1e293b; color:#3b82f6; border-color:#1e3a8a;" onclick="abrirHistorialEdificio()">📜 Historial</button>
+          <button class="secondary" style="width:auto; min-height:38px; padding:6px 12px; font-size:13px; border-radius:8px; white-space:nowrap;" onclick='abrirEditorEdificio(${JSON.stringify(b)})'>✏️ Editar</button>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 14px; align-items: stretch; margin-bottom: 15px;">
+        
+        <div style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 13px; background:#252525; padding:12px; border-radius:12px; color: #e4e4e7;">
+          <div>🏢 <b>Nombre:</b> ${b.name || "-"}</div>
+          <div>🗺️ <b>Territorio:</b> ${b.territory || "-"}</div>
+          <div>🔢 <b>Pisos:</b> ${b.floors || 0}</div>
+          <div>🚪 <b>Deptos/Piso:</b> ${b.unitsPerFloor || 0}</div>
+          <div>🌱 <b>PB:</b> ${b.hasGroundFloor ? "Sí" : "No"} | 🛎️ <b>Portero:</b> ${b.hasDoorman ? "Sí" : "No"}</div>
+        </div>
+
+        <div id="contenedorMapaAdminSquare" style="width: 140px; height: 140px; flex-shrink: 0; position: relative;">
+          <div id="miniMapaDetalle" style="width: 140px; height: 140px; border-radius: 12px; border: 1px solid #3f3f46; background:#181818;"></div>
+        </div>
+
+      </div>
+
+      <h4 style="margin:10px 0 5px; color:#2196F3; font-size:16px;">🕒 Historial de Visitas e Información</h4>
+      <div style="font-size:14px; background:#181818; padding:10px; border-radius:10px; max-height:180px; overflow-y:auto; border:1px solid #2b2b2b;">
+        <p style="margin:0; color:#bdbdbd;">Última visita registrada: ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca"}</p>
+        ${b.description ? `<p style="margin-top:8px; color:gray; font-style: italic;"><b>Descripción interna:</b> ${b.description}</p>` : ""}
+      </div>
+    `;
+
+    if (miTemporizadorMapa) {
+      clearTimeout(miTemporizadorMapa);
+    }
+
+    miTemporizadorMapa = setTimeout(() => {
+      const miMapaReal = (typeof leafletMap !== 'undefined' && leafletMap !== null) ? leafletMap : 
+                         (typeof map !== 'undefined' && map !== null) ? map : null;
+
+      if (miMapaReal) {
+        miMapaReal.invalidateSize({ animate: false });
+
+        const latValida = parseFloat(b.latitude);
+        const lngValida = parseFloat(b.longitude);
+        
+        const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
+
+        // 📍 SI TIENE COORDENADAS: Renderizamos el mapa estático y acomodamos el mapa general
+        if (tieneCoordenadas) {
+          console.log(`📍 Inicializando mini-mapa estático para: ${latValida}, ${lngValida}`);
+          
+          miMapaReal.setView([latValida, lngValida], 16);
+
+          if (miniMapaAdminInstance !== null) {
+            try {
+              miniMapaAdminInstance.remove();
+              miniMapaAdminInstance = null;
+            } catch (e) { console.warn("Error limpiando mapa anterior:", e); }
+          }
+
+          setTimeout(() => {
+            try {
+              miniMapaAdminInstance = L.map('miniMapaDetalle', {
+                center: [latValida, lngValida],
+                zoom: 16,
+                zoomControl: false,
+                attributionControl: false,
+                dragging: false,
+                touchZoom: false,
+                doubleClickZoom: false,
+                scrollWheelZoom: false,
+                boxZoom: false,
+                keyboard: false
+              });
+
+              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMapaAdminInstance);
+              L.marker([latValida, lngValida]).addTo(miniMapaAdminInstance);
+
+              miniMapaAdminInstance.invalidateSize();
+              console.log("🟢 Mini-mapa estático cuadrado renderizado con éxito.");
+
+            } catch (miniMapError) {
+              console.error("Error creando el mini-mapa independiente:", miniMapError);
+            }
+          }, 50);
+
+        // 🗺️ SI NO TIENE COORDENADAS PERO SÍ TERRITORIO: Centramos el mapa general al polígono
+        } else if (b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
+          try {
+            let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
+              filter: function(feature) {
+                const numeroTerritorio = feature.properties && (feature.properties.name || feature.properties.Territorio_N);
+                return String(numeroTerritorio) === String(b.territory);
+              }
+            });
+
+            if (capaGeoJSONAdmin.getLayers().length > 0) {
+              console.log(`🗺️ [Territorio] Encuadrando BIEN DE CERCA en el Territorio ${b.territory}`);
+              miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { 
+                padding: [25, 25], 
+                maxZoom: 16
+              });
+            }
+          } catch (geoError) {
+            console.warn("Fallo al encuadrar territorio:", geoError);
+          }
+          
+          const minMapDiv = document.getElementById("miniMapaDetalle");
+          if(minMapDiv) minMapDiv.innerHTML = `<p style="color:#71717a; font-size:11px; text-align:center; padding-top:55px; margin:0;">Falta geolocalización</p>`;
+
+        } else {
+          miMapaReal.setView([-27.36708, -55.89608], 15);
+        }
+          
+      } else {
+        console.warn("⚠️ No se encontró la variable del mapa.");
+      }
+    }, 100);
+
+  } catch (error) {
+    console.error("Error al cargar detalles del edificio:", error);
+    panel.innerHTML = `<p style="color:red; text-align:center;">Error al conectar con los detalles del edificio.</p>`;
+  }
+}
+
+
+
 
 
 
