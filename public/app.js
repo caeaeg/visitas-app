@@ -93,7 +93,22 @@ async function apiFetch(endpoint, options = {}) {
 // =========================================================================
 // 🔐 SECTOR: CONTROL DE ACCESO, INICIO DE SESIÓN Y VISTAS
 // =========================================================================
-
+/**
+ * Controla la visibilidad de la barra o indicador de carga (loading)
+ * @param {boolean} mostrar - True para mostrar, false para ocultar
+ */
+function mostrarLoading(mostrar) {
+  // Buscamos si existe un indicador de carga en tu HTML (por ejemplo, con id "loading")
+  const spinner = document.getElementById("loading") || document.getElementById("loadingSpinner");
+  
+  if (spinner) {
+    spinner.style.display = mostrar ? "flex" : "none";
+  } else {
+    // Si no tenés un elemento visual de carga en el HTML, cambiamos el cursor del navegador
+    // para que el usuario sepa que el sistema está procesando la solicitud en segundo plano
+    document.body.style.cursor = mostrar ? "wait" : "default";
+  }
+}
 /**
  * Autentica credenciales contra el backend y rutea al usuario según su rol de cuenta
  */
