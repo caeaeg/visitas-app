@@ -97,51 +97,77 @@ async function apiFetch(endpoint, options = {}) {
 /**
  * Autentica credenciales contra el backend y rutea al usuario según su rol de cuenta
  */
+/**
+ * Procesa el inicio de sesión autenticando contra el backend corporativo
+ */
 async function login() {
-  const user = document.getElementById("username")?.value.trim();
-  const pass = document.getElementById("password")?.value.trim();
+  const user = document.getElementById("loginUser")?.value.trim();
+  const pass = document.getElementById("loginPass")?.value.trim();
+  const msgLabel = document.getElementById("loginMsg");
 
   if (!user || !pass) {
     alert("⚠️ Por favor complete todos los campos obligatorios.");
+    if (msgLabel) msgLabel.innerText = "Campos incompletos.";
     return;
   }
 
+  mostrarLoading(true);
+  if (msgLabel) msgLabel.innerText = "";
+
   try {
-    const res = await apiFetch("/login", {
+    const respuesta = await fetch(`${API_BASE_URL}/login`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: user, password: pass })
     });
 
-    const data = await res.json().catch(() => ({}));
-
-    if (res.ok && data.token) {
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role);
-      currentRole = data.role;
-
-      alert(`👋 ¡Bienvenido al sistema! Rol verificado: ${data.role.toUpperCase()}`);
-      
-      // Sincronización inmediata de datos tras un login exitoso
-      await preCargarBaseDatosEnMemoria();
-
-      // Enrutamiento primario de interfaz operativa
-      if (data.role === "admin") {
-        abrirVista("dashboardView");
-        if (typeof cargarEdificios === "function") await cargarEdificios();
-      } else {
-        // Roles de campo ('predi' u otros) acceden directo al entorno de búsqueda móvil
-        abrirVista("appContainer");
-        limpiarVista();
-      }
-    } else {
-      alert(data.message || "❌ Credenciales incorrectas. Verifique usuario y contraseña.");
+    if (!respuesta.ok) {
+      const errData = await respuesta.json().catch(() => ({}));
+      throw new Error(errData.message || "Credenciales incorrectas");
     }
-  } catch (err) {
-    console.error("Error crítico en login:", err);
-    alert("Error crítico en la comunicación con el servidor de autenticación.");
+
+    const datos = await respuesta.json();
+    
+    // Almacenamiento seguro del estado de sesión caliente
+    localStorage.setItem("token", datos.token);
+    localStorage.setItem("role", datos.role);
+    currentRole = datos.role;
+
+    console.log(`🔑 Sesión iniciada con éxito. Rol asignado: ${currentRole}`);
+    
+    // Descarga y sincronización inicial de la Base de Datos en Memoria RAM
+    await preCargarBaseDatosEnMemoria();
+
+    // Redirección de vistas según privilegios de rol
+    if (currentRole === "admin") {
+      abrirVista("dashboardView");
+      // Inicialización diferida del motor de mapas para evitar congelamiento de UI
+      setTimeout(() => {
+        if (typeof inicializarMapaGeneralAdministrador === "function") {
+          inicializarMapaGeneralAdministrador();
+        }
+        if (typeof cargarEdificios === "function") {
+          cargarEdificios();
+        }
+      }, 100);
+    } else {
+      abrirVista("appContainer");
+      limpiarVista();
+    }
+
+  } catch (error) {
+    console.error("Fallo de autenticación:", error);
+    if (msgLabel) {
+      msgLabel.innerText = error.message === "Failed to fetch" 
+        ? "❌ Sin conexión con el servidor." 
+        : `❌ ${error.message}`;
+    } else {
+      alert(`❌ Error: ${error.message}`);
+    }
+  } finally {
+    mostrarLoading(false);
   }
 }
-
 /**
  * Orquestador dinámico de navegación: Apaga todas las pantallas y enciende la solicitada
  * @param {string} vistaId - ID del contenedor HTML de destino
