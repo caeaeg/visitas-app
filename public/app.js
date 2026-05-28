@@ -146,18 +146,23 @@ async function login() {
 
     const datos = await respuesta.json();
     
-    // Almacenamiento seguro del estado de sesión caliente
-    localStorage.setItem("token", datos.token);
+    // 🔍 VALIDACIÓN ADAPTADA AL BACKEND REAL
+    if (datos.ok === false || !datos.ok) {
+      throw new Error("Usuario o contraseña incorrectos");
+    }
+
+    // Almacenamiento seguro del estado de sesión (Tu backend usa username y role)
+    localStorage.setItem("username", datos.username);
     localStorage.setItem("role", datos.role);
     currentRole = datos.role;
 
-    console.log(`🔑 Sesión iniciada con éxito. Rol asignado: ${currentRole}`);
+    console.log(`🔑 Sesión iniciada con éxito. Usuario: ${datos.username}, Rol: ${currentRole}`);
     
     // Descarga y sincronización inicial de la Base de Datos en Memoria RAM
     await preCargarBaseDatosEnMemoria();
 
     // Redirección de vistas según privilegios de rol
-    if (currentRole === "admin") {
+    if (currentRole === "admin" || currentRole === "conductor") {
       abrirVista("dashboardView");
       // Inicialización diferida del motor de mapas para evitar congelamiento de UI
       setTimeout(() => {
