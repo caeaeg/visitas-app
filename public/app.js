@@ -193,7 +193,7 @@ window.addEventListener("load", async () => {
 
 
 // =========================================================================
-// 🔍 FUNCIÓN: BUSCAR EDIFICIO POR DIRECCIÓN O CÓDIGO
+// 🔍 FUNCIÓN: BUSCAR EDIFICIO POR DIRECCIÓN O CÓDIGO (CON CONTROL DE BLOQUEO FIX)
 // =========================================================================
 async function buscar() {
   limpiarVista();
@@ -225,6 +225,19 @@ async function buscar() {
       return;
     }
 
+    // 🚀 1. INTERCEPCIÓN INMEDIATA SI ESTÁ BLOQUEADO POR SUPERADMIN
+    if (building.isBlocked) {
+      alert("🚫 Edificio temporalmente bloqueado por la administración.");
+      
+      // Limpiamos los textos de carga para que no quede el "Buscando..." colgado
+      resultado.innerText = ""; 
+      if (document.getElementById("departamentoVisitar")) {
+        document.getElementById("departamentoVisitar").innerText = "--";
+      }
+      return; // ✋ Corta acá mismo: No guarda la ID ni ejecuta cargarDepto()
+    }
+
+    // 2. SI NO ESTÁ BLOQUEADO, CONTINÚA EL FLUJO NORMAL
     currentBuildingId = building._id;
     await cargarDepto();
 
