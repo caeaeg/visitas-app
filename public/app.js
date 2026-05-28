@@ -865,6 +865,25 @@ async function verHistorialLogs(id) {
     alert("⚠️ Error de red al solicitar los logs.");
   }
 }
+
+// Enlace de compatibilidad para el botón de SuperAdmin del HTML
+function abrirAccesoSuperAdmin() {
+  const clave = prompt("🔑 Ingrese la clave maestra de SuperAdmin:");
+  if (clave) {
+    const inputOculto = document.getElementById("superAdminKey") || { value: "" };
+    inputOculto.value = clave; 
+    // Si no tenés el input físico en el HTML, le pasamos el valor directo a la función de validación
+    if (clave === "2414") {
+      window.superAdminAutenticado = true;
+      alert("🔓 Acceso de SuperAdmin Autorizado. Abriendo panel avanzado...");
+      abrirVista("superAdminView");
+      window.superAdminPaginaActual = 1;
+      if (typeof ejecutarFiltroSuperAdmin === "function") ejecutarFiltroSuperAdmin();
+    } else {
+      alert("❌ Clave maestra incorrecta. Intento denegado.");
+    }
+  }
+}
 // =========================================================================
 // 🗺️ PARTE 4: MOTOR CARTOGRÁFICO MAESTRO, CAPAS GEOJSON Y COMPLEMENTOS VIALES
 // =========================================================================
