@@ -809,13 +809,23 @@
 
           <div class="filtros-compactos">
             <div id="tabContenidoDireccion" class="tab-content active">
-              <input type="text" id="busquedaDireccionAdmin" placeholder="Buscar por calle o altura..." oninput="cargarEdificios()">
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <input type="text" id="busquedaDireccionAdmin" placeholder="Buscar por calle, altura o nombre..." onkeypress="if(event.key==='Enter') cargarEdificios()" style="margin: 0; flex: 1; padding: 10px 12px; font-size: 14px;">
+                <button class="buscar" onclick="cargarEdificios()" style="width: 42px; height: 38px; margin: 0; padding: 0; border-radius: 8px; flex-shrink: 0; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                  🔍
+                </button>
+              </div>
             </div>
 
             <div id="tabContenidoTerritorio" class="tab-content">
-              <input type="number" id="busquedaTerritorio" placeholder="Número de territorio..." oninput="cargarEdificios()" style="margin-bottom: 8px;">
+              <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 8px;">
+                <input type="number" id="busquedaTerritorio" placeholder="Número de territorio..." onkeypress="if(event.key==='Enter') cargarEdificios()" style="margin: 0; flex: 1; padding: 10px 12px; font-size: 14px;">
+                <button class="buscar" onclick="cargarEdificios()" style="width: 42px; height: 38px; margin: 0; padding: 0; border-radius: 8px; flex-shrink: 0; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                  🔍
+                </button>
+              </div>
               <div class="filtro-doble-fila" style="margin: 0;">
-                <select id="filtroOrden" onchange="cargarEdificios()" style="margin: 0; width: 100%;">
+                <select id="filtroOrden" onchange="cargarEdificios()" style="margin: 0; width: 100%; padding: 8px; font-size: 13px;">
                   <option value="address">🔤 Orden Alfabético</option>
                   <option value="recent">🆕 Agregados Recientemente</option> 
                   <option value="territory">📍 Agrupar por Territorio</option>
@@ -826,9 +836,13 @@
         </div>
 
         <div class="component-card list-container-card">
-          <div class="card-header-sm"><h3>📋 Edificios Registrados</h3></div>
-          <div id="listaEdificios" class="lista-scroll-limpia"></div>
-          <div class="paginador-sutil">
+          <div class="card-header-sm"><h3>📋 Edificios Encontrados</h3></div>
+          <div id="listaEdificios" class="lista-scroll-limpia">
+             <p style="color:#71717a; text-align:center; padding:30px; font-size:13px; line-height:1.4;">
+               🔍 Ingresá un criterio de búsqueda o seleccioná un territorio para desplegar los registros.
+             </p>
+          </div>
+          <div class="paginador-sutil" id="paginadorAdmin" style="display: none;">
             <button class="btn-pag" onclick="paginaAnterior()">← Ant</button>
             <button class="btn-pag" onclick="paginaSiguiente()">Sig →</button>
           </div>
