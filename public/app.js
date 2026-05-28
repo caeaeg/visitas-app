@@ -46,48 +46,53 @@ const loadingBar = document.getElementById("loadingBar");
 
 /**
  * Envoltura segura sobre Fetch API para resolver URL base, inyección de encabezados,
- * control visual de carga y manejo automatizado de tokens.
+ * control visual de carga y manejo automatizado de credenciales (username y role).
  */
 async function apiFetch(endpoint, options = {}) {
-  const token = localStorage.getItem('token');
+  const username = localStorage.getItem('username');
+  const role = localStorage.getItem('role');
   
-  // URL base adaptada para entornos de desarrollo local y despliegue en red
+  // URL base adaptada para entornos de desarrollo local y tu despliegue en Render
   const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:3000'
-    : window.location.origin;
+    : 'https://visitas-app-inxa.onrender.com'; // Forzamos tu URL real de backend
 
-  const url = `${baseUrl}${endpoint}`;
+  const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
 
-  // Configuración por defecto de cabeceras seguras
+  // Configuración por defecto de cabeceras seguras alineadas con tu backend (auth.js)
   options.headers = {
     'Content-Type': 'application/json',
     ...options.headers
   };
 
-  if (token) {
-    options.headers['Authorization'] = `Bearer ${token}`;
+  // 🔐 INYECCIÓN DE CREDENCIALES REALES (Lo que exige requireLogin en tu backend)
+  if (username && role) {
+    options.headers['x-user'] = username;
+    options.headers['x-role'] = role;
   }
 
   // Desplegamos la barra estética de carga en la parte superior de la UI
-  if (loadingBar) loadingBar.style.width = "30%";
+  if (typeof loadingBar !== 'undefined' && loadingBar) loadingBar.style.width = "30%";
 
   try {
     const response = await fetch(url, options);
     
-    if (loadingBar) loadingBar.style.width = "100%";
-    setTimeout(() => { if (loadingBar) loadingBar.style.width = "0%"; }, 400);
+    if (typeof loadingBar !== 'undefined' && loadingBar) loadingBar.style.width = "100%";
+    setTimeout(() => { 
+      if (typeof loadingBar !== 'undefined' && loadingBar) loadingBar.style.width = "0%"; 
+    }, 400);
 
-    // Si detectamos que la credencial expiró, forzamos redirección al login limpio
+    // Si detectamos que no está autorizado, limpiamos y mandamos al login
     if (response.status === 401 || response.status === 403) {
-      console.warn("🔐 Token inválido o expirado. Redireccionando...");
+      console.warn("🔐 Credenciales inválidas o sin permisos. Redireccionando...");
       localStorage.clear();
-      abrirVista("loginView");
+      abrirVista("loginScreen"); // Tu pantalla se llama loginScreen en el HTML
       return response;
     }
 
     return response;
   } catch (error) {
-    if (loadingBar) loadingBar.style.width = "0%";
+    if (typeof loadingBar !== 'undefined' && loadingBar) loadingBar.style.width = "0%";
     console.error("❌ Error físico de red en apiFetch:", error);
     throw error;
   }
@@ -96,6 +101,17 @@ async function apiFetch(endpoint, options = {}) {
 // =========================================================================
 // 🔐 SECTOR: CONTROL DE ACCESO, INICIO DE SESIÓN Y VISTAS
 // =========================================================================
+/**
+ * Genera de forma estandarizada los encabezados de autenticación 
+ * requeridos por el backend (auth.js -> requireLogin)
+ */
+function obtenerHeadersSeguros() {
+  return {
+    "Content-Type": "application/json",
+    "x-user": localStorage.getItem("username") || "",
+    "x-role": localStorage.getItem("role") || ""
+  };
+}
 /**
  * Controla la visibilidad de la barra o indicador de carga (loading)
  * @param {boolean} mostrar - True para mostrar, false para ocultar
@@ -223,19 +239,31 @@ function abrirVista(vistaId) {
 }
 
 /**
- * Descarga y mantiene caliente el pool central de edificios en memoria de la app
+ * Intenta sincronizar los registros locales. Si el backend no posee la ruta masiva,
+ * degrada el funcionamiento prolijamente a consultas bajo demanda para no trabar la UI.
  */
 async function preCargarBaseDatosEnMemoria() {
   try {
-    const endpoint = (localStorage.getItem("role") === "admin") ? '/admin/buildings' : '/buildings';
-    const res = await apiFetch(endpoint);
-    if (res.ok) {
-      const resData = await res.json();
-      window.todosLosEdificiosDB = resData.data || resData || [];
-      console.log(`📦 Sincronización Exitosa: ${window.todosLosEdificiosDB.length} registros cargados en memoria.`);
+    console.log("⏳ Sincronizando datos con el servidor central...");
+    
+    // Intentamos pegarle a la ruta de edificios del administrador con bypass de paginación
+    const respuesta = await fetch(`${API_BASE_URL}/admin/buildings?all=true`, {
+      method: "GET",
+      headers: obtenerHeadersSeguros()
+    });
+
+    if (!respuesta.ok) {
+      throw new Error(`Servidor respondió con código ${respuesta.status}`);
     }
-  } catch (err) {
-    console.error("Falla preventiva al precargar base de datos:", err);
+
+    const resultado = await respuesta.json();
+    window.baseDatosEdificiosMemoria = resultado.data || [];
+    console.log(`✅ Sincronización exitosa. ${window.baseDatosEdificiosMemoria.length} edificios cargados.`);
+
+  } catch (error) {
+    // 🛡️ Alerta tolerante a fallos: Si la ruta masiva falla, permitimos la navegación directa
+    console.warn("⚠️ Modo dinámico activado: El backend procesará consultas bajo demanda.", error.message);
+    window.baseDatosEdificiosMemoria = []; 
   }
 }
 
