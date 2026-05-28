@@ -239,30 +239,31 @@ function abrirVista(vistaId) {
 }
 
 /**
- * Intenta sincronizar los registros locales. Si el backend no posee la ruta masiva,
- * degrada el funcionamiento prolijamente a consultas bajo demanda para no trabar la UI.
+ * Sincroniza datos solo si el rol tiene permisos.
  */
 async function preCargarBaseDatosEnMemoria() {
+  // 🛡️ Pre-validación: Si es "predi", saltamos la carga porque no tiene permisos de admin
+  const rol = localStorage.getItem("role");
+  if (rol === "predi") {
+    console.log("ℹ️ Usuario predi detectado: Saltando sincronización administrativa.");
+    window.baseDatosEdificiosMemoria = [];
+    return; 
+  }
+
   try {
     console.log("⏳ Sincronizando datos con el servidor central...");
-    
-    // Intentamos pegarle a la ruta de edificios del administrador con bypass de paginación
     const respuesta = await fetch(`${API_BASE_URL}/admin/buildings?all=true`, {
       method: "GET",
       headers: obtenerHeadersSeguros()
     });
 
-    if (!respuesta.ok) {
-      throw new Error(`Servidor respondió con código ${respuesta.status}`);
-    }
+    if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`);
 
     const resultado = await respuesta.json();
     window.baseDatosEdificiosMemoria = resultado.data || [];
     console.log(`✅ Sincronización exitosa. ${window.baseDatosEdificiosMemoria.length} edificios cargados.`);
-
   } catch (error) {
-    // 🛡️ Alerta tolerante a fallos: Si la ruta masiva falla, permitimos la navegación directa
-    console.warn("⚠️ Modo dinámico activado: El backend procesará consultas bajo demanda.", error.message);
+    console.warn("⚠️ Modo dinámico activado.", error.message);
     window.baseDatosEdificiosMemoria = []; 
   }
 }
