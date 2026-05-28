@@ -162,32 +162,27 @@ async function login() {
 
     const datos = await respuesta.json();
     
-    // 🔍 VALIDACIÓN ADAPTADA AL BACKEND REAL
     if (datos.ok === false || !datos.ok) {
       throw new Error("Usuario o contraseña incorrectos");
     }
 
-    // Almacenamiento seguro del estado de sesión (Tu backend usa username y role)
     localStorage.setItem("username", datos.username);
     localStorage.setItem("role", datos.role);
     currentRole = datos.role;
 
     console.log(`🔑 Sesión iniciada con éxito. Usuario: ${datos.username}, Rol: ${currentRole}`);
     
-    // Descarga y sincronización inicial de la Base de Datos en Memoria RAM
     await preCargarBaseDatosEnMemoria();
 
-    // Redirección de vistas según privilegios de rol
+    // Ocultamos la pantalla de login apenas logramos entrar
+    const loginScreen = document.getElementById("loginScreen");
+    if (loginScreen) loginScreen.style.display = "none";
+
     if (currentRole === "admin" || currentRole === "conductor") {
       abrirVista("dashboardView");
-      // Inicialización diferida del motor de mapas para evitar congelamiento de UI
       setTimeout(() => {
-        if (typeof inicializarMapaGeneralAdministrador === "function") {
-          inicializarMapaGeneralAdministrador();
-        }
-        if (typeof cargarEdificios === "function") {
-          cargarEdificios();
-        }
+        if (typeof inicializarMapaGeneralAdministrador === "function") inicializarMapaGeneralAdministrador();
+        if (typeof cargarEdificios === "function") cargarEdificios();
       }, 100);
     } else {
       abrirVista("appContainer");
@@ -212,13 +207,14 @@ async function login() {
  * @param {string} vistaId - ID del contenedor HTML de destino
  */
 function abrirVista(vistaId) {
-  const vistas = ["loginView", "dashboardView", "appContainer", "editarView", "superAdminView"];
+  // Se agregó "loginScreen" a la lista para controlarlo desde aquí
+  const vistas = ["loginScreen", "loginView", "dashboardView", "appContainer", "editarView", "superAdminView"];
   
   vistas.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       if (id === vistaId) {
-        // Manejo adaptativo de flex y block según necesidades estructurales del layout
+        // Manejo adaptativo de flex y block según estructura
         if (id === "appContainer" || id === "dashboardView") {
           el.style.display = "flex";
         } else {
