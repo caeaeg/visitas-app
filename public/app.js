@@ -1255,9 +1255,9 @@ async function verDetalleEdificioAdmin(buildingId) {
 
 async function cargarDashboard() {
   try {
-    // 1. Si la lista global aún no se descargó, la sincronizamos primero
+    // 1. 🚀 CORREGIDO: Si la lista no existe, traemos TODO de un solo viaje con ?all=true
     if (!window.todosLosEdificiosDB || window.todosLosEdificiosDB.length === 0) {
-      const res = await apiFetch('/admin/buildings');
+      const res = await apiFetch('/admin/buildings?all=true');
       if (res.ok) {
         const resData = await res.json();
         window.todosLosEdificiosDB = resData.data || resData || [];
@@ -1308,13 +1308,16 @@ async function cargarDashboard() {
       }
     });
 
-    // 4. Inyectamos los datos en los elementos del HTML (si existen en la vista actual)
+    // 4. Inyectamos los datos dinámicamente en los elementos del HTML
     if (document.getElementById("totalEdificios")) {
       document.getElementById("totalEdificios").innerText = total;
     }
     if (document.getElementById("visitados")) {
       document.getElementById("visitados").innerText = visitadosHoy;
     }
+    
+    // 🎨 ALINEACIÓN VISUAL: Controlamos tanto los elementos viejos como los nuevos
+    // para que no importe cuál estructura de HTML dejes instalada, funcione igual.
     if (document.getElementById("nuncaVisitados")) {
       document.getElementById("nuncaVisitados").innerText = nuncaVisitados;
     }
@@ -1322,7 +1325,7 @@ async function cargarDashboard() {
       document.getElementById("problemasActivos").innerText = alertasActivas;
     }
 
-    // ✨ NUEVAS MÉTRICAS: Agrega estos IDs en tus tarjetas del HTML si querés mostrarlos visualmente
+    // Aseguramos la renderización de las métricas que querías en tu diseño del Admin
     if (document.getElementById("edificiosBloqueados")) {
       document.getElementById("edificiosBloqueados").innerText = bloqueados;
     }
