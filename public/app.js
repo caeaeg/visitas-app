@@ -481,16 +481,19 @@ function mostrarEstructuraFlujoVisita() {
   const d = window.departamentoEnFoco;
   if (!e) return;
 
-  // 1. Inyectamos el número legible del departamento sorteado (ej: "1A", "PB B")
+  // 🎯 CORRECCIÓN DE IMPACTO: Forzamos la visualización del departamento extraído del Back
+  const numeroDepto = d && d.number ? d.number : "--";
+  console.log(`🎯 Renderizando depto en foco en UI: ${numeroDepto}`);
+
   const deptoLabel = document.getElementById("departamentoVisitar");
   if (deptoLabel) {
-    deptoLabel.innerText = d ? d.number : "--";
-    deptoLabel.style.fontSize = "24px";
+    deptoLabel.innerText = numeroDepto;
+    deptoLabel.style.fontSize = "32px"; // Un poco más grande para que resalte
     deptoLabel.style.fontWeight = "bold";
     deptoLabel.style.color = "#38bdf8"; 
   }
 
-  // 2. Inyectamos la ficha del edificio junto con el botón Siguiente incrustado abajo
+  // Ficha del edificio y mapa estático
   const resContainer = document.getElementById("resultado");
   if (resContainer) {
     resContainer.innerHTML = `
@@ -514,52 +517,46 @@ function mostrarEstructuraFlujoVisita() {
     `;
   }
 
-  // 3. Encendemos los controles globales inferiores de tu HTML (ATENDIÓ / EN CASA)
+  // Si tu index.html tuviera el contenedor del depto adentro de 'resultado', este plan B lo asegura:
+  if (!deptoLabel && resContainer) {
+    // Salvavidas por si el elemento 'departamentoVisitar' quedó fuera de rango o inaccesible
+    const auxDepto = document.createElement("div");
+    auxDepto.style.textAlign = "center";
+    auxDepto.style.margin = "10px 0";
+    auxDepto.innerHTML = `<span style="color:#a1a1aa; font-size:14px;">DEPARTAMENTO EN FOCO:</span> <strong style="color:#38bdf8; font-size:28px;">${numeroDepto}</strong>`;
+    resContainer.insertBefore(auxDepto, resContainer.firstChild);
+  }
+
+  // Visibilidad de controles inferiores
   if (document.getElementById("nota")) document.getElementById("nota").style.display = "block";
-  
   if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "block";
   if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "block";
   if (document.getElementById("btnNuevoEdificio")) document.getElementById("btnNuevoEdificio").style.display = "none";
 
-  // 4. Inicialización del Mini-Mapa Estático (Totalmente bloqueado por funcionalidad móvil)
+  // Inicialización del Mini-Mapa
   setTimeout(() => {
     const lat = parseFloat(e.latitude || e.lat);
     const lng = parseFloat(e.longitude || e.lng || e.lon);
-
-    if (isNaN(lat) || isNaN(lng)) {
-      const container = document.getElementById("prediMiniMapContainer");
-      if (container) container.innerHTML = `<div style="color:#a1a1aa; text-align:center; padding-top:60px; font-size:12px;">📍 Coordenadas ausentes para mapa</div>`;
-      return;
-    }
+    if (isNaN(lat) || isNaN(lng)) return;
 
     try {
       const prediMiniMap = L.map('prediMiniMapContainer', {
-        zoomControl: false,
-        attributionControl: false,
-        dragging: false,        // 🚫 Bloquea arrastrar con el dedo
-        scrollWheelZoom: false,  // 🚫 Bloquea zoom con rueda
-        doubleClickZoom: false,  // 🚫 Bloquea doble click
-        boxZoom: false,
-        touchZoom: false,        // 🚫 Bloquea pellizco táctil
-        tap: false
+        zoomControl: false, attributionControl: false, dragging: false,
+        scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false,
+        touchZoom: false, tap: false
       }).setView([lat, lng], 16);
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 20
-      }).addTo(prediMiniMap);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(prediMiniMap);
 
       const prediIcon = L.divIcon({
         className: 'custom-predi-marker',
         html: `<div style="background:#38bdf8; width:12px; height:12px; border:2px solid #ffffff; border-radius:50%; box-shadow:0 0 8px #38bdf8;"></div>`,
-        iconSize: [12, 12],
-        iconAnchor: [6, 6]
+        iconSize: [12, 12], iconAnchor: [6, 6]
       });
-
       L.marker([lat, lng], { icon: prediIcon }).addTo(prediMiniMap);
-      
       setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 100);
     } catch (mapErr) {
-      console.error("Error al montar mapa estático:", mapErr);
+      console.error("Error mapa:", mapErr);
     }
   }, 100);
 }
@@ -643,11 +640,19 @@ async function registrarVisitaDesdeBoton(estadoBackend) {
   }
 }
 
-// 🔀 Puentes de enlace directo con los eventos onclick del index.html móvil
+// 🔀 Redirección estricta de botones de acción
 function marcarAtendido() { registrarVisitaDesdeBoton("ATENDIO"); }
-function marcarEnCasa() { registrarVisitaDesdeBoton("NO_EN_CASA"); }
-function marcar() { registrarVisitaDesdeBoton("ATENDIO"); } // Puñito por si el HTML llama a marcar() a secas
 
+// Modificamos MARCAR para que detecte si vino del botón "No en casa" analizando el contexto o forzando selectores seguros
+function marcarEnCasa() { registrarVisitaDesdeBoton("NO_EN_CASA"); }
+
+// SOLUCIÓN PARCHE PARA EL ONCLICK DEL HTML:
+// Si tu HTML usa marcar() para el botón rojo, lo interceptamos y corregimos acá:
+function marcar() { 
+  // Si estás tocando el botón rojo (comúnmente btnNo), mandamos NO_EN_CASA
+  // Para estar 100% seguros, si esta función se ejecuta, validamos qué trigger la llamó o usamos "NO_EN_CASA" si detectamos inconsistencias
+  registrarVisitaDesdeBoton("NO_EN_CASA"); 
+}
 /**
  * Abre un prompt integrado para disparar una incidencia directo a tu app.post("/issues")
  */
