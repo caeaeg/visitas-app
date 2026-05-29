@@ -281,94 +281,96 @@ function logout() {
 }
 
 // =========================================================================
-// 📱 SECTOR: NÚCLEO DE INTERACCION DEL BUSCADOR MÓVIL (PREDI)
+// 📱 SECTOR: NÚCLEO DE INTERACCION DEL BUSCADOR MÓVIL (PREDI) - INTEGRADO
 // =========================================================================
 
 /**
- * Filtra los edificios instantáneamente desde la memoria local.
- * Si encuentra el edificio, dispara automáticamente la selección de departamento.
+ * Busca el edificio de forma rápida usando las rutas del backend asignadas a predi.
+ * Protege contra bloqueos y dispara automáticamente la carga aleatoria de departamentos.
  */
-function buscarDireccion() {
-  const input = document.getElementById("buildingId");
-  const resultado = document.getElementById("resultado");
-  const btnNuevoEdificio = document.getElementById("btnNuevoEdificio");
-  const msgInicial = document.getElementById("mensajeInicial");
+async function buscarDireccion() {
+  if (typeof limpiarVista === "function") limpiarVista();
   
-  const campoNota = document.getElementById("nota");
-  const btnOk = document.getElementById("btnOk");
-  const btnNo = document.getElementById("btnNo");
-
+  // Usamos tu normalizador original y tu elemento de entrada
+  const input = typeof normalizarDireccion === "function" ? normalizarDireccion(buildingId.value) : buildingId.value.trim();
   if (!input) return;
-  const textoBusqueda = input.value.trim();
   
-  if (textoBusqueda === "") {
-    if (typeof limpiarVista === "function") limpiarVista();
-    return;
+  if (document.getElementById("mensajeInicial")) {
+    document.getElementById("mensajeInicial").style.display = "none";
+  }
+  if (document.getElementById("resultado")) {
+    document.getElementById("resultado").innerText = "Buscando...";
   }
 
-  if (msgInicial) msgInicial.style.display = "none";
-
-  // Usamos la base de datos que ya está sincronizada en memoria (Instantáneo)
-  const baseLocal = window.todosLosEdificiosDB || window.baseDatosEdificiosMemoria || [];
-  
-  const busquedaNormalizada = textoBusqueda.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-  // Filtrado en tiempo real sin llamadas lentas de red
-  window.edificiosEncontrados = baseLocal.filter(e => {
-    const dir1 = String(e.address || e.direccion || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const dir2 = String(e.address2 || e.direccion2 || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const nom = String(e.name || e.nombre || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const terr = String(e.territory || e.territorio || "");
+  try {
+    // Usamos apiFetch tal como lo requiere tu servidor para no perder credenciales
+    const b = await apiFetch(`/building/${encodeURIComponent(input)}`);
     
-    return dir1.includes(busquedaNormalizada) || 
-           dir2.includes(busquedaNormalizada) || 
-           nom.includes(busquedaNormalizada)  || 
-           terr === busquedaNormalizada;
-  });
-
-  window.indiceEdificioActual = 0;
-
-  // Si no existe el edificio en nuestra base
-  if (window.edificiosEncontrados.length === 0) {
-    if (typeof limpiarVista === "function") limpiarVista();
-    if (resultado) resultado.innerText = "--";
+    if (!b.ok) {
+      if (b.status === 404) {
+        tratarEdificioNoEncontrado();
+        return;
+      }
+      throw new Error(`Error en servidor: ${b.status}`);
+    }
     
-    if (campoNota) campoNota.style.display = "none";
-    if (btnOk) btnOk.style.display = "none";
-    if (btnNo) btnNo.style.display = "none";
-
-    if (btnNuevoEdificio) {
-      btnNuevoEdificio.style.display = "block";
-      btnNuevoEdificio.setAttribute("data-direccion-sugerida", textoBusqueda);
+    const building = await b.json();
+    
+    // 🛡️ CONTROL DE SEGURIDAD ABSOLUTO (Tu regla original)
+    if (building.error === "EDIFICIO_BLOQUEADO" || building.isBlocked) {
+      alert("🚫 ACCESO DENEGADO:\nEste edificio está bloqueado por el Administrador y no puede ser visitado en este momento.");
+      if (document.getElementById("resultado")) document.getElementById("resultado").innerText = ""; 
+      if (document.getElementById("departamentoVisitar")) {
+        document.getElementById("departamentoVisitar").innerText = "--";
+      }
+      return; 
     }
-    return;
-  }
-
-  // Si lo encontramos, activamos la botonera y la interfaz
-  if (btnNuevoEdificio) btnNuevoEdificio.style.display = "none";
-  if (campoNota) campoNota.style.display = "block";
-  if (btnOk) btnOk.style.display = "block";
-  if (btnNo) btnNo.style.display = "block";
-
-  // Pintamos el edificio en pantalla
-  if (typeof mostrarEdificioActual === "function") {
-    mostrarEdificioActual();
-  }
-
-  // 🔥 ACCIÓN CLAVE: Le pedimos al sistema que cargue el departamento a visitar para este edificio
-  const edificioSeleccionado = window.edificiosEncontrados[0];
-  if (edificioSeleccionado && edificioSeleccionado._id) {
-    console.log(`🎯 Edificio seleccionado localmente: ${edificioSeleccionado._id}. Llamando a siguiente departamento...`);
-    // Si tenés una función que se encarga de traer el depto (como tu ruta /next/:id) la llamamos acá:
-    if (typeof cargarSiguienteDepartamento === "function") {
-      cargarSiguienteDepartamento(edificioSeleccionado._id);
-    } else if (typeof obtenerSiguiente === "function") {
-      obtenerSiguiente(edificioSeleccionado._id);
+    
+    if (!building || !building._id) {
+      tratarEdificioNoEncontrado();
+      return;
     }
+
+    // Guardamos en tus variables nativas del sistema
+    currentBuildingId = building._id;
+    
+    // Mostramos los botones de acción inmediata
+    if (document.getElementById("nota")) document.getElementById("nota").style.display = "block";
+    if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "block";
+    if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "block";
+    if (document.getElementById("btnNuevoEdificio")) document.getElementById("btnNuevoEdificio").style.display = "none";
+
+    // Llamamos a tu cargador automático de departamentos y mapa
+    await cargarDepto();
+
+  } catch (error) {
+    console.error("Detalle del error en buscarDireccion unificado:", error);
+    tratarEdificioNoEncontrado();
   }
 }
 
-// Puentes fijos para los eventos del HTML
+/**
+ * Gestiona la interfaz visual cuando la dirección ingresada no existe
+ */
+function tratarEdificioNoEncontrado() {
+  const res = document.getElementById("resultado");
+  const btnNuevo = document.getElementById("btnNuevoEdificio");
+  
+  if (res) res.innerText = "Edificio no encontrado";
+  if (btnNuevo) {
+    btnNuevo.style.display = "block";
+    btnNuevo.onclick = function() { 
+      if (typeof crearEdificio === "function") crearEdificio(); 
+    };
+  }
+  
+  // Ocultamos la botonera para evitar interacciones falsas
+  if (document.getElementById("nota")) document.getElementById("nota").style.display = "none";
+  if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "none";
+  if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "none";
+}
+
+// 🔀 Puentes de compatibilidad para los disparadores e interacciones del HTML
 function buscar() {
   buscarDireccion();
 }
