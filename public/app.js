@@ -283,26 +283,21 @@ function logout() {
 // =========================================================================
 
 /**
- * Ejecuta el filtrado predictivo en tiempo real desde la terminal móvil.
+ * Ejecuta el filtrado predictivo en tiempo real. 
+ * Si no hay datos en memoria (caso del predi), consulta directo al servidor de forma segura.
  */
 async function buscarDireccion() {
-  // Capturamos el input exacto del HTML
   const input = document.getElementById("buildingId");
   const resultado = document.getElementById("resultado");
   const btnNuevoEdificio = document.getElementById("btnNuevoEdificio");
   const msgInicial = document.getElementById("mensajeInicial");
   
-  // Elementos del formulario que deben activarse al encontrar datos
   const campoNota = document.getElementById("nota");
   const botoneraVotacion = document.getElementById("botoneraVotacion");
   const btnOk = document.getElementById("btnOk");
   const btnNo = document.getElementById("btnNo");
 
-  if (!input) {
-    console.error("❌ No se encontró el cuadro de texto 'buildingId' en el HTML.");
-    return;
-  }
-
+  if (!input) return;
   const textoBusqueda = input.value.trim();
   
   if (textoBusqueda === "") {
@@ -310,34 +305,66 @@ async function buscarDireccion() {
     return;
   }
 
-  // Ocultamos el mensaje de bienvenida
   if (msgInicial) msgInicial.style.display = "none";
 
-  // Normalizamos el texto ingresado
-  const busquedaNormalizada = typeof normalizarDireccion === "function" 
-    ? normalizarDireccion(textoBusqueda) 
-    : textoBusqueda.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  
-  // Garantizar acceso a la base de datos local
-  if (!window.todosLosEdificiosDB) {
-    window.todosLosEdificiosDB = window.baseDatosEdificiosMemoria || [];
-  }
-
-  if (window.todosLosEdificiosDB.length === 0) {
-    if (resultado) resultado.innerText = "⏳ Cargando...";
-    if (typeof cargarEdificios === "function") await cargarEdificios();
+  // 1. SI HAY EDIFICIOS EN MEMORIA (Modo Offline o Admin), filtramos localmente
+  if (window.todosLosEdificiosDB && window.todosLosEdificiosDB.length > 0) {
+    ejecutarFiltradoLocal(textoBusqueda);
     return;
   }
 
-  // Filtrado en memoria local
-  window.edificiosEncontrados = window.todosLosEdificiosDB.filter(e => {
-    const fnNormalizar = (txt) => typeof normalizarDireccion === "function" 
-      ? normalizarDireccion(txt) 
-      : String(txt).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  // 2. SI NO HAY EDIFICIOS (Caso del Predi), consultamos al Backend bajo demanda
+  if (resultado) resultado.innerHTML = "<span style='font-size:16px;'>⏳ Buscando...</span>";
 
-    const dir1 = fnNormalizar(e.address || e.direccion || "");
-    const dir2 = fnNormalizar(e.address2 || e.direccion2 || "");
-    const nom = fnNormalizar(e.name || e.nombre || "");
+  try {
+    // Armamos las cabeceras seguras con las credenciales que guardó el login
+    const usuarioActivo = localStorage.getItem("username") || "predi";
+    const rolActivo = localStorage.getItem("role") || "predi";
+    
+    // Determinamos la URL base (usando la de producción de tus capturas)
+    const urlBase = window.API_BASE_URL || "https://visitas-app-inxa.onrender.com";
+
+    console.log(`📡 Consultando edificio '${textoBusqueda}' al servidor...`);
+    
+    // Llamamos a la ruta de búsqueda mandando el texto como parámetro de consulta
+    const response = await fetch(`${urlBase}/api/buildings/search?q=${encodeURIComponent(textoBusqueda)}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/center",
+        "x-user": usuarioActivo,
+        "x-role": rolActivo
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Servidor respondió con código ${response.status}`);
+    }
+
+    const edificiosServidor = await response.json();
+
+    // Guardamos lo que devolvió el servidor en el carrusel temporal
+    window.edificiosEncontrados = Array.isArray(edificiosServidor) ? edificiosServidor : [edificiosServidor].filter(Boolean);
+    window.indiceEdificioActual = 0;
+
+    // Procesamos el resultado del servidor
+    evaluarResultadosBusqueda(textoBusqueda);
+
+  } catch (error) {
+    console.error("❌ Error en la consulta bajo demanda:", error);
+    if (resultado) resultado.innerHTML = "<span style='font-size:13px; color:#f87171;'>❌ Error de conexión</span>";
+  }
+}
+
+/**
+ * Filtra los edificios cuando ya están cargados localmente en memoria.
+ */
+function ejecutarFiltradoLocal(textoBusqueda) {
+  const busquedaNormalizada = textoBusqueda.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  window.edificiosEncontrados = window.todosLosEdificiosDB.filter(e => {
+    const dir1 = String(e.address || e.direccion || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const dir2 = String(e.address2 || e.direccion2 || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const nom = String(e.name || e.nombre || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const terr = String(e.territory || e.territorio || "");
     
     return dir1.includes(busquedaNormalizada) || 
@@ -347,18 +374,27 @@ async function buscarDireccion() {
   });
 
   window.indiceEdificioActual = 0;
+  evaluarResultadosBusqueda(textoBusqueda);
+}
 
-  // CASO A: Sin Coincidencias - Despliega opción de agregar edificio rápido
-  if (window.edificiosEncontrados.length === 0) {
+/**
+ * Decide qué mostrar en la interfaz según si hubo coincidencias o no.
+ */
+function evaluarResultadosBusqueda(textoBusqueda) {
+  const resultado = document.getElementById("resultado");
+  const btnNuevoEdificio = document.getElementById("btnNuevoEdificio");
+  const campoNota = document.getElementById("nota");
+  const btnOk = document.getElementById("btnOk");
+  const btnNo = document.getElementById("btnNo");
+
+  if (!window.edificiosEncontrados || window.edificiosEncontrados.length === 0) {
     if (typeof limpiarVista === "function") limpiarVista();
     if (resultado) resultado.innerText = "--";
     
-    // Ocultamos las herramientas de relevamiento
     if (campoNota) campoNota.style.display = "none";
     if (btnOk) btnOk.style.display = "none";
     if (btnNo) btnNo.style.display = "none";
 
-    // Mostramos el botón de agregar
     if (btnNuevoEdificio) {
       btnNuevoEdificio.style.display = "block";
       btnNuevoEdificio.setAttribute("data-direccion-sugerida", textoBusqueda);
@@ -366,15 +402,12 @@ async function buscarDireccion() {
     return;
   }
 
-  // CASO B: Edificio Encontrado con Éxito
+  // Si encontramos el edificio con éxito
   if (btnNuevoEdificio) btnNuevoEdificio.style.display = "none";
-  
-  // Encendemos los campos para que el predi pueda trabajar
   if (campoNota) campoNota.style.display = "block";
   if (btnOk) btnOk.style.display = "block";
   if (btnNo) btnNo.style.display = "block";
 
-  // Disparamos el renderizado del primer depto en el carrusel móvil
   if (typeof mostrarEdificioActual === "function") {
     mostrarEdificioActual();
   }
@@ -383,27 +416,18 @@ async function buscarDireccion() {
 // =========================================================================
 // 🌐 PUENTES DE COMPATIBILIDAD CON EL HTML (index.html)
 // =========================================================================
-
-/**
- * Enlaza el botón de la lupa (onclick="buscar()") con el núcleo del script.
- */
 function buscar() {
   buscarDireccion();
 }
 
-/**
- * Enlaza el botón de agregar del HTML (onclick="crearEdificio()") con el editor.
- */
 function crearEdificio() {
   const btn = document.getElementById("btnNuevoEdificio");
   const direccionSugerida = btn ? btn.getAttribute("data-direccion-sugerida") : "";
-  
   if (typeof abrirEditorEdificio === "function") {
     abrirEditorEdificio({ address: direccionSugerida || "" });
-  } else {
-    console.error("❌ La función abrirEditorEdificio no está definida en app.js");
   }
 }
+
 // =========================================================================
 // 📱 PARTE 2: CARRUSEL MÓVIL (PREDI), REGISTRO DE VISITAS Y MODAL DE INCIDENCIAS
 // =========================================================================
