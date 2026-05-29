@@ -283,8 +283,8 @@ function logout() {
 // =========================================================================
 
 /**
- * Ejecuta el filtrado predictivo en tiempo real. 
- * Si no hay datos en memoria (caso del predi), consulta directo al servidor de forma segura.
+ * Ejecuta la consulta bajo demanda directo a la ruta unificada del backend.
+ * Soporta búsquedas por dirección o por código de forma segura para todos los roles.
  */
 async function buscarDireccion() {
   const input = document.getElementById("buildingId");
@@ -293,7 +293,6 @@ async function buscarDireccion() {
   const msgInicial = document.getElementById("mensajeInicial");
   
   const campoNota = document.getElementById("nota");
-  const botoneraVotacion = document.getElementById("botoneraVotacion");
   const btnOk = document.getElementById("btnOk");
   const btnNo = document.getElementById("btnNo");
 
@@ -307,30 +306,25 @@ async function buscarDireccion() {
 
   if (msgInicial) msgInicial.style.display = "none";
 
-  // 1. SI HAY EDIFICIOS EN MEMORIA (Modo Offline o Admin), filtramos localmente
-  if (window.todosLosEdificiosDB && window.todosLosEdificiosDB.length > 0) {
-    ejecutarFiltradoLocal(textoBusqueda);
-    return;
-  }
-
-  // 2. SI NO HAY EDIFICIOS (Caso del Predi), consultamos al Backend bajo demanda
-  if (resultado) resultado.innerHTML = "<span style='font-size:16px;'>⏳ Buscando...</span>";
+  // Mostramos estado de carga dinámico
+  if (resultado) resultado.innerHTML = "<span style='font-size:16px;'>⏳ Buscando en servidor...</span>";
 
   try {
-    // Armamos las cabeceras seguras con las credenciales que guardó el login
+    // Recuperamos las credenciales almacenadas en el login
     const usuarioActivo = localStorage.getItem("username") || "predi";
     const rolActivo = localStorage.getItem("role") || "predi";
     
-    // Determinamos la URL base (usando la de producción de tus capturas)
+    // URL base de producción en Render
     const urlBase = window.API_BASE_URL || "https://visitas-app-inxa.onrender.com";
 
-    console.log(`📡 Consultando edificio '${textoBusqueda}' al servidor...`);
+    // 🎯 CORRECCIÓN CRUCIAL: Apuntamos exactamente a la ruta unificada del backend -> /building/:query
+    const urlDestino = `${urlBase}/building/${encodeURIComponent(textoBusqueda)}`;
+    console.log(`📡 Consultando edificio en backend: ${urlDestino}`);
     
-    // Llamamos a la ruta de búsqueda mandando el texto como parámetro de consulta
-    const response = await fetch(`${urlBase}/api/buildings/search?q=${encodeURIComponent(textoBusqueda)}`, {
+    const response = await fetch(urlDestino, {
       method: "GET",
       headers: {
-        "Content-Type": "application/center",
+        "Content-Type": "application/json",
         "x-user": usuarioActivo,
         "x-role": rolActivo
       }
@@ -340,45 +334,31 @@ async function buscarDireccion() {
       throw new Error(`Servidor respondió con código ${response.status}`);
     }
 
-    const edificiosServidor = await response.json();
+    const dataEdificio = await response.json();
 
-    // Guardamos lo que devolvió el servidor en el carrusel temporal
-    window.edificiosEncontrados = Array.isArray(edificiosServidor) ? edificiosServidor : [edificiosServidor].filter(Boolean);
+    // Verificamos si el backend devolvió el objeto de error { error: "NOT_FOUND" }
+    if (dataEdificio && dataEdificio.error === "NOT_FOUND") {
+      window.edificiosEncontrados = [];
+    } else if (dataEdificio && dataEdificio._id) {
+      // Si nos devolvió un edificio válido, lo metemos en el array de navegación
+      window.edificiosEncontrados = [dataEdificio];
+    } else {
+      window.edificiosEncontrados = [];
+    }
+
     window.indiceEdificioActual = 0;
 
-    // Procesamos el resultado del servidor
+    // Procesamos la respuesta para actualizar los cuadros del formulario
     evaluarResultadosBusqueda(textoBusqueda);
 
   } catch (error) {
-    console.error("❌ Error en la consulta bajo demanda:", error);
+    console.error("❌ Error consultando el backend:", error);
     if (resultado) resultado.innerHTML = "<span style='font-size:13px; color:#f87171;'>❌ Error de conexión</span>";
   }
 }
 
 /**
- * Filtra los edificios cuando ya están cargados localmente en memoria.
- */
-function ejecutarFiltradoLocal(textoBusqueda) {
-  const busquedaNormalizada = textoBusqueda.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-  window.edificiosEncontrados = window.todosLosEdificiosDB.filter(e => {
-    const dir1 = String(e.address || e.direccion || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const dir2 = String(e.address2 || e.direccion2 || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const nom = String(e.name || e.nombre || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const terr = String(e.territory || e.territorio || "");
-    
-    return dir1.includes(busquedaNormalizada) || 
-           dir2.includes(busquedaNormalizada) || 
-           nom.includes(busquedaNormalizada)  || 
-           terr === busquedaNormalizada;
-  });
-
-  window.indiceEdificioActual = 0;
-  evaluarResultadosBusqueda(textoBusqueda);
-}
-
-/**
- * Decide qué mostrar en la interfaz según si hubo coincidencias o no.
+ * Procesa el resultado de la búsqueda y acomoda la interfaz móvil
  */
 function evaluarResultadosBusqueda(textoBusqueda) {
   const resultado = document.getElementById("resultado");
@@ -395,6 +375,7 @@ function evaluarResultadosBusqueda(textoBusqueda) {
     if (btnOk) btnOk.style.display = "none";
     if (btnNo) btnNo.style.display = "none";
 
+    // Habilitamos la creación si no existe
     if (btnNuevoEdificio) {
       btnNuevoEdificio.style.display = "block";
       btnNuevoEdificio.setAttribute("data-direccion-sugerida", textoBusqueda);
@@ -402,20 +383,19 @@ function evaluarResultadosBusqueda(textoBusqueda) {
     return;
   }
 
-  // Si encontramos el edificio con éxito
+  // Si encontramos el edificio con éxito en la base de datos
   if (btnNuevoEdificio) btnNuevoEdificio.style.display = "none";
   if (campoNota) campoNota.style.display = "block";
   if (btnOk) btnOk.style.display = "block";
   if (btnNo) btnNo.style.display = "block";
 
+  // Pintamos los datos en pantalla
   if (typeof mostrarEdificioActual === "function") {
     mostrarEdificioActual();
   }
 }
 
-// =========================================================================
-// 🌐 PUENTES DE COMPATIBILIDAD CON EL HTML (index.html)
-// =========================================================================
+// Bridges de compatibilidad con los botones del HTML
 function buscar() {
   buscarDireccion();
 }
@@ -427,6 +407,7 @@ function crearEdificio() {
     abrirEditorEdificio({ address: direccionSugerida || "" });
   }
 }
+
 
 // =========================================================================
 // 📱 PARTE 2: CARRUSEL MÓVIL (PREDI), REGISTRO DE VISITAS Y MODAL DE INCIDENCIAS
