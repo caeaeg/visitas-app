@@ -342,23 +342,16 @@ window.addEventListener("load", async () => {
 // =========================================================================
 // 📱 SECTOR: NÚCLEO DE INTERACCION DEL BUSCADOR MÓVIL (PREDI) - INTEGRADO
 // =========================================================================
-
-/**
- * Busca el edificio de forma rápida usando las rutas del backend asignadas a predi.
- * Protege contra bloqueos y dispara automáticamente la carga aleatoria de departamentos.
- */
 // =========================================================================
-// 🔍 SECTOR: MOTOR DE BÚSQUEDA Y SORTEO ALEATORIO DE DEPARTAMENTOS
+// 🔍 SECTOR: MOTOR DE BÚSQUEDA Y SORTEO INTELIGENTE DE DEPARTAMENTOS (BACKEND MATCH)
 // =========================================================================
 
-// Variables globales de control de estado para el sorteo de departamentos
+// Variables globales de tracking en memoria caliente
 window.edificioActivo = null;
-window.departamentosMapeados = [];
-window.indiceDeptoActual = 0;
+window.departamentoEnFoco = null; // Guardará el objeto completo del depto ({ _id, number })
 
 /**
- * Busca un edificio por dirección o código.
- * Activa el flujo original de sorteo aleatorio de departamentos.
+ * Busca un edificio por dirección o código en el backend.
  */
 async function buscar() {
   if (typeof limpiarVista === "function") {
@@ -387,7 +380,7 @@ async function buscar() {
   if (resLabel) resLabel.innerText = "Buscando en servidor...";
 
   try {
-    // Consulta directa al endpoint nativo que responde con el objeto del edificio
+    // 1. Buscamos el edificio por su dirección
     const b = await apiFetch(`/building/${encodeURIComponent(input)}`);
     
     if (!b.ok) {
@@ -400,7 +393,13 @@ async function buscar() {
     
     const building = await b.json();
     
-    // 🛡️ Control de Bloqueo Administrativo
+    // Control de respuesta vacía o error devuelto en JSON
+    if (building.error === "NOT_FOUND" || !building || !building._id) {
+      tratarEdificioNoEncontrado();
+      return;
+    }
+
+    // 🛡️ Control de Bloqueo Administrativo integrado
     if (building.error === "EDIFICIO_BLOQUEADO" || building.isBlocked) {
       alert("🚫 ACCESO DENEGADO:\nEste edificio está bloqueado por el Administrador y no puede ser visitado en este momento.");
       if (resLabel) resLabel.innerText = ""; 
@@ -409,26 +408,16 @@ async function buscar() {
       }
       return; 
     }
-    
-    if (!building || !building._id) {
-      tratarEdificioNoEncontrado();
-      return;
-    }
 
-    // Guardamos el edificio en las variables de estado globales
+    // Guardamos el edificio en el tracking global
     window.edificioActivo = building;
     currentBuildingId = building._id;
     window.currentBuildingId = building._id;
     
-    console.log(`✅ Edificio cargado: ${building.address}. Preparando sorteo de departamentos.`);
+    console.log(`✅ Edificio detectado: ${building.address}. Solicitando sorteo al backend...`);
 
-    // 🎲 GENERACIÓN DEL POOL ALEATORIO DE DEPARTAMENTOS
-    // Convertimos los pisos y letras del edificio en una lista mezclada al azar
-    window.departamentosMapeados = generarPoolDepartamentos(building);
-    window.indiceDeptoActual = 0;
-
-    // Renderizamos la interfaz con el formato original solicitado
-    mostrarEstructuraFlujoVisita();
+    // 🚀 2. LLAMAMOS AL ALGORITMO NATIVO DEL BACKEND PARA TRAER EL PRIMER DEPTO DISPONIBLE
+    await sortearSiguienteDepartamento(false);
 
   } catch (error) {
     console.error("❌ Detalle del error en buscar:", error);
@@ -437,110 +426,121 @@ async function buscar() {
 }
 
 /**
- * Genera un array con la combinación de pisos y departamentos, ordenados aleatoriamente
+ * Consulta la ruta /next del backend para obtener un departamento aleatorio no visitado recientemente.
+ * @param {boolean} mostrarAlerta - Define si avisa visualmente en caso de reiniciar.
  */
-function generarPoolDepartamentos(building) {
-  const lista = [];
-  const maxPisos = parseInt(building.floors) || 1;
-  
-  // Si el edificio tiene departamentos específicos cargados desde la base de datos
-  if (building.departments && building.departments.length > 0) {
-    building.departments.forEach(d => lista.push(d.code || d));
-  } else {
-    // Si no, generamos una matriz estándar basada en la configuración del edificio
-    const deptosPorPiso = ["A", "B", "C", "D"]; // Ajustable según la estructura común de tu app
-    for (let f = 1; f <= maxPisos; f++) {
-      deptosPorPiso.forEach(letra => {
-        lista.push(`${f}° ${letra}`);
-      });
-    }
-  }
+async function sortearSiguienteDepartamento(mostrarAlerta = true) {
+  if (!window.currentBuildingId) return;
 
-  // Algoritmo Fisher-Yates para mezclar el orden de forma 100% aleatoria
-  for (let i = lista.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [lista[i], lista[j]] = [lista[j], lista[i]];
+  try {
+    // Le pegamos a la ruta /next de tu backend pasándole la ID del edificio
+    const res = await apiFetch(`/next/${window.currentBuildingId}`);
+    if (!res.ok) throw new Error(`Falla en ruta /next: ${res.status}`);
+
+    const data = await res.json();
+
+    // Si no hay departamentos disponibles en este bloque (o ya se visitaron todos)
+    if (data.message === "NO_AVAILABLE") {
+      alert("🔄 Todos los departamentos de este edificio fueron visitados en los últimos 4 meses o no hay unidades configuradas.");
+      window.departamentoEnFoco = null;
+      const deptoLabel = document.getElementById("departamentoVisitar");
+      if (deptoLabel) deptoLabel.innerText = "Fin";
+      return;
+    }
+
+    // Si saltó un bloqueo tardío en el endpoint /next
+    if (data.message === "EDIFICIO_BLOQUEADO") {
+      alert("🚫 Este edificio está bloqueado de forma administrativa.");
+      tratarEdificioNoEncontrado();
+      return;
+    }
+
+    // 🎯 ÉXITO: Tu backend devuelve la propiedad "dept" que contiene { _id, number, buildingId }
+    if (data && data.dept) {
+      window.departamentoEnFoco = data.dept;
+      
+      // Renderizamos la UI limpia con los datos y el mapa estático
+      mostrarEstructuraFlujoVisita();
+      
+      if (mostrarAlerta && typeof notify === "function") {
+        notify("Nuevo departamento asignado");
+      }
+    }
+
+  } catch (err) {
+    console.error("❌ Error en sorteo de departamento:", err);
+    alert("⚠️ No se pudo obtener el siguiente departamento del servidor.");
   }
-  
-  return lista.length > 0 ? lista : ["1° A"];
 }
 
 /**
- * Dibuja la pantalla exactamente como la necesitas: Departamento aleatorio grande,
- * botón de Siguiente abajo, y debajo la ficha estática del edificio con el mapa protegido.
+ * Pinta la interfaz móvil exacta: Departamento sorteado, botón Siguiente y ficha del edificio abajo con mapa estático.
  */
 function mostrarEstructuraFlujoVisita() {
   const e = window.edificioActivo;
+  const d = window.departamentoEnFoco;
   if (!e) return;
 
-  // 1. Inyectamos el departamento aleatorio en foco al lado del label correspondiente
+  // 1. Inyectamos el número legible del departamento sorteado (ej: "1A", "PB B")
   const deptoLabel = document.getElementById("departamentoVisitar");
   if (deptoLabel) {
-    deptoLabel.innerText = window.departamentosMapeados[window.indiceDeptoActual] || "Fin";
+    deptoLabel.innerText = d ? d.number : "--";
     deptoLabel.style.fontSize = "24px";
     deptoLabel.style.fontWeight = "bold";
-    deptoLabel.style.color = "#38bdf8"; // Celeste estético para resaltar
+    deptoLabel.style.color = "#38bdf8"; 
   }
 
-  // 2. Limpiamos el contenedor intermedio 'resultado' para meter los datos del edificio y mapa estático
+  // 2. Inyectamos la ficha del edificio junto con el botón Siguiente incrustado abajo
   const resContainer = document.getElementById("resultado");
   if (resContainer) {
     resContainer.innerHTML = `
       <div class="building-card-static" style="background:#1c1c1e; padding:15px; border-radius:12px; margin-top:15px; border: 1px solid #2c2c2e;">
-        <h3 style="margin:0 0 6px 0; color:#ffffff; font-size:18px;">🏢 ${e.address || "Sin Dirección"}</h3>
+        <h3 style="margin:0 0 6px 0; color:#ffffff; font-size:18px; text-transform: capitalize;">🏢 ${e.address || "Sin Dirección"}</h3>
         ${e.name ? `<p style="margin:0 0 6px 0; color:#a855f7; font-size:14px; font-weight:500;">${e.name}</p>` : ''}
-        <p style="margin:0 0 10px 0; color:#a1a1aa; font-size:13px;">📍 Territorio / Zona: <strong style="color:#e4e4e7">${e.territory || e.territorio || "No Asignada"}</strong></p>
+        <p style="margin:0 0 10px 0; color:#a1a1aa; font-size:13px;">📍 Territorio / Zona: <strong style="color:#e4e4e7">${e.territory || "No Asignada"}</strong></p>
         
         <div id="prediMiniMapContainer" style="width:100%; height:150px; border-radius:8px; margin-bottom:12px; background:#27272a; overflow:hidden;"></div>
         
-        <div style="font-size:12px; color:#a1a1aa; margin-bottom:4px;">📊 Visitas previas en este bloque: <strong>${e.visitas || 0}</strong></div>
-        
-        <div style="text-align:right; margin-top:8px;">
+        <div style="text-align:right; margin-top:4px;">
           <span onclick="abrirModalIncidencia()" style="color:#f59e0b; font-size:12px; cursor:pointer; font-weight:500; text-decoration:underline;">⚠️ Reportar Incidencia</span>
         </div>
       </div>
 
       <div style="margin-top:15px; text-align:center;">
-        <button onclick="siguienteDepartamento()" style="background:#27272a; color:#ffffff; border:1px solid #3f3f46; padding:10px 20px; border-radius:8px; font-size:14px; width:100%; cursor:pointer; font-weight:600;">
+        <button onclick="siguienteDepartamento()" style="background:#27272a; color:#ffffff; border:1px solid #3f3f46; padding:12px 20px; border-radius:8px; font-size:14px; width:100%; cursor:pointer; font-weight:600;">
           ⏭️ Saltar / Siguiente Departamento
         </button>
       </div>
     `;
   }
 
-  // 3. Mostramos las botoneras globales de interacción inferior (ATENDIÓ / EN CASA)
+  // 3. Encendemos los controles globales inferiores de tu HTML (ATENDIÓ / EN CASA)
   if (document.getElementById("nota")) document.getElementById("nota").style.display = "block";
   
-  // Mostramos los contenedores de los botones principales del HTML de forma limpia
-  const btnOk = document.getElementById("btnOk");
-  const btnNo = document.getElementById("btnNo");
-  if (btnOk) btnOk.style.display = "block";
-  if (btnNo) btnNo.style.display = "block";
-  
-  const btnNuevoEdificio = document.getElementById("btnNuevoEdificio");
-  if (btnNuevoEdificio) btnNuevoEdificio.style.display = "none";
+  if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "block";
+  if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "block";
+  if (document.getElementById("btnNuevoEdificio")) document.getElementById("btnNuevoEdificio").style.display = "none";
 
-  // 4. Montaje del mapa estático (Leaflet) con arrastres y gestos desactivados por funcionalidad de la UI móvil
+  // 4. Inicialización del Mini-Mapa Estático (Totalmente bloqueado por funcionalidad móvil)
   setTimeout(() => {
     const lat = parseFloat(e.latitude || e.lat);
     const lng = parseFloat(e.longitude || e.lng || e.lon);
 
     if (isNaN(lat) || isNaN(lng)) {
       const container = document.getElementById("prediMiniMapContainer");
-      if (container) container.innerHTML = `<div style="color:#a1a1aa; text-align:center; padding-top:60px; font-size:12px;">📍 Coordenadas no configuradas</div>`;
+      if (container) container.innerHTML = `<div style="color:#a1a1aa; text-align:center; padding-top:60px; font-size:12px;">📍 Coordenadas ausentes para mapa</div>`;
       return;
     }
 
     try {
-      // Configuramos el mapa bloqueando interacciones para hacerlo actuar de forma 100% estática
       const prediMiniMap = L.map('prediMiniMapContainer', {
         zoomControl: false,
         attributionControl: false,
-        dragging: false,      // 🚫 Desactiva arrastrar con el dedo
-        scrollWheelZoom: false, // 🚫 Desactiva zoom con rueda
-        doubleClickZoom: false, // 🚫 Desactiva doble click
+        dragging: false,        // 🚫 Bloquea arrastrar con el dedo
+        scrollWheelZoom: false,  // 🚫 Bloquea zoom con rueda
+        doubleClickZoom: false,  // 🚫 Bloquea doble click
         boxZoom: false,
-        touchZoom: false,      // 🚫 Desactiva zoom táctil (pellizco)
+        touchZoom: false,        // 🚫 Bloquea pellizco táctil
         tap: false
       }).setView([lat, lng], 16);
 
@@ -558,7 +558,6 @@ function mostrarEstructuraFlujoVisita() {
       L.marker([lat, lng], { icon: prediIcon }).addTo(prediMiniMap);
       
       setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 100);
-
     } catch (mapErr) {
       console.error("Error al montar mapa estático:", mapErr);
     }
@@ -566,31 +565,16 @@ function mostrarEstructuraFlujoVisita() {
 }
 
 /**
- * Salta secuencialmente al siguiente departamento del pool aleatorio generado
+ * Ejecuta el salto manual al siguiente departamento usando la lógica de exclusión del backend
  */
 function siguienteDepartamento() {
-  if (window.departamentosMapeados.length === 0) return;
-  
-  window.indiceDeptoActual++;
-  
-  // Si nos quedamos sin departamentos en la lista mezclada, volvemos a empezar
-  if (window.indiceDeptoActual >= window.departamentosMapeados.length) {
-    alert("🔄 Se han recorrido todas las opciones del edificio. Reiniciando lista aleatoria.");
-    window.indiceDeptoActual = 0;
-  }
-  
-  const deptoLabel = document.getElementById("departamentoVisitar");
-  if (deptoLabel) {
-    deptoLabel.innerText = window.departamentosMapeados[window.indiceDeptoActual];
-  }
-  
-  // Limpiamos la caja de notas rápidas para la nueva visita
+  sortearSiguienteDepartamento(true);
   const obs = document.getElementById("observacionRapida");
   if (obs) obs.value = "";
 }
 
 /**
- * Manejo visual en caso de que la dirección no exista
+ * Control visual si la dirección no existe
  */
 function tratarEdificioNoEncontrado() {
   const resLabel = document.getElementById("resultado");
@@ -610,23 +594,99 @@ function tratarEdificioNoEncontrado() {
   if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "none";
 }
 
-// Alias de puente para compatibilidad
+/**
+ * Despacha la visita de forma segura hacia el endpoint POST /visit de tu backend.
+ * @param {string} estadoBackend - Debe ser "ATENDIO" o "NO_EN_CASA" para coincidir con tu index.js
+ */
+async function registrarVisitaDesdeBoton(estadoBackend) {
+  if (!window.currentBuildingId) {
+    alert("⚠️ No hay un edificio activo seleccionado.");
+    return;
+  }
+  if (!window.departamentoEnFoco || !window.departamentoEnFoco._id) {
+    alert("⚠️ No hay un departamento en foco para registrar la visita.");
+    return;
+  }
+
+  const deptoNumero = window.departamentoEnFoco.number;
+  const notaInput = document.getElementById("observacionRapida");
+  const comentario = notaInput ? notaInput.value.trim() : "";
+
+  // Estructura idéntica a la que extrae tu app.post("/visit"): { departmentId, status, note, buildingId }
+  const cuerpoPayload = {
+    departmentId: window.departamentoEnFoco._id,
+    buildingId: window.currentBuildingId,
+    status: estadoBackend, // "ATENDIO" o "NO_EN_CASA"
+    note: comentario ? comentario : `Visita realizada al depto ${deptoNumero}`
+  };
+
+  try {
+    // Apuntamos al endpoint nativo unificado /visit que nos mostró tu index.js
+    const res = await apiFetch("/visit", {
+      method: "POST",
+      body: JSON.stringify(cuerpoPayload)
+    });
+
+    if (res.ok) {
+      console.log(`✅ Visita registrada en BD para depto ${deptoNumero} como ${estadoBackend}`);
+      if (notaInput) notaInput.value = ""; // Limpieza de caja
+
+      // Sorteamos inmediatamente el siguiente departamento disponible de forma fluida
+      await sortearSiguienteDepartamento(false);
+    } else {
+      const txtError = await res.text();
+      alert(`❌ Error al guardar visita: ${txtError || "Revisar datos enviados."}`);
+    }
+  } catch (err) {
+    console.error("Falla de red en registrarVisitaDesdeBoton:", err);
+    alert("⚠️ Falla de conectividad. No se pudo transmitir el registro.");
+  }
+}
+
+// 🔀 Puentes de enlace directo con los eventos onclick del index.html móvil
+function marcarAtendido() { registrarVisitaDesdeBoton("ATENDIO"); }
+function marcarEnCasa() { registrarVisitaDesdeBoton("NO_EN_CASA"); }
+function marcar() { registrarVisitaDesdeBoton("ATENDIO"); } // Puñito por si el HTML llama a marcar() a secas
+
+/**
+ * Abre un prompt integrado para disparar una incidencia directo a tu app.post("/issues")
+ */
+async function abrirModalIncidencia() {
+  if (!window.currentBuildingId) return;
+  
+  const detalle = prompt("⚠️ Escriba el reporte o problema detectado en el edificio:");
+  if (!detalle || detalle.trim() === "") return;
+
+  const deptoId = window.departamentoEnFoco ? window.departamentoEnFoco._id : null;
+
+  try {
+    // Apunta a tu ruta nativa app.post("/issues")
+    const res = await apiFetch("/issues", {
+      method: "POST",
+      body: JSON.stringify({
+        buildingId: window.currentBuildingId,
+        departmentId: deptoId,
+        type: "Infraestructura",
+        description: detalle.trim(),
+        reportedBy: "Predi Campo",
+        status: "PENDIENTE"
+      })
+    });
+
+    if (res.ok) {
+      alert("✅ Reporte de incidencia enviado al Administrador con éxito.");
+    } else {
+      alert("❌ No se pudo registrar la incidencia.");
+    }
+  } catch (err) {
+    console.error("Error al enviar issue:", err);
+  }
+}
+
+// Compatibilidad por si el buscador viejo dependía de este nombre en el cruce
 function mostrarEdificioActual() {
   mostrarEstructuraFlujoVisita();
 }
-
-
-/** * Salta al siguiente registro disponible en el carrusel circular de filtrados */
-function siguienteEdificio() {
-  if (!window.edificiosEncontrados || window.edificiosEncontrados.length <= 1) return;
-  
-  window.indiceEdificioActual++;
-  if (window.indiceEdificioActual >= window.edificiosEncontrados.length) {
-    window.indiceEdificioActual = 0; // Bucle continuo
-  }
-  mostrarEdificioActual();
-}
-
 
 
 // =========================================================================
