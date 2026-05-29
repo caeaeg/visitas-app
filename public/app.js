@@ -41,7 +41,7 @@ const reportBtn = document.getElementById("reportBtn");
 const loadingBar = document.getElementById("loadingBar");
 
 // =========================================================================
-// 🔌 SECTOR: MOTOR DE COMUNICACIÓN CENTRALIZADO (API FETCH)
+// 🔌 SECTOR: MOTOR DE COMUNICACIÓN CENTRALIZADO (API FETCH INTEGRADO)
 // =========================================================================
 
 /**
@@ -49,8 +49,13 @@ const loadingBar = document.getElementById("loadingBar");
  * control visual de carga y manejo automatizado de credenciales (username y role).
  */
 async function apiFetch(endpoint, options = {}) {
-  const username = localStorage.getItem('username');
+  // 🔐 Recuperamos credenciales reales asegurando compatibilidad global
+  const username = localStorage.getItem('username') || localStorage.getItem('user');
   const role = localStorage.getItem('role');
+  
+  // Mantenemos vivas las variables de control global que exige tu backend original
+  if (username) currentUser = username;
+  if (role) currentRole = role;
   
   // URL base adaptada para entornos de desarrollo local y tu despliegue en Render
   const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -66,7 +71,7 @@ async function apiFetch(endpoint, options = {}) {
     ...options.headers
   };
 
-  // 🔐 INYECCIÓN DE CREDENCIALES REALES (Lo que exige requireLogin en tu backend)
+  // Inyección estricta en los headers para pasar el requireLogin del servidor
   if (username && role) {
     options.headers['x-user'] = username;
     options.headers['x-role'] = role;
@@ -86,8 +91,7 @@ async function apiFetch(endpoint, options = {}) {
     // Si detectamos que no está autorizado o el token expiró, limpiamos y mandamos al login real
     if (response.status === 401 || response.status === 403) {
       console.warn("🔐 Credenciales inválidas o sin permisos. Redireccionando...");
-      localStorage.clear();
-      abrirVista("loginScreen"); 
+      logout();
       return response;
     }
 
@@ -99,29 +103,22 @@ async function apiFetch(endpoint, options = {}) {
   }
 }
 
-// =========================================================================
-// 🔐 SECTOR: CONTROL DE ACCESO, INICIO DE SESIÓN Y VISTAS
-// =========================================================================
-
 /**
  * Genera de forma estandarizada los encabezados de autenticación 
- * requeridos por el backend (auth.js -> requireLogin)
  */
 function obtenerHeadersSeguros() {
   return {
     "Content-Type": "application/json",
-    "x-user": localStorage.getItem("username") || "",
+    "x-user": localStorage.getItem("username") || localStorage.getItem("user") || "",
     "x-role": localStorage.getItem("role") || ""
   };
 }
 
 /**
- * Controla la visibilidad de la barra o indicador de carga (loading)
- * @param {boolean} mostrar - True para mostrar, false para ocultar
+ * Controla la visibilidad de la barra o indicador de carga (spinner)
  */
 function mostrarLoading(mostrar) {
   const spinner = document.getElementById("loading") || document.getElementById("loadingSpinner");
-  
   if (spinner) {
     spinner.style.display = mostrar ? "flex" : "none";
   } else {
@@ -129,13 +126,21 @@ function mostrarLoading(mostrar) {
   }
 }
 
+
+// =========================================================================
+// 🔐 SECTOR: CONTROL DE ACCESO, INICIO DE SESIÓN Y ORQUESTADOR DE VISTAS
+// =========================================================================
+
 /**
  * Procesa el inicio de sesión autenticando contra el backend corporativo
  */
 async function login() {
-  const user = document.getElementById("loginUser")?.value.trim();
-  const pass = document.getElementById("loginPass")?.value.trim();
+  const userField = document.getElementById("loginUser") || (typeof loginUser !== 'undefined' ? loginUser : null);
+  const passField = document.getElementById("loginPass") || (typeof loginPass !== 'undefined' ? loginPass : null);
   const msgLabel = document.getElementById("loginMsg");
+
+  const user = userField?.value.trim();
+  const pass = passField?.value.trim();
 
   if (!user || !pass) {
     alert("⚠️ Por favor complete todos los campos obligatorios.");
@@ -146,7 +151,6 @@ async function login() {
   mostrarLoading(true);
   if (msgLabel) msgLabel.innerText = "";
 
-  // Definición segura de URL base para evitar fallos de inicialización de variables globales
   const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:3000'
     : 'https://visitas-app-inxa.onrender.com';
@@ -169,27 +173,19 @@ async function login() {
       throw new Error("Usuario o contraseña incorrectos");
     }
 
-    // Almacenamiento del estado de la sesión
+    // Almacenamiento seguro usando AMBAS llaves para blindar compatibilidad (Etapa vieja y nueva)
     localStorage.setItem("username", datos.username);
+    localStorage.setItem("user", datos.username);
     localStorage.setItem("role", datos.role);
+    
+    // Forzamos inyección en las globales críticas de ejecución
+    currentUser = datos.username;
     currentRole = datos.role;
 
-    console.log(`🔑 Sesión iniciada con éxito. Usuario: ${datos.username}, Rol: ${currentRole}`);
+    console.log(`🔑 Sesión iniciada con éxito. Usuario: ${currentUser}, Rol: ${currentRole}`);
     
-    // Descarga condicional según los permisos del rol
-    await preCargarBaseDatosEnMemoria();
-
-    // Redirección limpia usando el orquestador dinámico de vistas
-    if (currentRole === "admin" || currentRole === "conductor") {
-      abrirVista("dashboardView");
-      setTimeout(() => {
-        if (typeof inicializarMapaGeneralAdministrador === "function") inicializarMapaGeneralAdministrador();
-        if (typeof cargarEdificios === "function") cargarEdificios();
-      }, 100);
-    } else {
-      abrirVista("appContainer");
-      if (typeof limpiarVista === "function") limpiarVista();
-    }
+    // Ejecuta el ruteo inteligente y la carga condicional blindada
+    await iniciarAppConPermisos();
 
   } catch (error) {
     console.error("Fallo de autenticación:", error);
@@ -206,18 +202,78 @@ async function login() {
 }
 
 /**
+ * Gestiona el arranque de la app y decide qué descargar según el rol (Solución definitiva al 403)
+ */
+async function iniciarAppConPermisos() {
+  const elLogin = document.getElementById("loginScreen");
+  if (elLogin) elLogin.style.display = "none";
+  
+  if (typeof aplicarPermisos === "function") aplicarPermisos();
+
+  const appContainer = document.getElementById("appContainer");
+  const mainDashboard = document.getElementById("mainDashboard");
+
+  if (currentRole === "predi") {
+    // 📱 INTERFAZ MÓVIL FORZADA: Apagamos el dashboard administrativo por completo
+    if (mainDashboard) mainDashboard.style.display = "none";
+    if (appContainer) appContainer.style.display = "flex";
+    
+    // Desactivamos sub-vistas internas residuales
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    
+    // 🛡️ REGLA DE ORO: Si es predi, TRABAJA BAJO DEMANDA. Cero descargas masivas para evitar el 403.
+    window.baseDatosEdificiosMemoria = [];
+    console.log("⚡ Entorno Predi configurado. Buscador directo en tiempo real activo.");
+    
+    if (typeof limpiarVista === "function") limpiarVista();
+  } else {
+    // 💻 PANEL DE CONTROL GENERAL (Admin / Conductor)
+    if (mainDashboard) mainDashboard.style.display = "block";
+    if (appContainer) appContainer.style.display = "none";
+    
+    // El administrador sí tiene permiso legal para precargar la base completa en memoria
+    await descargarBaseAdministrativa();
+    
+    abrirVista("dashboardView");
+  }
+}
+
+/**
+ * Descarga masiva exclusiva para roles administrativos
+ */
+async function descargarBaseAdministrativa() {
+  try {
+    console.log("⏳ Sincronizando datos administrativos con el servidor...");
+    const respuesta = await apiFetch('/admin/buildings?all=true', { method: "GET" });
+    if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`);
+
+    const resultado = await respuesta.json();
+    window.baseDatosEdificiosMemoria = resultado.data || [];
+    window.todosLosEdificiosDB = window.baseDatosEdificiosMemoria;
+    console.log(`✅ Sincronización exitosa. ${window.baseDatosEdificiosMemoria.length} edificios cargados en panel admin.`);
+  } catch (error) {
+    console.warn("⚠️ Error en precarga masiva:", error.message);
+    window.baseDatosEdificiosMemoria = []; 
+  }
+}
+
+/**
  * Orquestador dinámico de navegación: Apaga todas las pantallas y enciende la solicitada
- * @param {string} vistaId - ID del contenedor HTML de destino
  */
 function abrirVista(vistaId) {
-  // loginScreen se mantiene en primer lugar para asegurar su control estricto de visibilidad
+  // 🚨 REGLA DE PRIVACIDAD: Si es predi y quiere husmear vistas de admin, lo devolvemos al módulo móvil
+  if (currentRole === "predi" && vistaId !== "editarView" && vistaId !== "appContainer") {
+    if (document.getElementById("mainDashboard")) document.getElementById("mainDashboard").style.display = "none";
+    if (document.getElementById("appContainer")) document.getElementById("appContainer").style.display = "flex";
+    return;
+  }
+
   const vistas = ["loginScreen", "loginView", "dashboardView", "appContainer", "editarView", "superAdminView"];
   
   vistas.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       if (id === vistaId) {
-        // Manejo adaptativo de la estructura del Layout
         if (id === "appContainer" || id === "dashboardView") {
           el.style.display = "flex";
         } else {
@@ -231,54 +287,57 @@ function abrirVista(vistaId) {
     }
   });
 
-  // Forzar actualización estructural si el administrador salta al mapa general
+  // Manejo de pantallas especiales para predi editando un edificio sugerido
+  if (vistaId === "editarView" && currentRole === "predi") {
+    if (document.getElementById("appContainer")) document.getElementById("appContainer").style.display = "none";
+    if (document.getElementById("mainDashboard")) document.getElementById("mainDashboard").style.display = "block";
+  }
+
   if (vistaId === "dashboardView" && typeof mapaGeneral !== 'undefined' && mapaGeneral) {
     setTimeout(() => { mapaGeneral.invalidateSize(); }, 200);
   }
 }
 
 /**
- * Sincroniza datos solo si el rol tiene permisos.
- */
-async function preCargarBaseDatosEnMemoria() {
-  const rol = localStorage.getItem("role");
-  
-  // 🛡️ Si es "predi", saltamos la carga porque el backend arrojaría un error 403 (Forbidden)
-  if (currentRole === "predi") {
-  console.log("Usuario predi detectado: Cargando base de datos para trabajo offline.");
-  // Llamamos a la función que descarga los edificios
-  if (typeof cargarEdificios === "function") {
-    await cargarEdificios();
-  }
-}
-
-  try {
-    console.log("⏳ Sincronizando datos con el servidor central...");
-    // Usamos apiFetch para heredar automáticamente la URL base y las cabeceras x-user / x-role
-    const respuesta = await apiFetch('/admin/buildings?all=true', { method: "GET" });
-
-    if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`);
-
-    const resultado = await respuesta.json();
-    window.baseDatosEdificiosMemoria = resultado.data || [];
-    console.log(`✅ Sincronización exitosa. ${window.baseDatosEdificiosMemoria.length} edificios cargados.`);
-  } catch (error) {
-    console.warn("⚠️ Modo dinámico activado. Consultas bajo demanda.", error.message);
-    window.baseDatosEdificiosMemoria = []; 
-  }
-}
-
-/**
- * Cierra sesión borrando el caché local y devuelve al usuario al loginScreen real
+ * Cierra sesión borrando el caché local y devuelve al usuario al loginScreen
  */
 function logout() {
   localStorage.clear();
+  currentUser = "";
   currentRole = "";
   window.todosLosEdificiosDB = [];
+  window.baseDatosEdificiosMemoria = [];
   window.edificiosEncontrados = [];
-  // Corregido de "loginView" a "loginScreen" para evitar pantallas negras al desloguearse
   abrirVista("loginScreen");
 }
+
+/**
+ * Oidor de carga inicial: Recupera la sesión guardada de forma automática al abrir la web
+ */
+window.addEventListener("load", async () => {
+  const savedUser = localStorage.getItem("username") || localStorage.getItem("user");
+  const savedRole = localStorage.getItem("role");
+  
+  if (savedUser && savedRole) {
+    currentUser = savedUser;
+    currentRole = savedRole;
+    console.log(`🔄 Restaurando sesión activa en segundo plano para: ${currentUser}`);
+    await iniciarAppConPermisos();
+  } else {
+    abrirVista("loginScreen");
+  }
+  
+  // Soporte nativo para enlaces QR móviles (?building=ID)
+  const params = new URLSearchParams(window.location.search);
+  const buildingIdParam = params.get("building");
+  if (buildingIdParam && typeof cargarDepto === "function") {
+    currentBuildingId = buildingIdParam;
+    if (document.getElementById("mensajeInicial")) {
+      document.getElementById("mensajeInicial").style.display = "none";
+    }
+    await cargarDepto();
+  }
+});
 
 // =========================================================================
 // 📱 SECTOR: NÚCLEO DE INTERACCION DEL BUSCADOR MÓVIL (PREDI) - INTEGRADO
