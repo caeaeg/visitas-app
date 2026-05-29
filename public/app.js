@@ -348,34 +348,36 @@ window.addEventListener("load", async () => {
  * Protege contra bloqueos y dispara automáticamente la carga aleatoria de departamentos.
  */
 // =========================================================================
-// 🔍 SECTOR: MOTOR DE BÚSQUEDA MÓVIL (PREDI) - COMPATIBLE CON EL HTML (FIX)
+// 🔍 SECTOR: MOTOR DE BÚSQUEDA Y SORTEO ALEATORIO DE DEPARTAMENTOS
 // =========================================================================
 
+// Variables globales de control de estado para el sorteo de departamentos
+window.edificioActivo = null;
+window.departamentosMapeados = [];
+window.indiceDeptoActual = 0;
+
 /**
- * Busca un edificio por dirección o código de forma directa.
- * Conecta el backend original con el renderizado del carrusel móvil (Parte 2).
+ * Busca un edificio por dirección o código.
+ * Activa el flujo original de sorteo aleatorio de departamentos.
  */
 async function buscar() {
-  // 1. Limpieza de interfaz para no dejar textos colgados
   if (typeof limpiarVista === "function") {
     limpiarVista();
   } else {
     const res = document.getElementById("resultado");
-    if (res) res.innerText = "";
+    if (res) res.innerHTML = "";
   }
   
-  // Capturamos el input de tu HTML (id="buildingId")
   const inputCampo = document.getElementById("buildingId") || (typeof buildingId !== 'undefined' ? buildingId : null);
   if (!inputCampo) {
-    console.error("❌ Error crítico: No se encontró el elemento input 'buildingId' en el HTML.");
+    console.error("❌ Error: No se encontró el elemento input 'buildingId'.");
     return;
   }
 
-  // Normalizamos el texto (usamos tu función nativa si existe, si no, trim)
   const input = typeof normalizarDireccion === "function" ? normalizarDireccion(inputCampo.value) : inputCampo.value.trim();
   if (!input) return;
   
-  console.log(`🔍 Consultando edificio en backend: '${input}'`);
+  console.log(`🔍 Buscando edificio en backend: '${input}'`);
   
   if (document.getElementById("mensajeInicial")) {
     document.getElementById("mensajeInicial").style.display = "none";
@@ -385,10 +387,9 @@ async function buscar() {
   if (resLabel) resLabel.innerText = "Buscando en servidor...";
 
   try {
-    // 🛠️ RUTA ORIGINAL: Le pegamos exactamente al endpoint que sí responde bien
+    // Consulta directa al endpoint nativo que responde con el objeto del edificio
     const b = await apiFetch(`/building/${encodeURIComponent(input)}`);
     
-    // Si el servidor nos devuelve un error (como un 404)
     if (!b.ok) {
       if (b.status === 404) {
         tratarEdificioNoEncontrado();
@@ -399,10 +400,9 @@ async function buscar() {
     
     const building = await b.json();
     
-    // 🛡️ 1. CONTROL DE SEGURIDAD ABSOLUTO (Ataja bloqueos de la BD)
+    // 🛡️ Control de Bloqueo Administrativo
     if (building.error === "EDIFICIO_BLOQUEADO" || building.isBlocked) {
       alert("🚫 ACCESO DENEGADO:\nEste edificio está bloqueado por el Administrador y no puede ser visitado en este momento.");
-      
       if (resLabel) resLabel.innerText = ""; 
       if (document.getElementById("departamentoVisitar")) {
         document.getElementById("departamentoVisitar").innerText = "--";
@@ -415,31 +415,20 @@ async function buscar() {
       return;
     }
 
-    // 🎯 2. ACOPLE PERFECTO AL CARRUSEL MÓVIL (PARTE 2)
-    // Empaquetamos el objeto devuelto en las globales que exige mostrarEdificioActual()
-    window.edificiosEncontrados = [building];
-    window.indiceEdificioActual = 0;
-    
+    // Guardamos el edificio en las variables de estado globales
+    window.edificioActivo = building;
     currentBuildingId = building._id;
-    window.currentBuildingId = building._id; // Doble asignación por seguridad transatlántica de variables
+    window.currentBuildingId = building._id;
     
-    console.log(`✅ Edificio acoplado al Carrusel Móvil. ID: ${currentBuildingId}`);
+    console.log(`✅ Edificio cargado: ${building.address}. Preparando sorteo de departamentos.`);
 
-    // Habilitamos controles inferiores de tu UI vieja/nueva por ID de forma segura
-    if (document.getElementById("nota")) document.getElementById("nota").style.display = "block";
-    if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "block";
-    if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "block";
-    
-    const btnNuevoEdificio = document.getElementById("btnNuevoEdificio");
-    if (btnNuevoEdificio) btnNuevoEdificio.style.display = "none";
+    // 🎲 GENERACIÓN DEL POOL ALEATORIO DE DEPARTAMENTOS
+    // Convertimos los pisos y letras del edificio en una lista mezclada al azar
+    window.departamentosMapeados = generarPoolDepartamentos(building);
+    window.indiceDeptoActual = 0;
 
-    // 🚀 MANDAMOS A RENDERIZAR LA TARJETA (Parte 2)
-    if (typeof mostrarEdificioActual === "function") {
-      mostrarEdificioActual();
-    } else {
-      // Salvavidas si no encuentra la función: imprime la dirección directamente
-      if (resLabel) resLabel.innerText = building.address || input;
-    }
+    // Renderizamos la interfaz con el formato original solicitado
+    mostrarEstructuraFlujoVisita();
 
   } catch (error) {
     console.error("❌ Detalle del error en buscar:", error);
@@ -448,115 +437,110 @@ async function buscar() {
 }
 
 /**
- * Controla la interfaz si el backend no encuentra la dirección
+ * Genera un array con la combinación de pisos y departamentos, ordenados aleatoriamente
  */
-function tratarEdificioNoEncontrado() {
-  const resLabel = document.getElementById("resultado");
-  const btnNuevoEdificio = document.getElementById("btnNuevoEdificio");
+function generarPoolDepartamentos(building) {
+  const lista = [];
+  const maxPisos = parseInt(building.floors) || 1;
   
-  if (resLabel) resLabel.innerText = "Edificio no encontrado";
-  
-  if (btnNuevoEdificio) {
-    btnNuevoEdificio.style.display = "block";
-    btnNuevoEdificio.onclick = function() { 
-      if (typeof crearEdificio === "function") crearEdificio(); 
-    };
+  // Si el edificio tiene departamentos específicos cargados desde la base de datos
+  if (building.departments && building.departments.length > 0) {
+    building.departments.forEach(d => lista.push(d.code || d));
+  } else {
+    // Si no, generamos una matriz estándar basada en la configuración del edificio
+    const deptosPorPiso = ["A", "B", "C", "D"]; // Ajustable según la estructura común de tu app
+    for (let f = 1; f <= maxPisos; f++) {
+      deptosPorPiso.forEach(letra => {
+        lista.push(`${f}° ${letra}`);
+      });
+    }
+  }
+
+  // Algoritmo Fisher-Yates para mezclar el orden de forma 100% aleatoria
+  for (let i = lista.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [lista[i], lista[j]] = [lista[j], lista[i]];
   }
   
-  // Apagamos los botones de interacción para que no queden activos
-  if (document.getElementById("nota")) document.getElementById("nota").style.display = "none";
-  if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "none";
-  if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "none";
+  return lista.length > 0 ? lista : ["1° A"];
 }
-
-// 🔀 Alias por si alguna otra vista llama a la función con el nombre largo
-function buscarDireccion() {
-  buscar();
-}
-
-
-// =========================================================================
-// 📱 PARTE 2: CARRUSEL MÓVIL (PREDI), REGISTRO DE VISITAS Y MODAL DE INCIDENCIAS
-// =========================================================================
 
 /**
- * Renderiza el edificio activo en el carrusel de búsqueda móvil.
- * Construye la interfaz de control y mapea el mini-mapa de referencia en campo.
+ * Dibuja la pantalla exactamente como la necesitas: Departamento aleatorio grande,
+ * botón de Siguiente abajo, y debajo la ficha estática del edificio con el mapa protegido.
  */
-function mostrarEdificioActual() {
-  if (!window.edificiosEncontrados || window.edificiosEncontrados.length === 0) return;
+function mostrarEstructuraFlujoVisita() {
+  const e = window.edificioActivo;
+  if (!e) return;
 
-  const e = window.edificiosEncontrados[window.indiceEdificioActual];
-  window.currentBuildingId = e.id || e._id;
-
-  if (resultado) resultado.innerHTML = "";
-
-  // Construcción del contenedor dinámico de la tarjeta de relevamiento
-  const tarjeta = document.createElement("div");
-  tarjeta.className = "building-card animate-fade-in";
-  
-  // Normalización de campos de estado internos
-  const visitas = e.visitas || 0;
-  const estadoActual = (e.status || e.estado || "Pendiente").toUpperCase();
-  let badgeColor = "#e2e8f0";
-  let badgeTextoColor = "#1e293b";
-
-  if (estadoActual === "OK" || estadoActual === "EFECTUADA") { badgeColor = "#dcfce7"; badgeTextoColor = "#15803d"; }
-  else if (estadoActual === "NO" || estadoActual === "RECHAZADA") { badgeColor = "#fee2e2"; badgeTextoColor = "#b91c1c"; }
-  else if (estadoActual === "PROBLEMA" || estadoActual === "INCIDENCIA") { badgeColor = "#fef9c3"; badgeTextoColor = "#a16207"; }
-
-  tarjeta.innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-      <span style="font-size:12px; color:#a1a1aa; font-weight:600;">📝 REGISTRO ${window.indiceEdificioActual + 1} de ${window.edificiosEncontrados.length}</span>
-      <span style="background:${badgeColor}; color:${badgeTextoColor}; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:bold;">${estadoActual}</span>
-    </div>
-    <h3 style="margin:0 0 4px 0; color:#ffffff; font-size:18px;">${e.address || "Sin Dirección Relatada"}</h3>
-    ${e.name ? `<p style="margin:0 0 6px 0; color:#38bdf8; font-size:14px; font-weight:500;">🏢 ${e.name}</p>` : ''}
-    <p style="margin:0 0 10px 0; color:#a1a1aa; font-size:13px;">📍 Territorio / Zona: <strong style="color:#e4e4e7">${e.territory || e.territorio || "No Asignado"}</strong></p>
-    
-    <div style="background:#27272a; padding:10px; border-radius:8px; margin-bottom:12px; font-size:13px; color:#e4e4e7;">
-      <div>📊 <strong>Visitas registradas:</strong> ${visitas}</div>
-      ${e.notes ? `<div style="margin-top:6px; color:#cbd5e1; border-left:2px solid #a855f7; padding-left:6px; font-style:italic;">"${e.notes}"</div>` : ""}
-    </div>
-
-    <!-- Contenedor físico reservado para el mapa de campo móvil -->
-    <div id="prediMiniMapContainer" style="width:100%; height:160px; border-radius:8px; margin-bottom:12px; background:#27272a; position:relative; overflow:hidden;"></div>
-  `;
-
-  if (resultado) resultado.appendChild(tarjeta);
-
-  // --- Orquestación de la botonera inferior de control móvil ---
-  if (infoEdificio) infoEdificio.style.display = "block";
-  if (reportBtn) reportBtn.style.display = "block";
-
-  // Manejo de visibilidad del botón de salto de tarjeta (Siguiente)
-  if (btnSiguiente) {
-    btnSiguiente.style.display = window.edificiosEncontrados.length > 1 ? "block" : "none";
+  // 1. Inyectamos el departamento aleatorio en foco al lado del label correspondiente
+  const deptoLabel = document.getElementById("departamentoVisitar");
+  if (deptoLabel) {
+    deptoLabel.innerText = window.departamentosMapeados[window.indiceDeptoActual] || "Fin";
+    deptoLabel.style.fontSize = "24px";
+    deptoLabel.style.fontWeight = "bold";
+    deptoLabel.style.color = "#38bdf8"; // Celeste estético para resaltar
   }
 
-  // --- Inicialización o refresco del mini-mapa móvil (Leaflet) ---
+  // 2. Limpiamos el contenedor intermedio 'resultado' para meter los datos del edificio y mapa estático
+  const resContainer = document.getElementById("resultado");
+  if (resContainer) {
+    resContainer.innerHTML = `
+      <div class="building-card-static" style="background:#1c1c1e; padding:15px; border-radius:12px; margin-top:15px; border: 1px solid #2c2c2e;">
+        <h3 style="margin:0 0 6px 0; color:#ffffff; font-size:18px;">🏢 ${e.address || "Sin Dirección"}</h3>
+        ${e.name ? `<p style="margin:0 0 6px 0; color:#a855f7; font-size:14px; font-weight:500;">${e.name}</p>` : ''}
+        <p style="margin:0 0 10px 0; color:#a1a1aa; font-size:13px;">📍 Territorio / Zona: <strong style="color:#e4e4e7">${e.territory || e.territorio || "No Asignada"}</strong></p>
+        
+        <div id="prediMiniMapContainer" style="width:100%; height:150px; border-radius:8px; margin-bottom:12px; background:#27272a; overflow:hidden;"></div>
+        
+        <div style="font-size:12px; color:#a1a1aa; margin-bottom:4px;">📊 Visitas previas en este bloque: <strong>${e.visitas || 0}</strong></div>
+        
+        <div style="text-align:right; margin-top:8px;">
+          <span onclick="abrirModalIncidencia()" style="color:#f59e0b; font-size:12px; cursor:pointer; font-weight:500; text-decoration:underline;">⚠️ Reportar Incidencia</span>
+        </div>
+      </div>
+
+      <div style="margin-top:15px; text-align:center;">
+        <button onclick="siguienteDepartamento()" style="background:#27272a; color:#ffffff; border:1px solid #3f3f46; padding:10px 20px; border-radius:8px; font-size:14px; width:100%; cursor:pointer; font-weight:600;">
+          ⏭️ Saltar / Siguiente Departamento
+        </button>
+      </div>
+    `;
+  }
+
+  // 3. Mostramos las botoneras globales de interacción inferior (ATENDIÓ / EN CASA)
+  if (document.getElementById("nota")) document.getElementById("nota").style.display = "block";
+  
+  // Mostramos los contenedores de los botones principales del HTML de forma limpia
+  const btnOk = document.getElementById("btnOk");
+  const btnNo = document.getElementById("btnNo");
+  if (btnOk) btnOk.style.display = "block";
+  if (btnNo) btnNo.style.display = "block";
+  
+  const btnNuevoEdificio = document.getElementById("btnNuevoEdificio");
+  if (btnNuevoEdificio) btnNuevoEdificio.style.display = "none";
+
+  // 4. Montaje del mapa estático (Leaflet) con arrastres y gestos desactivados por funcionalidad de la UI móvil
   setTimeout(() => {
     const lat = parseFloat(e.latitude || e.lat);
     const lng = parseFloat(e.longitude || e.lng || e.lon);
 
     if (isNaN(lat) || isNaN(lng)) {
       const container = document.getElementById("prediMiniMapContainer");
-      if (container) container.innerHTML = `<div style="color:#a1a1aa; text-align:center; padding-top:65px; font-size:12px;">📍 Coordenadas ausentes o inválidas para mapeo</div>`;
+      if (container) container.innerHTML = `<div style="color:#a1a1aa; text-align:center; padding-top:60px; font-size:12px;">📍 Coordenadas no configuradas</div>`;
       return;
     }
 
-    // Si ya existía un mapa activo en memoria, limpiamos sus listeners e instancia de forma segura
-    if (prediMiniMap) {
-      prediMiniMap.off();
-      prediMiniMap.remove();
-      prediMiniMap = null;
-    }
-
     try {
-      prediMiniMap = L.map('prediMiniMapContainer', {
+      // Configuramos el mapa bloqueando interacciones para hacerlo actuar de forma 100% estática
+      const prediMiniMap = L.map('prediMiniMapContainer', {
         zoomControl: false,
         attributionControl: false,
-        dragging: !L.Browser.mobile, // Bloquea arrastre en móviles para no interferir con el scroll de la app
+        dragging: false,      // 🚫 Desactiva arrastrar con el dedo
+        scrollWheelZoom: false, // 🚫 Desactiva zoom con rueda
+        doubleClickZoom: false, // 🚫 Desactiva doble click
+        boxZoom: false,
+        touchZoom: false,      // 🚫 Desactiva zoom táctil (pellizco)
         tap: false
       }).setView([lat, lng], 16);
 
@@ -564,28 +548,75 @@ function mostrarEdificioActual() {
         maxZoom: 20
       }).addTo(prediMiniMap);
 
-      // Icono customizado estilo pin tecnológico para campo
       const prediIcon = L.divIcon({
         className: 'custom-predi-marker',
-        html: `<div style="background:#a855f7; width:12px; height:12px; border:2px solid #ffffff; border-radius:50%; box-shadow:0 0 8px #a855f7;"></div>`,
+        html: `<div style="background:#38bdf8; width:12px; height:12px; border:2px solid #ffffff; border-radius:50%; box-shadow:0 0 8px #38bdf8;"></div>`,
         iconSize: [12, 12],
         iconAnchor: [6, 6]
       });
 
       L.marker([lat, lng], { icon: prediIcon }).addTo(prediMiniMap);
       
-      // Invalidate mecánico para asegurar el render correcto dentro del div dinámico
-      setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 150);
+      setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 100);
 
     } catch (mapErr) {
-      console.error("Error al montar mapa de predi móvil:", mapErr);
+      console.error("Error al montar mapa estático:", mapErr);
     }
   }, 100);
 }
 
 /**
- * Salta al siguiente registro disponible en el carrusel circular de filtrados
+ * Salta secuencialmente al siguiente departamento del pool aleatorio generado
  */
+function siguienteDepartamento() {
+  if (window.departamentosMapeados.length === 0) return;
+  
+  window.indiceDeptoActual++;
+  
+  // Si nos quedamos sin departamentos en la lista mezclada, volvemos a empezar
+  if (window.indiceDeptoActual >= window.departamentosMapeados.length) {
+    alert("🔄 Se han recorrido todas las opciones del edificio. Reiniciando lista aleatoria.");
+    window.indiceDeptoActual = 0;
+  }
+  
+  const deptoLabel = document.getElementById("departamentoVisitar");
+  if (deptoLabel) {
+    deptoLabel.innerText = window.departamentosMapeados[window.indiceDeptoActual];
+  }
+  
+  // Limpiamos la caja de notas rápidas para la nueva visita
+  const obs = document.getElementById("observacionRapida");
+  if (obs) obs.value = "";
+}
+
+/**
+ * Manejo visual en caso de que la dirección no exista
+ */
+function tratarEdificioNoEncontrado() {
+  const resLabel = document.getElementById("resultado");
+  const btnNuevo = document.getElementById("btnNuevoEdificio");
+  const deptoLabel = document.getElementById("departamentoVisitar");
+  
+  if (resLabel) resLabel.innerHTML = `<div style="color:#ef4444; text-align:center; padding:10px; font-weight:bold;">Edificio no encontrado</div>`;
+  if (deptoLabel) deptoLabel.innerText = "--";
+  
+  if (btnNuevo) {
+    btnNuevo.style.display = "block";
+    btnNuevo.onclick = function() { if (typeof crearEdificio === "function") crearEdificio(); };
+  }
+  
+  if (document.getElementById("nota")) document.getElementById("nota").style.display = "none";
+  if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "none";
+  if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "none";
+}
+
+// Alias de puente para compatibilidad
+function mostrarEdificioActual() {
+  mostrarEstructuraFlujoVisita();
+}
+
+
+/** * Salta al siguiente registro disponible en el carrusel circular de filtrados */
 function siguienteEdificio() {
   if (!window.edificiosEncontrados || window.edificiosEncontrados.length <= 1) return;
   
@@ -596,57 +627,7 @@ function siguienteEdificio() {
   mostrarEdificioActual();
 }
 
-/**
- * Despacha al backend el registro de una visita (Efectuada, Rechazada, etc.)
- * @param {string} tipoAccion - Estado de salida ('OK', 'NO')
- */
-async function registrarVisita(tipoAccion) {
-  if (!window.currentBuildingId) {
-    alert("⚠️ No se ha detectado una ID de edificio válida en foco.");
-    return;
-  }
 
-  const comentarioInput = document.getElementById("observacionRapida");
-  const comentario = comentarioInput ? comentarioInput.value.trim() : "";
-
-  try {
-    const res = await apiFetch(`/buildings/${window.currentBuildingId}/visit`, {
-      method: "POST",
-      body: JSON.stringify({
-        action: tipoAccion, 
-        notes: comentario
-      })
-    });
-
-    if (res.ok) {
-      alert(`✅ Registro guardado exitosamente como: ${tipoAccion}`);
-      if (comentarioInput) comentarioInput.value = ""; 
-      
-      // 🛡️ PARCHE DE SEGURIDAD: Si es admin actualiza la base masiva, si no saltamos pacíficamente
-      if (currentRole !== "predi" && typeof descargarBaseAdministrativa === "function") {
-        await descargarBaseAdministrativa();
-      }
-      
-      // Actualizamos dinámicamente el elemento en foco para ver el cambio de estado (OK/NO) al instante
-      const datosActualizados = await res.json().catch(() => ({}));
-      if (datosActualizados && datosActualizados.data) {
-         window.edificiosEncontrados[window.indiceEdificioActual] = datosActualizados.data;
-      } else {
-         // Salvavidas: si el backend no devuelve el objeto, forzamos el cambio visual en la UI
-         window.edificiosEncontrados[window.indiceEdificioActual].status = tipoAccion;
-         window.edificiosEncontrados[window.indiceEdificioActual].visitas = (window.edificiosEncontrados[window.indiceEdificioActual].visitas || 0) + 1;
-      }
-      
-      mostrarEdificioActual();
-    } else {
-      const errData = await res.json().catch(() => ({}));
-      alert(`❌ Error en el servidor: ${errData.message || "No se pudo registrar la visita."}`);
-    }
-  } catch (err) {
-    console.error("Falla crítica en red al registrar visita:", err);
-    alert("⚠️ Falla de conectividad. No se pudo registrar la visita.");
-  }
-}
 
 // =========================================================================
 // 🪟 CONTROLADORES DE MODALES: REPORTES DE PROBLEMAS / INCIDENCIAS
