@@ -284,34 +284,60 @@ function logout() {
 
 /**
  * Ejecuta el filtrado predictivo en tiempo real desde la terminal móvil.
- * Resguarda la inyección contra caracteres especiales y comillas.
  */
 async function buscarDireccion() {
+  // Capturamos el input exacto del HTML
   const input = document.getElementById("buildingId");
-  if (!input) return;
+  const resultado = document.getElementById("resultado");
+  const btnNuevoEdificio = document.getElementById("btnNuevoEdificio");
+  const msgInicial = document.getElementById("mensajeInicial");
+  
+  // Elementos del formulario que deben activarse al encontrar datos
+  const campoNota = document.getElementById("nota");
+  const botoneraVotacion = document.getElementById("botoneraVotacion");
+  const btnOk = document.getElementById("btnOk");
+  const btnNo = document.getElementById("btnNo");
+
+  if (!input) {
+    console.error("❌ No se encontró el cuadro de texto 'buildingId' en el HTML.");
+    return;
+  }
 
   const textoBusqueda = input.value.trim();
   
   if (textoBusqueda === "") {
-    limpiarVista();
+    if (typeof limpiarVista === "function") limpiarVista();
     return;
   }
 
-  const msgInicial = document.getElementById("mensajeInicial");
+  // Ocultamos el mensaje de bienvenida
   if (msgInicial) msgInicial.style.display = "none";
 
-  const busquedaNormalizada = normalizarDireccion(textoBusqueda);
+  // Normalizamos el texto ingresado
+  const busquedaNormalizada = typeof normalizarDireccion === "function" 
+    ? normalizarDireccion(textoBusqueda) 
+    : textoBusqueda.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   
-  if (!window.todosLosEdificiosDB || window.todosLosEdificiosDB.length === 0) {
-    if (resultado) resultado.innerText = "⏳ Sincronizando datos con el servidor... Reintente en un instante.";
+  // Garantizar acceso a la base de datos local
+  if (!window.todosLosEdificiosDB) {
+    window.todosLosEdificiosDB = window.baseDatosEdificiosMemoria || [];
+  }
+
+  if (window.todosLosEdificiosDB.length === 0) {
+    if (resultado) resultado.innerText = "⏳ Cargando...";
+    if (typeof cargarEdificios === "function") await cargarEdificios();
     return;
   }
 
-  // Filtrado multipropiedad en memoria local
+  // Filtrado en memoria local
   window.edificiosEncontrados = window.todosLosEdificiosDB.filter(e => {
-    const dir1 = normalizarDireccion(e.address || "");
-    const dir2 = normalizarDireccion(e.address2 || e.direccion2 || "");
-    const nom = normalizarDireccion(e.name || e.nombre || "");
+    const fnNormalizar = (txt) => typeof normalizarDireccion === "function" 
+      ? normalizarDireccion(txt) 
+      : String(txt).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    const dir1 = fnNormalizar(e.address || e.direccion || "");
+    const dir2 = fnNormalizar(e.address2 || e.direccion2 || "");
+    const nom = fnNormalizar(e.name || e.nombre || "");
     const terr = String(e.territory || e.territorio || "");
     
     return dir1.includes(busquedaNormalizada) || 
@@ -322,31 +348,61 @@ async function buscarDireccion() {
 
   window.indiceEdificioActual = 0;
 
-  // CASO A: Sin Coincidencias - Despliega creación rápida
+  // CASO A: Sin Coincidencias - Despliega opción de agregar edificio rápido
   if (window.edificiosEncontrados.length === 0) {
-    limpiarVista();
-    if (resultado) {
-      resultado.innerHTML = `
-        <p style="color:#a1a1aa; font-size:14px; margin-bottom:12px;">
-          ❌ No se encontró ningún edificio que coincida con "${textoBusqueda}".
-        </p>
-      `;
-    }
+    if (typeof limpiarVista === "function") limpiarVista();
+    if (resultado) resultado.innerText = "--";
     
+    // Ocultamos las herramientas de relevamiento
+    if (campoNota) campoNota.style.display = "none";
+    if (btnOk) btnOk.style.display = "none";
+    if (btnNo) btnNo.style.display = "none";
+
+    // Mostramos el botón de agregar
     if (btnNuevoEdificio) {
       btnNuevoEdificio.style.display = "block";
       btnNuevoEdificio.setAttribute("data-direccion-sugerida", textoBusqueda);
-      btnNuevoEdificio.onclick = function() {
-        const direccionSugerida = this.getAttribute("data-direccion-sugerida");
-        abrirEditorEdificio({ address: direccionSugerida });
-      };
     }
     return;
   }
 
-  // CASO B: Match exitoso - Despliega carrusel móvil
+  // CASO B: Edificio Encontrado con Éxito
   if (btnNuevoEdificio) btnNuevoEdificio.style.display = "none";
-  mostrarEdificioActual();
+  
+  // Encendemos los campos para que el predi pueda trabajar
+  if (campoNota) campoNota.style.display = "block";
+  if (btnOk) btnOk.style.display = "block";
+  if (btnNo) btnNo.style.display = "block";
+
+  // Disparamos el renderizado del primer depto en el carrusel móvil
+  if (typeof mostrarEdificioActual === "function") {
+    mostrarEdificioActual();
+  }
+}
+
+// =========================================================================
+// 🌐 PUENTES DE COMPATIBILIDAD CON EL HTML (index.html)
+// =========================================================================
+
+/**
+ * Enlaza el botón de la lupa (onclick="buscar()") con el núcleo del script.
+ */
+function buscar() {
+  buscarDireccion();
+}
+
+/**
+ * Enlaza el botón de agregar del HTML (onclick="crearEdificio()") con el editor.
+ */
+function crearEdificio() {
+  const btn = document.getElementById("btnNuevoEdificio");
+  const direccionSugerida = btn ? btn.getAttribute("data-direccion-sugerida") : "";
+  
+  if (typeof abrirEditorEdificio === "function") {
+    abrirEditorEdificio({ address: direccionSugerida || "" });
+  } else {
+    console.error("❌ La función abrirEditorEdificio no está definida en app.js");
+  }
 }
 // =========================================================================
 // 📱 PARTE 2: CARRUSEL MÓVIL (PREDI), REGISTRO DE VISITAS Y MODAL DE INCIDENCIAS
