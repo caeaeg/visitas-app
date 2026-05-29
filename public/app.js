@@ -244,11 +244,13 @@ async function preCargarBaseDatosEnMemoria() {
   const rol = localStorage.getItem("role");
   
   // 🛡️ Si es "predi", saltamos la carga porque el backend arrojaría un error 403 (Forbidden)
-  if (rol === "predi") {
-    console.log("ℹ️ Usuario predi detectado: Saltando sincronización administrativa.");
-    window.baseDatosEdificiosMemoria = [];
-    return; 
+  if (currentRole === "predi") {
+  console.log("Usuario predi detectado: Cargando base de datos para trabajo offline.");
+  // Llamamos a la función que descarga los edificios
+  if (typeof cargarEdificios === "function") {
+    await cargarEdificios();
   }
+}
 
   try {
     console.log("⏳ Sincronizando datos con el servidor central...");
@@ -283,10 +285,10 @@ function logout() {
 // =========================================================================
 
 /**
- * Ejecuta la consulta bajo demanda directo a la ruta unificada del backend.
- * Soporta búsquedas por dirección o por código de forma segura para todos los roles.
+ * Filtra los edificios instantáneamente desde la memoria local.
+ * Si encuentra el edificio, dispara automáticamente la selección de departamento.
  */
-async function buscarDireccion() {
+function buscarDireccion() {
   const input = document.getElementById("buildingId");
   const resultado = document.getElementById("resultado");
   const btnNuevoEdificio = document.getElementById("btnNuevoEdificio");
@@ -306,68 +308,28 @@ async function buscarDireccion() {
 
   if (msgInicial) msgInicial.style.display = "none";
 
-  // Mostramos estado de carga dinámico
-  if (resultado) resultado.innerHTML = "<span style='font-size:16px;'>⏳ Buscando en servidor...</span>";
+  // Usamos la base de datos que ya está sincronizada en memoria (Instantáneo)
+  const baseLocal = window.todosLosEdificiosDB || window.baseDatosEdificiosMemoria || [];
+  
+  const busquedaNormalizada = textoBusqueda.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-  try {
-    // Recuperamos las credenciales almacenadas en el login
-    const usuarioActivo = localStorage.getItem("username") || "predi";
-    const rolActivo = localStorage.getItem("role") || "predi";
+  // Filtrado en tiempo real sin llamadas lentas de red
+  window.edificiosEncontrados = baseLocal.filter(e => {
+    const dir1 = String(e.address || e.direccion || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const dir2 = String(e.address2 || e.direccion2 || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const nom = String(e.name || e.nombre || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const terr = String(e.territory || e.territorio || "");
     
-    // URL base de producción en Render
-    const urlBase = window.API_BASE_URL || "https://visitas-app-inxa.onrender.com";
+    return dir1.includes(busquedaNormalizada) || 
+           dir2.includes(busquedaNormalizada) || 
+           nom.includes(busquedaNormalizada)  || 
+           terr === busquedaNormalizada;
+  });
 
-    // 🎯 CORRECCIÓN CRUCIAL: Apuntamos exactamente a la ruta unificada del backend -> /building/:query
-    const urlDestino = `${urlBase}/building/${encodeURIComponent(textoBusqueda)}`;
-    console.log(`📡 Consultando edificio en backend: ${urlDestino}`);
-    
-    const response = await fetch(urlDestino, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user": usuarioActivo,
-        "x-role": rolActivo
-      }
-    });
+  window.indiceEdificioActual = 0;
 
-    if (!response.ok) {
-      throw new Error(`Servidor respondió con código ${response.status}`);
-    }
-
-    const dataEdificio = await response.json();
-
-    // Verificamos si el backend devolvió el objeto de error { error: "NOT_FOUND" }
-    if (dataEdificio && dataEdificio.error === "NOT_FOUND") {
-      window.edificiosEncontrados = [];
-    } else if (dataEdificio && dataEdificio._id) {
-      // Si nos devolvió un edificio válido, lo metemos en el array de navegación
-      window.edificiosEncontrados = [dataEdificio];
-    } else {
-      window.edificiosEncontrados = [];
-    }
-
-    window.indiceEdificioActual = 0;
-
-    // Procesamos la respuesta para actualizar los cuadros del formulario
-    evaluarResultadosBusqueda(textoBusqueda);
-
-  } catch (error) {
-    console.error("❌ Error consultando el backend:", error);
-    if (resultado) resultado.innerHTML = "<span style='font-size:13px; color:#f87171;'>❌ Error de conexión</span>";
-  }
-}
-
-/**
- * Procesa el resultado de la búsqueda y acomoda la interfaz móvil
- */
-function evaluarResultadosBusqueda(textoBusqueda) {
-  const resultado = document.getElementById("resultado");
-  const btnNuevoEdificio = document.getElementById("btnNuevoEdificio");
-  const campoNota = document.getElementById("nota");
-  const btnOk = document.getElementById("btnOk");
-  const btnNo = document.getElementById("btnNo");
-
-  if (!window.edificiosEncontrados || window.edificiosEncontrados.length === 0) {
+  // Si no existe el edificio en nuestra base
+  if (window.edificiosEncontrados.length === 0) {
     if (typeof limpiarVista === "function") limpiarVista();
     if (resultado) resultado.innerText = "--";
     
@@ -375,7 +337,6 @@ function evaluarResultadosBusqueda(textoBusqueda) {
     if (btnOk) btnOk.style.display = "none";
     if (btnNo) btnNo.style.display = "none";
 
-    // Habilitamos la creación si no existe
     if (btnNuevoEdificio) {
       btnNuevoEdificio.style.display = "block";
       btnNuevoEdificio.setAttribute("data-direccion-sugerida", textoBusqueda);
@@ -383,19 +344,31 @@ function evaluarResultadosBusqueda(textoBusqueda) {
     return;
   }
 
-  // Si encontramos el edificio con éxito en la base de datos
+  // Si lo encontramos, activamos la botonera y la interfaz
   if (btnNuevoEdificio) btnNuevoEdificio.style.display = "none";
   if (campoNota) campoNota.style.display = "block";
   if (btnOk) btnOk.style.display = "block";
   if (btnNo) btnNo.style.display = "block";
 
-  // Pintamos los datos en pantalla
+  // Pintamos el edificio en pantalla
   if (typeof mostrarEdificioActual === "function") {
     mostrarEdificioActual();
   }
+
+  // 🔥 ACCIÓN CLAVE: Le pedimos al sistema que cargue el departamento a visitar para este edificio
+  const edificioSeleccionado = window.edificiosEncontrados[0];
+  if (edificioSeleccionado && edificioSeleccionado._id) {
+    console.log(`🎯 Edificio seleccionado localmente: ${edificioSeleccionado._id}. Llamando a siguiente departamento...`);
+    // Si tenés una función que se encarga de traer el depto (como tu ruta /next/:id) la llamamos acá:
+    if (typeof cargarSiguienteDepartamento === "function") {
+      cargarSiguienteDepartamento(edificioSeleccionado._id);
+    } else if (typeof obtenerSiguiente === "function") {
+      obtenerSiguiente(edificioSeleccionado._id);
+    }
+  }
 }
 
-// Bridges de compatibilidad con los botones del HTML
+// Puentes fijos para los eventos del HTML
 function buscar() {
   buscarDireccion();
 }
