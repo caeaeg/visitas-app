@@ -1202,26 +1202,60 @@ function cancelarEditor() {
 // 🚀 INICIALIZACIÓN AUTOMÁTICA AL CARGAR EL DOCUMENTO DOM
 // =========================================================================
 
-document.addEventListener("DOMContentLoaded", async () => {
-  console.log("⚡ Levantando núcleo de la aplicación de relevamiento...");
-  
-  const tokenExistente = localStorage.getItem("token");
-  const rolExistente = localStorage.getItem("role");
+// 🚀 INICIALIZADOR BLINDADO DE ARRANCADO DIRECTO (Reemplaza al DOMContentLoaded viejo)
+(function iniciarValidacionInmediata() {
+  console.log("🔄 Inicializando núcleo de la aplicación de relevamiento...");
 
-  if (tokenExistente && rolExistente) {
-    currentRole = rolExistente;
-    await preCargarBaseDatosEnMemoria();
+  // Forzamos la ejecución apenas el script se lee en el navegador
+  const ejecutarControl = () => {
+    const usuarioGuardado = localStorage.getItem("username");
+    const rolGuardado = localStorage.getItem("role");
 
-    if (currentRole === "admin") {
+    // Caso 1: No hay sesión activa. Forzamos el Login limpio en pantalla.
+    if (!usuarioGuardado || !rolGuardado) {
+      console.log("ℹ️ Sin credenciales en memoria. Desplegando formulario de acceso.");
+      localStorage.clear();
+
+      const loginScreen = document.getElementById("loginScreen");
+      if (loginScreen) {
+        loginScreen.style.display = "block";
+        loginScreen.classList.add("active");
+      }
+
+      // Apagamos el resto de las vistas de trabajo
+      ["dashboardView", "appContainer", "editarView", "superAdminView"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.style.display = "none";
+          el.classList.remove("active");
+        }
+      });
+      return;
+    }
+
+    // Caso 2: El usuario ya estaba logueado de antes de forma válida
+    currentRole = rolGuardado;
+    console.log(`🔄 Sesión recuperada: ${usuarioGuardado} (${currentRole})`);
+
+    const loginScreen = document.getElementById("loginScreen");
+    if (loginScreen) loginScreen.style.display = "none";
+
+    if (currentRole === "admin" || currentRole === "conductor") {
       abrirVista("dashboardView");
-      inicializarMapaGeneralAdministrador();
-      cargarEdificios();
+      setTimeout(() => {
+        if (typeof inicializarMapaGeneralAdministrador === "function") inicializarMapaGeneralAdministrador();
+        if (typeof cargarEdificios === "function") cargarEdificios();
+      }, 100);
     } else {
       abrirVista("appContainer");
-      limpiarVista();
+      if (typeof limpiarVista === "function") limpiarVista();
     }
+  };
+
+  // Se ejecuta inmediatamente, y por las dudas, se asegura si el documento ya está listo
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", ejecutarControl);
   } else {
-    // Si no hay sesión caliente, exponemos directamente la pantalla de Login
-    abrirVista("loginView");
+    ejecutarControl();
   }
-});
+})();
