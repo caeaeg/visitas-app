@@ -347,19 +347,35 @@ window.addEventListener("load", async () => {
  * Busca el edificio de forma rápida usando las rutas del backend asignadas a predi.
  * Protege contra bloqueos y dispara automáticamente la carga aleatoria de departamentos.
  */
-async function buscarDireccion() {
-  if (typeof limpiarVista === "function") limpiarVista();
+// =========================================================================
+// 🔍 SECTOR: MOTOR DE BÚSQUEDA MÓVIL (PREDI) - COMPATIBLE CON EL HTML (FIX)
+// =========================================================================
 
+/**
+ * Busca un edificio por dirección o código de forma directa.
+ * Conecta el backend original con el renderizado del carrusel móvil (Parte 2).
+ */
+async function buscar() {
+  // 1. Limpieza de interfaz para no dejar textos colgados
+  if (typeof limpiarVista === "function") {
+    limpiarVista();
+  } else {
+    const res = document.getElementById("resultado");
+    if (res) res.innerText = "";
+  }
+  
+  // Capturamos el input de tu HTML (id="buildingId")
   const inputCampo = document.getElementById("buildingId") || (typeof buildingId !== 'undefined' ? buildingId : null);
   if (!inputCampo) {
-    console.log("❌ Error: No se encontró el elemento input 'buildingId'.");
+    console.error("❌ Error crítico: No se encontró el elemento input 'buildingId' en el HTML.");
     return;
   }
 
+  // Normalizamos el texto (usamos tu función nativa si existe, si no, trim)
   const input = typeof normalizarDireccion === "function" ? normalizarDireccion(inputCampo.value) : inputCampo.value.trim();
   if (!input) return;
   
-  console.log(`🔍 Buscador Móvil: Consultando '${input}' en el backend...`);
+  console.log(`🔍 Consultando edificio en backend: '${input}'`);
   
   if (document.getElementById("mensajeInicial")) {
     document.getElementById("mensajeInicial").style.display = "none";
@@ -369,23 +385,28 @@ async function buscarDireccion() {
   if (resLabel) resLabel.innerText = "Buscando en servidor...";
 
   try {
-    // Apuntamos a la ruta exacta del backend que te funcionó en la captura (image_1ba3a4.png): /building/DIRECCION
+    // 🛠️ RUTA ORIGINAL: Le pegamos exactamente al endpoint que sí responde bien
     const b = await apiFetch(`/building/${encodeURIComponent(input)}`);
     
+    // Si el servidor nos devuelve un error (como un 404)
     if (!b.ok) {
       if (b.status === 404) {
         tratarEdificioNoEncontrado();
         return;
       }
-      throw new Error(`Servidor respondió con código: ${b.status}`);
+      throw new Error(`Error en servidor: ${b.status}`);
     }
     
     const building = await b.json();
     
-    // Filtro de bloqueo administrativo
+    // 🛡️ 1. CONTROL DE SEGURIDAD ABSOLUTO (Ataja bloqueos de la BD)
     if (building.error === "EDIFICIO_BLOQUEADO" || building.isBlocked) {
-      alert("🚫 ACCESO DENEGADO:\nEste edificio está bloqueado por el Administrador.");
+      alert("🚫 ACCESO DENEGADO:\nEste edificio está bloqueado por el Administrador y no puede ser visitado en este momento.");
+      
       if (resLabel) resLabel.innerText = ""; 
+      if (document.getElementById("departamentoVisitar")) {
+        document.getElementById("departamentoVisitar").innerText = "--";
+      }
       return; 
     }
     
@@ -394,39 +415,63 @@ async function buscarDireccion() {
       return;
     }
 
-    // 🎯 ADAPTACIÓN AL CARRUSEL MÓVIL (PARTE 2):
-    // Empaquetamos el edificio encontrado en el array global que exige mostrarEdificioActual()
+    // 🎯 2. ACOPLE PERFECTO AL CARRUSEL MÓVIL (PARTE 2)
+    // Empaquetamos el objeto devuelto en las globales que exige mostrarEdificioActual()
     window.edificiosEncontrados = [building];
     window.indiceEdificioActual = 0;
-    window.currentBuildingId = building._id;
     
-    console.log(`✅ Edificio acoplado al carrusel móvil. ID: ${window.currentBuildingId}`);
+    currentBuildingId = building._id;
+    window.currentBuildingId = building._id; // Doble asignación por seguridad transatlántica de variables
+    
+    console.log(`✅ Edificio acoplado al Carrusel Móvil. ID: ${currentBuildingId}`);
 
-    // Encendemos la botonera inferior si existe en tu HTML
+    // Habilitamos controles inferiores de tu UI vieja/nueva por ID de forma segura
     if (document.getElementById("nota")) document.getElementById("nota").style.display = "block";
     if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "block";
     if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "block";
-    if (document.getElementById("btnNuevoEdificio")) document.getElementById("btnNuevoEdificio").style.display = "none";
+    
+    const btnNuevoEdificio = document.getElementById("btnNuevoEdificio");
+    if (btnNuevoEdificio) btnNuevoEdificio.style.display = "none";
 
-    // Disparamos el renderizado estético de la Parte 2 que me acabás de pasar
+    // 🚀 MANDAMOS A RENDERIZAR LA TARJETA (Parte 2)
     if (typeof mostrarEdificioActual === "function") {
       mostrarEdificioActual();
     } else {
+      // Salvavidas si no encuentra la función: imprime la dirección directamente
       if (resLabel) resLabel.innerText = building.address || input;
     }
 
   } catch (error) {
-    console.error("❌ Error en búsqueda directa:", error);
+    console.error("❌ Detalle del error en buscar:", error);
     tratarEdificioNoEncontrado();
   }
 }
 
-function crearEdificio() {
-  const btn = document.getElementById("btnNuevoEdificio");
-  const direccionSugerida = btn ? btn.getAttribute("data-direccion-sugerida") : "";
-  if (typeof abrirEditorEdificio === "function") {
-    abrirEditorEdificio({ address: direccionSugerida || "" });
+/**
+ * Controla la interfaz si el backend no encuentra la dirección
+ */
+function tratarEdificioNoEncontrado() {
+  const resLabel = document.getElementById("resultado");
+  const btnNuevoEdificio = document.getElementById("btnNuevoEdificio");
+  
+  if (resLabel) resLabel.innerText = "Edificio no encontrado";
+  
+  if (btnNuevoEdificio) {
+    btnNuevoEdificio.style.display = "block";
+    btnNuevoEdificio.onclick = function() { 
+      if (typeof crearEdificio === "function") crearEdificio(); 
+    };
   }
+  
+  // Apagamos los botones de interacción para que no queden activos
+  if (document.getElementById("nota")) document.getElementById("nota").style.display = "none";
+  if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "none";
+  if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "none";
+}
+
+// 🔀 Alias por si alguna otra vista llama a la función con el nombre largo
+function buscarDireccion() {
+  buscar();
 }
 
 
