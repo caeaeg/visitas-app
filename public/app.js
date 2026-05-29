@@ -55,11 +55,12 @@ async function apiFetch(endpoint, options = {}) {
   // URL base adaptada para entornos de desarrollo local y tu despliegue en Render
   const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:3000'
-    : 'https://visitas-app-inxa.onrender.com'; // Forzamos tu URL real de backend
+    : 'https://visitas-app-inxa.onrender.com';
 
+  // Si el endpoint ya viene con http o https, lo usamos directo; si no, le pegamos la baseUrl
   const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
 
-  // Configuración por defecto de cabeceras seguras alineadas con tu backend (auth.js)
+  // Configuración por defecto de cabeceras seguras alineadas con tu backend
   options.headers = {
     'Content-Type': 'application/json',
     ...options.headers
@@ -71,7 +72,7 @@ async function apiFetch(endpoint, options = {}) {
     options.headers['x-role'] = role;
   }
 
-  // Desplegamos la barra estética de carga en la parte superior de la UI
+  // Desplegamos la barra estética de carga en la parte superior de la UI si existe
   if (typeof loadingBar !== 'undefined' && loadingBar) loadingBar.style.width = "30%";
 
   try {
@@ -82,11 +83,11 @@ async function apiFetch(endpoint, options = {}) {
       if (typeof loadingBar !== 'undefined' && loadingBar) loadingBar.style.width = "0%"; 
     }, 400);
 
-    // Si detectamos que no está autorizado, limpiamos y mandamos al login
+    // Si detectamos que no está autorizado o el token expiró, limpiamos y mandamos al login real
     if (response.status === 401 || response.status === 403) {
       console.warn("🔐 Credenciales inválidas o sin permisos. Redireccionando...");
       localStorage.clear();
-      abrirVista("loginScreen"); // Tu pantalla se llama loginScreen en el HTML
+      abrirVista("loginScreen"); 
       return response;
     }
 
@@ -101,6 +102,7 @@ async function apiFetch(endpoint, options = {}) {
 // =========================================================================
 // 🔐 SECTOR: CONTROL DE ACCESO, INICIO DE SESIÓN Y VISTAS
 // =========================================================================
+
 /**
  * Genera de forma estandarizada los encabezados de autenticación 
  * requeridos por el backend (auth.js -> requireLogin)
@@ -112,25 +114,21 @@ function obtenerHeadersSeguros() {
     "x-role": localStorage.getItem("role") || ""
   };
 }
+
 /**
  * Controla la visibilidad de la barra o indicador de carga (loading)
  * @param {boolean} mostrar - True para mostrar, false para ocultar
  */
 function mostrarLoading(mostrar) {
-  // Buscamos si existe un indicador de carga en tu HTML (por ejemplo, con id "loading")
   const spinner = document.getElementById("loading") || document.getElementById("loadingSpinner");
   
   if (spinner) {
     spinner.style.display = mostrar ? "flex" : "none";
   } else {
-    // Si no tenés un elemento visual de carga en el HTML, cambiamos el cursor del navegador
-    // para que el usuario sepa que el sistema está procesando la solicitud en segundo plano
     document.body.style.cursor = mostrar ? "wait" : "default";
   }
 }
-/**
- * Autentica credenciales contra el backend y rutea al usuario según su rol de cuenta
- */
+
 /**
  * Procesa el inicio de sesión autenticando contra el backend corporativo
  */
@@ -148,8 +146,13 @@ async function login() {
   mostrarLoading(true);
   if (msgLabel) msgLabel.innerText = "";
 
+  // Definición segura de URL base para evitar fallos de inicialización de variables globales
+  const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3000'
+    : 'https://visitas-app-inxa.onrender.com';
+
   try {
-    const respuesta = await fetch(`${API_BASE_URL}/login`, {
+    const respuesta = await fetch(`${baseUrl}/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: user, password: pass })
@@ -166,18 +169,17 @@ async function login() {
       throw new Error("Usuario o contraseña incorrectos");
     }
 
+    // Almacenamiento del estado de la sesión
     localStorage.setItem("username", datos.username);
     localStorage.setItem("role", datos.role);
     currentRole = datos.role;
 
     console.log(`🔑 Sesión iniciada con éxito. Usuario: ${datos.username}, Rol: ${currentRole}`);
     
+    // Descarga condicional según los permisos del rol
     await preCargarBaseDatosEnMemoria();
 
-    // Ocultamos la pantalla de login apenas logramos entrar
-    const loginScreen = document.getElementById("loginScreen");
-    if (loginScreen) loginScreen.style.display = "none";
-
+    // Redirección limpia usando el orquestador dinámico de vistas
     if (currentRole === "admin" || currentRole === "conductor") {
       abrirVista("dashboardView");
       setTimeout(() => {
@@ -186,7 +188,7 @@ async function login() {
       }, 100);
     } else {
       abrirVista("appContainer");
-      limpiarVista();
+      if (typeof limpiarVista === "function") limpiarVista();
     }
 
   } catch (error) {
@@ -202,19 +204,20 @@ async function login() {
     mostrarLoading(false);
   }
 }
+
 /**
  * Orquestador dinámico de navegación: Apaga todas las pantallas y enciende la solicitada
  * @param {string} vistaId - ID del contenedor HTML de destino
  */
 function abrirVista(vistaId) {
-  // Se agregó "loginScreen" a la lista para controlarlo desde aquí
+  // loginScreen se mantiene en primer lugar para asegurar su control estricto de visibilidad
   const vistas = ["loginScreen", "loginView", "dashboardView", "appContainer", "editarView", "superAdminView"];
   
   vistas.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       if (id === vistaId) {
-        // Manejo adaptativo de flex y block según estructura
+        // Manejo adaptativo de la estructura del Layout
         if (id === "appContainer" || id === "dashboardView") {
           el.style.display = "flex";
         } else {
@@ -238,8 +241,9 @@ function abrirVista(vistaId) {
  * Sincroniza datos solo si el rol tiene permisos.
  */
 async function preCargarBaseDatosEnMemoria() {
-  // 🛡️ Pre-validación: Si es "predi", saltamos la carga porque no tiene permisos de admin
   const rol = localStorage.getItem("role");
+  
+  // 🛡️ Si es "predi", saltamos la carga porque el backend arrojaría un error 403 (Forbidden)
   if (rol === "predi") {
     console.log("ℹ️ Usuario predi detectado: Saltando sincronización administrativa.");
     window.baseDatosEdificiosMemoria = [];
@@ -248,10 +252,8 @@ async function preCargarBaseDatosEnMemoria() {
 
   try {
     console.log("⏳ Sincronizando datos con el servidor central...");
-    const respuesta = await fetch(`${API_BASE_URL}/admin/buildings?all=true`, {
-      method: "GET",
-      headers: obtenerHeadersSeguros()
-    });
+    // Usamos apiFetch para heredar automáticamente la URL base y las cabeceras x-user / x-role
+    const respuesta = await apiFetch('/admin/buildings?all=true', { method: "GET" });
 
     if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`);
 
@@ -259,20 +261,21 @@ async function preCargarBaseDatosEnMemoria() {
     window.baseDatosEdificiosMemoria = resultado.data || [];
     console.log(`✅ Sincronización exitosa. ${window.baseDatosEdificiosMemoria.length} edificios cargados.`);
   } catch (error) {
-    console.warn("⚠️ Modo dinámico activado.", error.message);
+    console.warn("⚠️ Modo dinámico activado. Consultas bajo demanda.", error.message);
     window.baseDatosEdificiosMemoria = []; 
   }
 }
 
 /**
- * Cierra sesión borrando el caché local y devuelve al usuario al login
+ * Cierra sesión borrando el caché local y devuelve al usuario al loginScreen real
  */
 function logout() {
   localStorage.clear();
   currentRole = "";
   window.todosLosEdificiosDB = [];
   window.edificiosEncontrados = [];
-  abrirVista("loginView");
+  // Corregido de "loginView" a "loginScreen" para evitar pantallas negras al desloguearse
+  abrirVista("loginScreen");
 }
 
 // =========================================================================
