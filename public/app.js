@@ -473,67 +473,54 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
   }
 }
 
-/**
- * Pinta la interfaz móvil exacta: Departamento sorteado, botón Siguiente y ficha del edificio abajo con mapa estático.
- */
+/** * Pinta la interfaz móvil exacta usando los IDs reales del index.html */
 function mostrarEstructuraFlujoVisita() {
   const e = window.edificioActivo;
   const d = window.departamentoEnFoco;
   if (!e) return;
 
-  // 🎯 CORRECCIÓN DE IMPACTO: Forzamos la visualización del departamento extraído del Back
+  // 🎯 El número de depto va directo al id="resultado" que está en tu tarjeta negra
   const numeroDepto = d && d.number ? d.number : "--";
-  console.log(`🎯 Renderizando depto en foco en UI: ${numeroDepto}`);
+  console.log(`🎯 Renderizando depto en foco en h2#resultado: ${numeroDepto}`);
 
-  const deptoLabel = document.getElementById("departamentoVisitar");
-  if (deptoLabel) {
-    deptoLabel.innerText = numeroDepto;
-    deptoLabel.style.fontSize = "32px"; // Un poco más grande para que resalte
-    deptoLabel.style.fontWeight = "bold";
-    deptoLabel.style.color = "#38bdf8"; 
+  const resultadoH2 = document.getElementById("resultado");
+  if (resultadoH2) {
+    resultadoH2.innerText = numeroDepto;
+    resultadoH2.style.color = "#38bdf8"; // Le damos un toque celeste premium para resaltar
   }
 
-  // Ficha del edificio y mapa estático
-  const resContainer = document.getElementById("resultado");
-  if (resContainer) {
-    resContainer.innerHTML = `
-      <div class="building-card-static" style="background:#1c1c1e; padding:15px; border-radius:12px; margin-top:15px; border: 1px solid #2c2c2e;">
-        <h3 style="margin:0 0 6px 0; color:#ffffff; font-size:18px; text-transform: capitalize;">🏢 ${e.address || "Sin Dirección"}</h3>
+  // 🏢 La ficha del edificio y el mapa van en el div id="infoEdificio" (abajo de los botones)
+  const infoEdificioDiv = document.getElementById("infoEdificio");
+  if (infoEdificioDiv) {
+    infoEdificioDiv.innerHTML = `
+      <div class="building-card-static" style="background:#1c1c1e; padding:15px; border-radius:12px; margin-top:15px; border: 1px solid #2c2c2e; text-align: left;">
+        <h3 style="margin:0 0 6px 0; color:#ffffff; font-size:17px; text-transform: capitalize;">🏢 ${e.address || "Sin Dirección"}</h3>
         ${e.name ? `<p style="margin:0 0 6px 0; color:#a855f7; font-size:14px; font-weight:500;">${e.name}</p>` : ''}
         <p style="margin:0 0 10px 0; color:#a1a1aa; font-size:13px;">📍 Territorio / Zona: <strong style="color:#e4e4e7">${e.territory || "No Asignada"}</strong></p>
         
-        <div id="prediMiniMapContainer" style="width:100%; height:150px; border-radius:8px; margin-bottom:12px; background:#27272a; overflow:hidden;"></div>
+        <div id="prediMiniMapContainer" style="width:100%; height:140px; border-radius:8px; margin-bottom:12px; background:#27272a; overflow:hidden;"></div>
         
         <div style="text-align:right; margin-top:4px;">
-          <span onclick="abrirModalIncidencia()" style="color:#f59e0b; font-size:12px; cursor:pointer; font-weight:500; text-decoration:underline;">⚠️ Reportar Incidencia</span>
+          <span onclick="abrirReporte()" style="color:#f59e0b; font-size:12px; cursor:pointer; font-weight:500; text-decoration:underline;">⚠️ Reportar Incidencia</span>
         </div>
       </div>
 
       <div style="margin-top:15px; text-align:center;">
-        <button onclick="siguienteDepartamento()" style="background:#27272a; color:#ffffff; border:1px solid #3f3f46; padding:12px 20px; border-radius:8px; font-size:14px; width:100%; cursor:pointer; font-weight:600;">
+        <button onclick="siguienteDepartamento()" style="background:#27272a; color:#ffffff; border:1px solid #3f3f46; padding:12px 20px; border-radius:8px; font-size:14px; width:100%; cursor:pointer; font-weight:600; display:block;">
           ⏭️ Saltar / Siguiente Departamento
         </button>
       </div>
     `;
   }
 
-  // Si tu index.html tuviera el contenedor del depto adentro de 'resultado', este plan B lo asegura:
-  if (!deptoLabel && resContainer) {
-    // Salvavidas por si el elemento 'departamentoVisitar' quedó fuera de rango o inaccesible
-    const auxDepto = document.createElement("div");
-    auxDepto.style.textAlign = "center";
-    auxDepto.style.margin = "10px 0";
-    auxDepto.innerHTML = `<span style="color:#a1a1aa; font-size:14px;">DEPARTAMENTO EN FOCO:</span> <strong style="color:#38bdf8; font-size:28px;">${numeroDepto}</strong>`;
-    resContainer.insertBefore(auxDepto, resContainer.firstChild);
-  }
-
-  // Visibilidad de controles inferiores
+  // Asegurar visibilidad de controles de visita e inputs
+  if (document.getElementById("mensajeInicial")) document.getElementById("mensajeInicial").style.display = "none";
   if (document.getElementById("nota")) document.getElementById("nota").style.display = "block";
   if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "block";
   if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "block";
   if (document.getElementById("btnNuevoEdificio")) document.getElementById("btnNuevoEdificio").style.display = "none";
 
-  // Inicialización del Mini-Mapa
+  // Inicialización del Mini-Mapa Leaflet (en base a las coordenadas del edificio)
   setTimeout(() => {
     const lat = parseFloat(e.latitude || e.lat);
     const lng = parseFloat(e.longitude || e.lng || e.lon);
@@ -556,7 +543,7 @@ function mostrarEstructuraFlujoVisita() {
       L.marker([lat, lng], { icon: prediIcon }).addTo(prediMiniMap);
       setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 100);
     } catch (mapErr) {
-      console.error("Error mapa:", mapErr);
+      console.error("Error al renderizar el mapa:", mapErr);
     }
   }, 100);
 }
@@ -640,22 +627,25 @@ async function registrarVisitaDesdeBoton(estadoBackend) {
   }
 }
 
-// 🔀 Redirección estricta de botones de acción
-function marcarAtendido() { registrarVisitaDesdeBoton("ATENDIO"); }
+// =========================================================================
+// 🔀 CONTROL DE VISITAS (Sincronizado con index.html)
+// =========================================================================
 
-// Modificamos MARCAR para que detecte si vino del botón "No en casa" analizando el contexto o forzando selectores seguros
+/** * Función principal que recibe el estado directo desde los botones del HTML
+ * @param {string} estado - Puede ser 'ATENDIO' o 'NO_EN_CASA' */
+function marcar(estado) {
+  // Salvavidas por si por alguna razón el parámetro viene vacío, por defecto es ATENDIO
+  const estadoFinal = estado || "ATENDIO"; 
+  console.log(`🔀 Procesando clic de botón con estado: ${estadoFinal}`);
+  registrarVisitaDesdeBoton(estadoFinal);
+}
+
+// Mantenemos estas funciones vivas por si se llaman como soporte en otra parte del script
+function marcarAtendido() { registrarVisitaDesdeBoton("ATENDIO"); }
 function marcarEnCasa() { registrarVisitaDesdeBoton("NO_EN_CASA"); }
 
-// SOLUCIÓN PARCHE PARA EL ONCLICK DEL HTML:
-// Si tu HTML usa marcar() para el botón rojo, lo interceptamos y corregimos acá:
-function marcar() { 
-  // Si estás tocando el botón rojo (comúnmente btnNo), mandamos NO_EN_CASA
-  // Para estar 100% seguros, si esta función se ejecuta, validamos qué trigger la llamó o usamos "NO_EN_CASA" si detectamos inconsistencias
-  registrarVisitaDesdeBoton("NO_EN_CASA"); 
-}
-/**
- * Abre un prompt integrado para disparar una incidencia directo a tu app.post("/issues")
- */
+/** * Abre un prompt integrado para disparar una incidencia directo a tu app.post("/issues") */
+
 async function abrirModalIncidencia() {
   if (!window.currentBuildingId) return;
   
