@@ -1437,6 +1437,7 @@ function normalizarDireccion(texto) {
  * @param {Object} objetoEdificio - Datos parciales o completos del registro
  */
 function abrirEditorEdificio(objetoEdificio = {}) {
+  // 1. Primero abrimos la vista para que el HTML se renderice en pantalla
   abrirVista("editarView");
   
   const inDir = document.getElementById("edit_address");
@@ -1449,20 +1450,35 @@ function abrirEditorEdificio(objetoEdificio = {}) {
   if (inTerr) inTerr.value = objetoEdificio.territory || objetoEdificio.territorio || "";
   if (inId) inId.value = objetoEdificio.id || objetoEdificio._id || "";
 
-  // Inicialización o refresco del mapa interno del editor
+  // 2. Le damos un delay más seguro (300ms) para garantizar que el div #mapaEditor ya exista en el DOM
   setTimeout(() => {
+    const mapaContenedor = document.getElementById("mapaEditor");
+    
+    // 🛡️ CONTROL DE BLINDAJE: Si el div no existe en el HTML, frenamos para evitar el "Map container not found"
+    if (!mapaContenedor) {
+      console.error("❌ Error crítico: El contenedor HTML 'mapaEditor' no se encontró en la vista activa.");
+      return;
+    }
+
     const latBase = parseFloat(objetoEdificio.latitude || -27.36708);
     const lngBase = parseFloat(objetoEdificio.longitude || -55.89608);
 
+    // Limpieza segura de instancias previas
     if (leafletMap) {
-      leafletMap.off();
-      leafletMap.remove();
+      try {
+        leafletMap.off();
+        leafletMap.remove();
+      } catch (e) {
+        console.warn("Aviso en limpieza de mapa:", e);
+      }
       leafletMap = null;
     }
 
+    // Inicializamos el mapa de forma segura
+    console.log("🗺️ Inicializando 'mapaEditor' de forma segura...");
     leafletMap = L.map('mapaEditor', { zoomControl: true }).setView([latBase, lngBase], 15);
     
-    // 🗺️ AJUSTE DE CLARIDAD: OpenStreetMap tradicional para ver nombres de calles al ubicar el Pin
+    // Capa clara de OpenStreetMap con nombres de calles legibles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19
     }).addTo(leafletMap);
@@ -1484,8 +1500,12 @@ function abrirEditorEdificio(objetoEdificio = {}) {
       }
     });
 
-    setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 200);
-  }, 150);
+    // Forzamos el recalculo del tamaño del mapa para que no salga gris o cortado
+    setTimeout(() => { 
+      if (leafletMap) leafletMap.invalidateSize(); 
+    }, 150);
+
+  }, 300); // Subimos a 300ms para darle tiempo al renderizado en móviles
 }
 
 /**
