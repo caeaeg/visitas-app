@@ -474,53 +474,58 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
 }
 
 /** * Pinta la interfaz móvil exacta usando los IDs reales del index.html */
+
 function mostrarEstructuraFlujoVisita() {
-  const e = window.edificioActivo;
+  // Soportamos tanto window.edificioActivo como window.currentBuildingId según lo que use tu app
+  const e = window.edificioActivo || window.edificioEnFoco;
   const d = window.departamentoEnFoco;
   if (!e) return;
 
-  // 🎯 El número de depto va directo al id="resultado" que está en tu tarjeta negra
+  // 1. Renderizar el número de departamento en h2#resultado
   const numeroDepto = d && d.number ? d.number : "--";
   console.log(`🎯 Renderizando depto en foco en h2#resultado: ${numeroDepto}`);
 
   const resultadoH2 = document.getElementById("resultado");
   if (resultadoH2) {
     resultadoH2.innerText = numeroDepto;
-    resultadoH2.style.color = "#38bdf8"; // Le damos un toque celeste premium para resaltar
+    resultadoH2.style.color = "#38bdf8"; 
   }
 
-  // 🏢 La ficha del edificio y el mapa van en el div id="infoEdificio" (abajo de los botones)
+  // 2. Hacer visible el botón "Siguiente depto" nativo de tu HTML
+  const btnSiguiente = document.getElementById("btnSiguiente");
+  if (btnSiguiente) {
+    btnSiguiente.style.visibility = "visible";
+    btnSiguiente.style.display = "block";
+    // Hacemos que al tocarlo llame a tu función original de sorteo
+    btnSiguiente.setAttribute("onclick", "sortearSiguienteDepartamento(false)");
+  }
+
+  // 3. Inyectar la ficha técnica del edificio y el mapa estático en id="infoEdificio"
   const infoEdificioDiv = document.getElementById("infoEdificio");
   if (infoEdificioDiv) {
     infoEdificioDiv.innerHTML = `
-      <div class="building-card-static" style="background:#1c1c1e; padding:15px; border-radius:12px; margin-top:15px; border: 1px solid #2c2c2e; text-align: left;">
-        <h3 style="margin:0 0 6px 0; color:#ffffff; font-size:17px; text-transform: capitalize;">🏢 ${e.address || "Sin Dirección"}</h3>
-        ${e.name ? `<p style="margin:0 0 6px 0; color:#a855f7; font-size:14px; font-weight:500;">${e.name}</p>` : ''}
-        <p style="margin:0 0 10px 0; color:#a1a1aa; font-size:13px;">📍 Territorio / Zona: <strong style="color:#e4e4e7">${e.territory || "No Asignada"}</strong></p>
+      <div class="building-card-static" style="background:#1c1c1e; padding:15px; border-radius:12px; margin-top:15px; border: 1px solid #27272a; text-align: left;">
+        <h3 style="margin:0 0 4px 0; color:#ffffff; font-size:16px; text-transform: capitalize;">🏢 ${e.address || "Sin Dirección"}</h3>
+        ${e.name ? `<p style="margin:0 0 6px 0; color:#a855f7; font-size:13px; font-weight:500;">${e.name}</p>` : ''}
+        <p style="margin:0 0 10px 0; color:#a1a1aa; font-size:12px;">📍 Territorio / Zona: <strong style="color:#e4e4e7">${e.territory || "No Asignada"}</strong></p>
         
-        <div id="prediMiniMapContainer" style="width:100%; height:140px; border-radius:8px; margin-bottom:12px; background:#27272a; overflow:hidden;"></div>
+        <div id="prediMiniMapContainer" style="width:100%; height:130px; border-radius:8px; margin-bottom:8px; background:#27272a; overflow:hidden;"></div>
         
-        <div style="text-align:right; margin-top:4px;">
+        <div style="text-align:right;">
           <span onclick="abrirReporte()" style="color:#f59e0b; font-size:12px; cursor:pointer; font-weight:500; text-decoration:underline;">⚠️ Reportar Incidencia</span>
         </div>
-      </div>
-
-      <div style="margin-top:15px; text-align:center;">
-        <button onclick="siguienteDepartamento()" style="background:#27272a; color:#ffffff; border:1px solid #3f3f46; padding:12px 20px; border-radius:8px; font-size:14px; width:100%; cursor:pointer; font-weight:600; display:block;">
-          ⏭️ Saltar / Siguiente Departamento
-        </button>
       </div>
     `;
   }
 
-  // Asegurar visibilidad de controles de visita e inputs
+  // 4. Mostrar inputs y controles de votación inferiores
   if (document.getElementById("mensajeInicial")) document.getElementById("mensajeInicial").style.display = "none";
   if (document.getElementById("nota")) document.getElementById("nota").style.display = "block";
   if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "block";
   if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "block";
   if (document.getElementById("btnNuevoEdificio")) document.getElementById("btnNuevoEdificio").style.display = "none";
 
-  // Inicialización del Mini-Mapa Leaflet (en base a las coordenadas del edificio)
+  // 5. Inicializar el Mini-Mapa de Leaflet sin controles interactivos
   setTimeout(() => {
     const lat = parseFloat(e.latitude || e.lat);
     const lng = parseFloat(e.longitude || e.lng || e.lon);
@@ -537,17 +542,17 @@ function mostrarEstructuraFlujoVisita() {
 
       const prediIcon = L.divIcon({
         className: 'custom-predi-marker',
-        html: `<div style="background:#38bdf8; width:12px; height:12px; border:2px solid #ffffff; border-radius:50%; box-shadow:0 0 8px #38bdf8;"></div>`,
-        iconSize: [12, 12], iconAnchor: [6, 6]
+        html: `<div style="background:#38bdf8; width:10px; height:10px; border:2px solid #ffffff; border-radius:50%; box-shadow:0 0 6px #38bdf8;"></div>`,
+        iconSize: [10, 10], iconAnchor: [5, 5]
       });
       L.marker([lat, lng], { icon: prediIcon }).addTo(prediMiniMap);
+      
       setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 100);
     } catch (mapErr) {
-      console.error("Error al renderizar el mapa:", mapErr);
+      console.error("⚠️ Error al cargar el mini mapa:", mapErr);
     }
-  }, 100);
+  }, 120);
 }
-
 /**
  * Ejecuta el salto manual al siguiente departamento usando la lógica de exclusión del backend
  */
@@ -580,7 +585,7 @@ function tratarEdificioNoEncontrado() {
 
 /**
  * Despacha la visita de forma segura hacia el endpoint POST /visit de tu backend.
- * @param {string} estadoBackend - Debe ser "ATENDIO" o "NO_EN_CASA" para coincidir con tu index.js
+ * @param {string} estadoBackend - Debe ser "ATENDIO" o "NO_EN_CASA"
  */
 async function registrarVisitaDesdeBoton(estadoBackend) {
   if (!window.currentBuildingId) {
@@ -593,33 +598,46 @@ async function registrarVisitaDesdeBoton(estadoBackend) {
   }
 
   const deptoNumero = window.departamentoEnFoco.number;
-  const notaInput = document.getElementById("observacionRapida");
+  // 🔍 Usamos tu ID real: observacionRapida o nota por si acaso en el HTML
+  const notaInput = document.getElementById("observacionRapida") || document.getElementById("nota");
   const comentario = notaInput ? notaInput.value.trim() : "";
 
-  // Estructura idéntica a la que extrae tu app.post("/visit"): { departmentId, status, note, buildingId }
+  // 📢 Log completo en consola para auditar el envío exacto
+  console.log(`🚀 Enviando visita al Backend -> Depto ID: ${window.departamentoEnFoco._id}, Número: ${deptoNumero}, Estado: ${estadoBackend}, Nota: "${comentario}"`);
+
+  // Estructura idéntica que procesa tu backend
   const cuerpoPayload = {
     departmentId: window.departamentoEnFoco._id,
     buildingId: window.currentBuildingId,
-    status: estadoBackend, // "ATENDIO" o "NO_EN_CASA"
+    status: estadoBackend, 
     note: comentario ? comentario : `Visita realizada al depto ${deptoNumero}`
   };
 
   try {
-    // Apuntamos al endpoint nativo unificado /visit que nos mostró tu index.js
     const res = await apiFetch("/visit", {
       method: "POST",
       body: JSON.stringify(cuerpoPayload)
     });
 
-    if (res.ok) {
+    // Validamos la respuesta exitosa (por objeto o por propiedad ok)
+    if (res && (res.ok || !res.error)) {
       console.log(`✅ Visita registrada en BD para depto ${deptoNumero} como ${estadoBackend}`);
-      if (notaInput) notaInput.value = ""; // Limpieza de caja
+      
+      // 🧼 Limpieza del cuadro de texto
+      if (notaInput) {
+        notaInput.value = "";
+        console.log("🧼 Caja de notas limpia.");
+      }
 
-      // Sorteamos inmediatamente el siguiente departamento disponible de forma fluida
-      await sortearSiguienteDepartamento(false);
+      // 🔄 Sorteamos inmediatamente el siguiente departamento disponible (usando tu función real)
+      console.log("🔄 Solicitando sorteo automático del siguiente departamento...");
+      if (typeof sortearSiguienteDepartamento === "function") {
+        await sortearSiguienteDepartamento(false);
+      } else if (typeof siguienteDepartamento === "function") {
+        await siguienteDepartamento();
+      }
     } else {
-      const txtError = await res.text();
-      alert(`❌ Error al guardar visita: ${txtError || "Revisar datos enviados."}`);
+      alert("❌ Error al guardar visita. Revisar datos enviados.");
     }
   } catch (err) {
     console.error("Falla de red en registrarVisitaDesdeBoton:", err);
