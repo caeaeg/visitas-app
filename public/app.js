@@ -472,30 +472,35 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
     alert("⚠️ No se pudo obtener el siguiente departamento del servidor.");
   }
 }
+/**
+ * Ejecuta el salto manual al siguiente departamento usando la lógica de exclusión del backend
+ */
+function siguienteDepartamento() {
+  sortearSiguienteDepartamento(true);
+  const obs = document.getElementById("observacionRapida");
+  if (obs) obs.value = "";
+}
 
-/** * Pinta la interfaz móvil adaptándose a los contenedores e IDs del index.html original */
+/**
+ * Controla la visibilidad y asigna los datos a los elementos ya existentes en index.html
+ */
 function mostrarEstructuraFlujoVisita() {
-  // Soportamos cualquier variante de guardado global que tenga tu app para el edificio
   const e = window.edificioActivo || window.edificioEnFoco || window.currentBuildingData;
   const d = window.departamentoEnFoco;
 
-  // 1. Renderizar el número de departamento en h2#resultado
-  const numeroDepto = d && d.number ? d.number : "--";
-  console.log(`🎯 Renderizando depto en foco en h2#resultado: ${numeroDepto}`);
-
+  // 1. Rellenar el número de departamento en el h2 original
   const resultadoH2 = document.getElementById("resultado");
   if (resultadoH2) {
-    resultadoH2.innerText = numeroDepto;
-    resultadoH2.style.color = "#38bdf8"; 
+    resultadoH2.innerText = d && d.number ? d.number : "--";
   }
 
-  // 2. Activar el botón "Siguiente depto" nativo de tu HTML para que use tu función original al clickear
+  // 2. Mostrar el botón nativo "Siguiente depto" y asignarle la función de sorteo
   const btnSiguiente = document.getElementById("btnSiguiente");
   if (btnSiguiente) {
     btnSiguiente.style.visibility = "visible";
-    btnSiguiente.style.display = "block";
+    btnSiguiente.style.display = "inline-block"; // O block, según tu CSS nativo
     
-    // Al hacer clic, este botón ejecutará de manera manual el sorteo del próximo depto
+    // Vinculamos dinámicamente a tu función original de sorteo manual
     if (typeof sortearSiguienteDepartamento === "function") {
       btnSiguiente.setAttribute("onclick", "sortearSiguienteDepartamento(false)");
     } else if (typeof siguienteDepartamento === "function") {
@@ -505,25 +510,34 @@ function mostrarEstructuraFlujoVisita() {
     }
   }
 
-  // 3. Inyectar la info del edificio en el contenedor id="infoEdificio" si el objeto existe
+  // 3. Mostrar los controles nativos que ya están maquetados en el HTML
+  if (document.getElementById("mensajeInicial")) document.getElementById("mensajeInicial").style.display = "none";
+  if (document.getElementById("nota")) document.getElementById("nota").style.display = "block";
+  if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "block";
+  if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "block";
+  if (document.getElementById("btnNuevoEdificio")) document.getElementById("btnNuevoEdificio").style.display = "none";
+
+  // 4. Renderizar la info del edificio en #infoEdificio usando solo etiquetas limpias
   const infoEdificioDiv = document.getElementById("infoEdificio");
   if (infoEdificioDiv && e) {
-    console.log("🏢 Renderizando tarjeta de información del edificio...");
+    console.log("🏢 Actualizando contenedor de información del edificio...");
+    
+    // Mantenemos una estructura HTML ultra básica para que tus estilos globales de CSS la vistan automáticamente
     infoEdificioDiv.innerHTML = `
-      <div class="building-card-static" style="background:#1c1c1e; padding:15px; border-radius:12px; margin-top:15px; border: 1px solid #27272a; text-align: left;">
-        <h3 style="margin:0 0 4px 0; color:#ffffff; font-size:16px; text-transform: capitalize;">🏢 ${e.address || "Dirección del Predio"}</h3>
-        ${e.name ? `<p style="margin:0 0 6px 0; color:#a855f7; font-size:13px; font-weight:500;">${e.name}</p>` : ''}
-        <p style="margin:0 0 10px 0; color:#a1a1aa; font-size:12px;">📍 Territorio / Zona: <strong style="color:#e4e4e7">${e.territory || "No Asignada"}</strong></p>
+      <div class="building-card-static">
+        <h3>🏢 ${e.address || "Dirección del Predio"}</h3>
+        ${e.name ? `<p class="building-name">${e.name}</p>` : ''}
+        <p class="building-zone">📍 Territorio / Zona: <strong>${e.territory || "No Asignada"}</strong></p>
         
         <div id="prediMiniMapContainer" style="width:100%; height:130px; border-radius:8px; margin-bottom:8px; background:#27272a; overflow:hidden;"></div>
         
-        <div style="text-align:right;">
-          <span onclick="abrirReporte()" style="color:#f59e0b; font-size:12px; cursor:pointer; font-weight:500; text-decoration:underline;">⚠️ Reportar Incidencia</span>
+        <div class="building-actions">
+          <span onclick="abrirReporte()" class="link-reporte">⚠️ Reportar Incidencia</span>
         </div>
       </div>
     `;
 
-    // 4. Inicializar el Mini-Mapa de Leaflet si tiene coordenadas
+    // 5. Inicializar el Mini-Mapa Leaflet de forma segura
     setTimeout(() => {
       const lat = parseFloat(e.latitude || e.lat);
       const lng = parseFloat(e.longitude || e.lng || e.lon);
@@ -550,26 +564,9 @@ function mostrarEstructuraFlujoVisita() {
         console.error("⚠️ Error al cargar el mini mapa:", mapErr);
       }
     }, 120);
-  } else if (infoEdificioDiv && !e) {
-    console.warn("⚠️ No se pudo renderizar la info del edificio porque el objeto global está vacío.");
   }
-
-  // 5. Visibilidad de controles de votación inferiores
-  if (document.getElementById("mensajeInicial")) document.getElementById("mensajeInicial").style.display = "none";
-  if (document.getElementById("nota")) document.getElementById("nota").style.display = "block";
-  if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "block";
-  if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "block";
-  if (document.getElementById("btnNuevoEdificio")) document.getElementById("btnNuevoEdificio").style.display = "none";
 }
 
-/**
- * Ejecuta el salto manual al siguiente departamento usando la lógica de exclusión del backend
- */
-function siguienteDepartamento() {
-  sortearSiguienteDepartamento(true);
-  const obs = document.getElementById("observacionRapida");
-  if (obs) obs.value = "";
-}
 
 /**
  * Control visual si la dirección no existe
