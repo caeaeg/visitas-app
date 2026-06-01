@@ -473,13 +473,11 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
   }
 }
 
-/** * Pinta la interfaz móvil exacta usando los IDs reales del index.html */
-
+/** * Pinta la interfaz móvil adaptándose a los contenedores e IDs del index.html original */
 function mostrarEstructuraFlujoVisita() {
-  // Soportamos tanto window.edificioActivo como window.currentBuildingId según lo que use tu app
-  const e = window.edificioActivo || window.edificioEnFoco;
+  // Soportamos cualquier variante de guardado global que tenga tu app para el edificio
+  const e = window.edificioActivo || window.edificioEnFoco || window.currentBuildingData;
   const d = window.departamentoEnFoco;
-  if (!e) return;
 
   // 1. Renderizar el número de departamento en h2#resultado
   const numeroDepto = d && d.number ? d.number : "--";
@@ -491,21 +489,29 @@ function mostrarEstructuraFlujoVisita() {
     resultadoH2.style.color = "#38bdf8"; 
   }
 
-  // 2. Hacer visible el botón "Siguiente depto" nativo de tu HTML
+  // 2. Activar el botón "Siguiente depto" nativo de tu HTML para que use tu función original al clickear
   const btnSiguiente = document.getElementById("btnSiguiente");
   if (btnSiguiente) {
     btnSiguiente.style.visibility = "visible";
     btnSiguiente.style.display = "block";
-    // Hacemos que al tocarlo llame a tu función original de sorteo
-    btnSiguiente.setAttribute("onclick", "sortearSiguienteDepartamento(false)");
+    
+    // Al hacer clic, este botón ejecutará de manera manual el sorteo del próximo depto
+    if (typeof sortearSiguienteDepartamento === "function") {
+      btnSiguiente.setAttribute("onclick", "sortearSiguienteDepartamento(false)");
+    } else if (typeof siguienteDepartamento === "function") {
+      btnSiguiente.setAttribute("onclick", "siguienteDepartamento()");
+    } else if (typeof siguiente === "function") {
+      btnSiguiente.setAttribute("onclick", "siguiente()");
+    }
   }
 
-  // 3. Inyectar la ficha técnica del edificio y el mapa estático en id="infoEdificio"
+  // 3. Inyectar la info del edificio en el contenedor id="infoEdificio" si el objeto existe
   const infoEdificioDiv = document.getElementById("infoEdificio");
-  if (infoEdificioDiv) {
+  if (infoEdificioDiv && e) {
+    console.log("🏢 Renderizando tarjeta de información del edificio...");
     infoEdificioDiv.innerHTML = `
       <div class="building-card-static" style="background:#1c1c1e; padding:15px; border-radius:12px; margin-top:15px; border: 1px solid #27272a; text-align: left;">
-        <h3 style="margin:0 0 4px 0; color:#ffffff; font-size:16px; text-transform: capitalize;">🏢 ${e.address || "Sin Dirección"}</h3>
+        <h3 style="margin:0 0 4px 0; color:#ffffff; font-size:16px; text-transform: capitalize;">🏢 ${e.address || "Dirección del Predio"}</h3>
         ${e.name ? `<p style="margin:0 0 6px 0; color:#a855f7; font-size:13px; font-weight:500;">${e.name}</p>` : ''}
         <p style="margin:0 0 10px 0; color:#a1a1aa; font-size:12px;">📍 Territorio / Zona: <strong style="color:#e4e4e7">${e.territory || "No Asignada"}</strong></p>
         
@@ -516,43 +522,46 @@ function mostrarEstructuraFlujoVisita() {
         </div>
       </div>
     `;
+
+    // 4. Inicializar el Mini-Mapa de Leaflet si tiene coordenadas
+    setTimeout(() => {
+      const lat = parseFloat(e.latitude || e.lat);
+      const lng = parseFloat(e.longitude || e.lng || e.lon);
+      if (isNaN(lat) || isNaN(lng)) return;
+
+      try {
+        const prediMiniMap = L.map('prediMiniMapContainer', {
+          zoomControl: false, attributionControl: false, dragging: false,
+          scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false,
+          touchZoom: false, tap: false
+        }).setView([lat, lng], 16);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(prediMiniMap);
+
+        const prediIcon = L.divIcon({
+          className: 'custom-predi-marker',
+          html: `<div style="background:#38bdf8; width:10px; height:10px; border:2px solid #ffffff; border-radius:50%; box-shadow:0 0 6px #38bdf8;"></div>`,
+          iconSize: [10, 10], iconAnchor: [5, 5]
+        });
+        L.marker([lat, lng], { icon: prediIcon }).addTo(prediMiniMap);
+        
+        setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 100);
+      } catch (mapErr) {
+        console.error("⚠️ Error al cargar el mini mapa:", mapErr);
+      }
+    }, 120);
+  } else if (infoEdificioDiv && !e) {
+    console.warn("⚠️ No se pudo renderizar la info del edificio porque el objeto global está vacío.");
   }
 
-  // 4. Mostrar inputs y controles de votación inferiores
+  // 5. Visibilidad de controles de votación inferiores
   if (document.getElementById("mensajeInicial")) document.getElementById("mensajeInicial").style.display = "none";
   if (document.getElementById("nota")) document.getElementById("nota").style.display = "block";
   if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "block";
   if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "block";
   if (document.getElementById("btnNuevoEdificio")) document.getElementById("btnNuevoEdificio").style.display = "none";
-
-  // 5. Inicializar el Mini-Mapa de Leaflet sin controles interactivos
-  setTimeout(() => {
-    const lat = parseFloat(e.latitude || e.lat);
-    const lng = parseFloat(e.longitude || e.lng || e.lon);
-    if (isNaN(lat) || isNaN(lng)) return;
-
-    try {
-      const prediMiniMap = L.map('prediMiniMapContainer', {
-        zoomControl: false, attributionControl: false, dragging: false,
-        scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false,
-        touchZoom: false, tap: false
-      }).setView([lat, lng], 16);
-
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(prediMiniMap);
-
-      const prediIcon = L.divIcon({
-        className: 'custom-predi-marker',
-        html: `<div style="background:#38bdf8; width:10px; height:10px; border:2px solid #ffffff; border-radius:50%; box-shadow:0 0 6px #38bdf8;"></div>`,
-        iconSize: [10, 10], iconAnchor: [5, 5]
-      });
-      L.marker([lat, lng], { icon: prediIcon }).addTo(prediMiniMap);
-      
-      setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 100);
-    } catch (mapErr) {
-      console.error("⚠️ Error al cargar el mini mapa:", mapErr);
-    }
-  }, 120);
 }
+
 /**
  * Ejecuta el salto manual al siguiente departamento usando la lógica de exclusión del backend
  */
@@ -588,7 +597,7 @@ function tratarEdificioNoEncontrado() {
  * @param {string} estadoBackend - Debe ser "ATENDIO" o "NO_EN_CASA"
  */
 async function registrarVisitaDesdeBoton(estadoBackend) {
-  if (!window.currentBuildingId) {
+  if (!window.currentBuildingId && !window.edificioActivo) {
     alert("⚠️ No hay un edificio activo seleccionado.");
     return;
   }
@@ -598,17 +607,15 @@ async function registrarVisitaDesdeBoton(estadoBackend) {
   }
 
   const deptoNumero = window.departamentoEnFoco.number;
-  // 🔍 Usamos tu ID real: observacionRapida o nota por si acaso en el HTML
-  const notaInput = document.getElementById("observacionRapida") || document.getElementById("nota");
+  // Buscamos el textarea usando los IDs válidos de tu HTML original
+  const notaInput = document.getElementById("nota") || document.getElementById("observacionRapida");
   const comentario = notaInput ? notaInput.value.trim() : "";
 
-  // 📢 Log completo en consola para auditar el envío exacto
   console.log(`🚀 Enviando visita al Backend -> Depto ID: ${window.departamentoEnFoco._id}, Número: ${deptoNumero}, Estado: ${estadoBackend}, Nota: "${comentario}"`);
 
-  // Estructura idéntica que procesa tu backend
   const cuerpoPayload = {
     departmentId: window.departamentoEnFoco._id,
-    buildingId: window.currentBuildingId,
+    buildingId: window.currentBuildingId || (window.edificioActivo ? window.edificioActivo._id : null),
     status: estadoBackend, 
     note: comentario ? comentario : `Visita realizada al depto ${deptoNumero}`
   };
@@ -619,23 +626,18 @@ async function registrarVisitaDesdeBoton(estadoBackend) {
       body: JSON.stringify(cuerpoPayload)
     });
 
-    // Validamos la respuesta exitosa (por objeto o por propiedad ok)
     if (res && (res.ok || !res.error)) {
       console.log(`✅ Visita registrada en BD para depto ${deptoNumero} como ${estadoBackend}`);
       
-      // 🧼 Limpieza del cuadro de texto
+      // 🧼 Limpieza del cuadro de texto del formulario
       if (notaInput) {
         notaInput.value = "";
         console.log("🧼 Caja de notas limpia.");
       }
 
-      // 🔄 Sorteamos inmediatamente el siguiente departamento disponible (usando tu función real)
-      console.log("🔄 Solicitando sorteo automático del siguiente departamento...");
-      if (typeof sortearSiguienteDepartamento === "function") {
-        await sortearSiguienteDepartamento(false);
-      } else if (typeof siguienteDepartamento === "function") {
-        await siguienteDepartamento();
-      }
+      // 🛑 FRENAMOS ACÁ: No llamamos a sortear automáticamente.
+      console.log("⏸️ Flujo pausado. Esperando que el usuario presione 'Siguiente depto' de forma manual.");
+      
     } else {
       alert("❌ Error al guardar visita. Revisar datos enviados.");
     }
