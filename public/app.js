@@ -425,41 +425,55 @@ async function buscar() {
   }
 }
 
-/**
- * Consulta la ruta /next del backend para obtener un departamento aleatorio no visitado recientemente.
- * @param {boolean} mostrarAlerta - Define si avisa visualmente en caso de reiniciar.
- */
+/** * Consulta la ruta /next del backend para obtener un departamento aleatorio no visitado recientemente.
+ * @param {boolean} mostrarAlerta - Define si avisa visualmente en caso de reiniciar o asignar. */
+
 async function sortearSiguienteDepartamento(mostrarAlerta = true) {
-  if (!window.currentBuildingId) return;
+  // Soportamos cualquier variante de ID global que use tu app
+  const buildingId = window.currentBuildingId || (window.edificioActivo ? window.edificioActivo._id : null);
+  
+  if (!buildingId) {
+    console.warn("⚠️ No se puede sortear un departamento porque no hay buildingId activo.");
+    return;
+  }
 
   try {
+    console.log(`🎲 Solicitando depto aleatorio al backend para edificio: ${buildingId}...`);
+    
     // Le pegamos a la ruta /next de tu backend pasándole la ID del edificio
-    const res = await apiFetch(`/next/${window.currentBuildingId}`);
-    if (!res.ok) throw new Error(`Falla en ruta /next: ${res.status}`);
+    const res = await apiFetch(`/next/${buildingId}`);
+    if (!res) throw new Error("No se obtuvo respuesta del servidor.");
 
-    const data = await res.json();
+    // Si tu apiFetch ya resuelve el .json() internamente, usamos 'res'. Si es un Response nativo, usamos res.json()
+    const data = res.json ? await res.json() : res;
 
     // Si no hay departamentos disponibles en este bloque (o ya se visitaron todos)
-    if (data.message === "NO_AVAILABLE") {
+    if (data.message === "NO_AVAILABLE" || data.message === "COMPLETED") {
       alert("🔄 Todos los departamentos de este edificio fueron visitados en los últimos 4 meses o no hay unidades configuradas.");
       window.departamentoEnFoco = null;
-      const deptoLabel = document.getElementById("departamentoVisitar");
-      if (deptoLabel) deptoLabel.innerText = "Fin";
+      
+      const resultadoH2 = document.getElementById("resultado");
+      if (resultadoH2) resultadoH2.innerText = "Fin";
       return;
     }
 
-    // Si saltó un bloqueo tardío en el endpoint /next
+    // Si saltó un bloqueo行政 en el endpoint /next
     if (data.message === "EDIFICIO_BLOQUEADO") {
       alert("🚫 Este edificio está bloqueado de forma administrativa.");
-      tratarEdificioNoEncontrado();
+      if (typeof tratarEdificioNoEncontrado === "function") tratarEdificioNoEncontrado();
       return;
     }
 
     // 🎯 ÉXITO: Tu backend devuelve la propiedad "dept" que contiene { _id, number, buildingId }
     if (data && data.dept) {
       window.departamentoEnFoco = data.dept;
+      console.log(`🎯 Sorteo exitoso. Próximo depto: ${data.dept.number}`);
       
-      // Renderizamos la UI limpia con los datos y el mapa estático
+      // Aseguramos que la caja de texto esté limpia para la nueva visita por seguridad
+      const notaInput = document.getElementById("nota") || document.getElementById("observacionRapida");
+      if (notaInput) notaInput.value = "";
+
+      // Renderizamos la UI limpia con los datos utilizando tu estructura nativa
       mostrarEstructuraFlujoVisita();
       
       if (mostrarAlerta && typeof notify === "function") {
@@ -472,102 +486,178 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
     alert("⚠️ No se pudo obtener el siguiente departamento del servidor.");
   }
 }
-/**
- * Ejecuta el salto manual al siguiente departamento usando la lógica de exclusión del backend
- */
-function siguienteDepartamento() {
-  sortearSiguienteDepartamento(true);
-  const obs = document.getElementById("observacionRapida");
-  if (obs) obs.value = "";
-}
 
 /**
- * Controla la visibilidad y asigna los datos a los elementos ya existentes en index.html
+ * Pinta la interfaz móvil adaptándose a los contenedores nativos de index.html
+ * y disparando la carga completa de datos desde el backend para el edificio.
  */
-function mostrarEstructuraFlujoVisita() {
-  const e = window.edificioActivo || window.edificioEnFoco || window.currentBuildingData;
+async function mostrarEstructuraFlujoVisita() {
   const d = window.departamentoEnFoco;
 
-  // 1. Rellenar el número de departamento en el h2 original
+  // 1. Renderizar el número de departamento en h2#resultado
   const resultadoH2 = document.getElementById("resultado");
   if (resultadoH2) {
     resultadoH2.innerText = d && d.number ? d.number : "--";
   }
 
-  // 2. Mostrar el botón nativo "Siguiente depto" y asignarle la función de sorteo
+  // 2. Hacer visible y configurar el botón "Siguiente depto" nativo de tu HTML
   const btnSiguiente = document.getElementById("btnSiguiente");
   if (btnSiguiente) {
     btnSiguiente.style.visibility = "visible";
-    btnSiguiente.style.display = "inline-block"; // O block, según tu CSS nativo
-    
-    // Vinculamos dinámicamente a tu función original de sorteo manual
-    if (typeof sortearSiguienteDepartamento === "function") {
-      btnSiguiente.setAttribute("onclick", "sortearSiguienteDepartamento(false)");
-    } else if (typeof siguienteDepartamento === "function") {
-      btnSiguiente.setAttribute("onclick", "siguienteDepartamento()");
-    } else if (typeof siguiente === "function") {
-      btnSiguiente.setAttribute("onclick", "siguiente()");
-    }
+    btnSiguiente.style.display = "inline-block";
+    // Al clickearlo, ejecutará de forma estrictamente manual el sorteo del próximo departamento
+    btnSiguiente.setAttribute("onclick", "sortearSiguienteDepartamento(false)");
   }
 
-  // 3. Mostrar los controles nativos que ya están maquetados en el HTML
+  // 3. Manejo de visibilidad de paneles iniciales/de votación
   if (document.getElementById("mensajeInicial")) document.getElementById("mensajeInicial").style.display = "none";
   if (document.getElementById("nota")) document.getElementById("nota").style.display = "block";
   if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "block";
   if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "block";
   if (document.getElementById("btnNuevoEdificio")) document.getElementById("btnNuevoEdificio").style.display = "none";
 
-  // 4. Renderizar la info del edificio en #infoEdificio usando solo etiquetas limpias
-  const infoEdificioDiv = document.getElementById("infoEdificio");
-  if (infoEdificioDiv && e) {
-    console.log("🏢 Actualizando contenedor de información del edificio...");
+  // 4. 🔥 LLAMADA CORE: Lanzamos tu función nativa para traer y dibujar la info completa del edificio abajo
+  console.log("🔄 Disparando carga de ficha técnica e información del edificio desde backend...");
+  await mostrarInfoEdificio();
+}
+
+/** * Consulta la ruta /building-info del backend para rellenar la ficha técnica inferior de tu interfaz. */
+
+async function mostrarInfoEdificio() {
+  // Aseguramos capturar el ID del edificio activo por cualquiera de las variables comunes
+  const currentBuildingId = window.currentBuildingId || (window.edificioActivo ? window.edificioActivo._id : null);
+
+  if (!currentBuildingId) {
+    console.warn("⚠️ No se puede cargar info del edificio porque currentBuildingId está vacío.");
+    return;
+  }
+
+  try {
+    const res = await apiFetch(`/building-info/${currentBuildingId}`);
+    if (!res) throw new Error("No se recibió respuesta para info-building.");
     
-    // Mantenemos una estructura HTML ultra básica para que tus estilos globales de CSS la vistan automáticamente
-    infoEdificioDiv.innerHTML = `
-      <div class="building-card-static">
-        <h3>🏢 ${e.address || "Dirección del Predio"}</h3>
-        ${e.name ? `<p class="building-name">${e.name}</p>` : ''}
-        <p class="building-zone">📍 Territorio / Zona: <strong>${e.territory || "No Asignada"}</strong></p>
+    const data = res.json ? await res.json() : res;
+    const b = data.building;
+    if (!b) return;
+
+    // ✨ Cálculo de Edificio Nuevo (Lapso de 30 días)
+    let cartelNuevoHtml = "";
+    if (b.createdAt || b.fechaCreacion) { 
+      const fechaCreacion = new Date(b.createdAt || b.fechaCreacion);
+      const hoy = new Date();
+      const diferenciaDias = Math.floor((hoy - fechaCreacion) / (1000 * 60 * 60 * 24));
+      if (diferenciaDias <= 30) {
+        const fechaFormateada = fechaCreacion.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        cartelNuevoHtml = `Edificio creado el ${fechaFormateada}`;
+      }
+    }
+
+    if (typeof reportBtn !== 'undefined' && reportBtn) {
+      reportBtn.style.display = "none"; 
+    }
+
+    // Ubicamos el div contenedor nativo del HTML
+    const infoEdificio = document.getElementById("infoEdificio");
+    if (!infoEdificio) return;
+
+    infoEdificio.style.display = "block";
+    
+    // Formateamos la fecha de la última visita
+    const fechaUltimaVisita = data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca";
         
-        <div id="prediMiniMapContainer" style="width:100%; height:130px; border-radius:8px; margin-bottom:8px; background:#27272a; overflow:hidden;"></div>
+    // Inyectamos exactamente tu diseño original con tus estilos integrados
+    infoEdificio.innerHTML = `
+      <div class="sectionCard" style="background: #121214; border: 1px solid #27272a; padding: 16px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
         
-        <div class="building-actions">
-          <span onclick="abrirReporte()" class="link-reporte">⚠️ Reportar Incidencia</span>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 14px;">
+          <div>
+            <div style="font-size:24px; font-weight:800; color:#ffffff; line-height:1.2; letter-spacing: -0.5px;">${b.address}</div>
+            <div style="color:#d4d4d8; font-size:14px; margin-top:4px; font-weight: 500;">${b.address2 || "Sin datos adicionales"}</div>
+          </div>
+          <div style="background:#27272a; padding:6px 10px; border-radius:8px; font-size:13px; font-weight:700; white-space:nowrap; color:#ffffff; border: 1px solid #3f3f46;">🏢 ${b.name || "Edificio"}</div>
         </div>
+
+        <div style="display: flex; gap: 14px; align-items: center; justify-content: space-between;">
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; font-size: 14px; color:#ffffff;">
+            <div>🗺️ <b>Territorio:</b> <span style="background: #27272a; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${b.territory || "-"}</span></div>
+            <div>🔢 <b>Pisos:</b> <span style="font-weight: 600; color: #3b82f6;">${b.floors || 0}</span></div>
+            <div style="color:#e4e4e7; font-size: 13px; line-height: 1.3;">📋 <b>Notas:</b> <span style="font-style: italic; color: #d4d4d8;">${b.description || "Sin anotaciones."}</span></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; align-items: center; flex-shrink: 0;">
+            <div id="miniMapaPredi" style="width: 115px; height: 95px; border-radius: 10px; border: 1px solid #4b5563; background:#1f1f22; pointer-events: none;"></div>
+            
+            <div style="background: #27272a; border: 1px solid #3f3f46; border-radius: 6px; padding: 4px 6px; display: flex; align-items: center; gap: 4px; font-size: 11px; color: #e4e4e7; width: 115px; justify-content: center; box-sizing: border-box;">
+              <span>🗓️</span> <span>${fechaUltimaVisita}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #27272a; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+          <div style="flex: 1; font-size: 12px; color:#a1a1aa; font-weight: 500; text-align: left;">
+            ${cartelNuevoHtml ? `🏢 ${cartelNuevoHtml}` : ""}
+          </div>
+          <div style="flex: 1; display: flex; justify-content: flex-end;">
+            <button onclick="abrirReporte()" style="background:#451a1a; color:#f87171; border:1px solid #ef4444; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; white-space: nowrap; width: auto; margin: 0;">
+              ⚠️ Informar problema
+            </button>
+          </div>
+        </div>
+
+        ${data.issue ? `
+          <div style="background:#7f1d1d; color:#fef2f2; border:1px solid #dc2626; padding:10px; border-radius:10px; margin-top:12px; font-size:13px; font-weight:600; line-height:1.4;">
+            ⚠ <b>Alerta (${data.issue.type}):</b> ${data.issue.description || "Sin detalles"}
+          </div>
+        ` : ""}
       </div>
     `;
 
-    // 5. Inicializar el Mini-Mapa Leaflet de forma segura
-    setTimeout(() => {
-      const lat = parseFloat(e.latitude || e.lat);
-      const lng = parseFloat(e.longitude || e.lng || e.lon);
-      if (isNaN(lat) || isNaN(lng)) return;
-
-      try {
-        const prediMiniMap = L.map('prediMiniMapContainer', {
-          zoomControl: false, attributionControl: false, dragging: false,
-          scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false,
-          touchZoom: false, tap: false
-        }).setView([lat, lng], 16);
-
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(prediMiniMap);
-
-        const prediIcon = L.divIcon({
-          className: 'custom-predi-marker',
-          html: `<div style="background:#38bdf8; width:10px; height:10px; border:2px solid #ffffff; border-radius:50%; box-shadow:0 0 6px #38bdf8;"></div>`,
-          iconSize: [10, 10], iconAnchor: [5, 5]
-        });
-        L.marker([lat, lng], { icon: prediIcon }).addTo(prediMiniMap);
-        
-        setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 100);
-      } catch (mapErr) {
-        console.error("⚠️ Error al cargar el mini mapa:", mapErr);
+    // --- RENDERIZACIÓN DEL MAPA ---
+    const miniMapaDiv = document.getElementById("miniMapaPredi");
+    if (miniMapaDiv) {
+      if (prediMiniMap) {
+        try { prediMiniMap.remove(); } catch(e){}
+        prediMiniMap = null;
       }
-    }, 120);
+      
+      prediMiniMap = L.map('miniMapaPredi', {
+        zoomControl: false, dragging: false, touchZoom: false,
+        scrollWheelZoom: false, doubleClickZoom: false
+      });
+      
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(prediMiniMap);
+      
+      let centradoExitoso = false;
+      if (b.latitude && b.longitude) {
+        const lat = parseFloat(b.latitude);
+        const lng = parseFloat(b.longitude);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          L.marker([lat, lng]).addTo(prediMiniMap);
+          prediMiniMap.setView([lat, lng], 16);
+          centradoExitoso = true;
+        }
+      }
+      
+      if (!centradoExitoso && b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON) {
+        let capaGeoJSON = L.geoJSON(misTerritoriosGeoJSON, {
+          filter: (f) => String(f.properties.name || f.properties.Territorio_N) === String(b.territory),
+          style: { color: '#2563eb', weight: 2, fillColor: '#2563eb', fillOpacity: 0.15 }
+        }).addTo(prediMiniMap);
+        
+        if (capaGeoJSON.getLayers().length > 0) {
+          prediMiniMap.fitBounds(capaGeoJSON.getBounds(), { padding: [5, 5] });
+          centradoExitoso = true;
+        }
+      }
+      
+      if (!centradoExitoso) {
+        prediMiniMap.setView([-27.36708, -55.89608], 14); // Posadas por defecto
+      }
+      setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 220);
+    }
+  } catch (error) {
+    console.error("❌ Error en mostrarInfoEdificio:", error);
   }
 }
-
-
 /**
  * Control visual si la dirección no existe
  */
@@ -695,10 +785,7 @@ async function abrirModalIncidencia() {
   }
 }
 
-// Compatibilidad por si el buscador viejo dependía de este nombre en el cruce
-function mostrarEdificioActual() {
-  mostrarEstructuraFlujoVisita();
-}
+
 
 
 // =========================================================================
