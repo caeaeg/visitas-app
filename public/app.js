@@ -339,12 +339,8 @@ window.addEventListener("load", async () => {
 // 📱 SECTOR: MOTOR DE BÚSQUEDA, FLUIDO DE VISITA Y CONTROL ANTI-ERROR (PREDI)
 // =========================================================================
 
+/** * 1. MOTOR DE BÚSQUEDA * Busca un edificio por dirección o código en el backend. */
 
-
-/**
- * 1. MOTOR DE BÚSQUEDA
- * Busca un edificio por dirección o código en el backend.
- */
 async function buscar() {
   if (typeof limpiarVista === "function") {
     limpiarVista();
@@ -414,10 +410,8 @@ async function buscar() {
   }
 }
 
-/**
- * 2. ALGORITMO DE EXCLUSIÓN Y SORTEO
- * Consulta la ruta /next del backend para obtener un departamento aleatorio no visitado recientemente.
- */
+/** * 2. ALGORITMO DE EXCLUSIÓN Y SORTEO * Consulta la ruta /next del backend para obtener un departamento aleatorio no visitado recientemente. */
+
 async function sortearSiguienteDepartamento(mostrarAlerta = true) {
   const buildingId = window.currentBuildingId;
   if (!buildingId) {
@@ -466,10 +460,8 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
   }
 }
 
-/**
- * 3. CONTROLADOR INTERFAZ FLUJO MÓVIL
- * Sincroniza la visibilidad y limpia los paneles de index.html para iniciar la votación.
- */
+/** * 3. CONTROLADOR INTERFAZ FLUJO MÓVIL * Sincroniza la visibilidad y limpia los paneles de index.html para iniciar la votación. */
+
 async function mostrarEstructuraFlujoVisita() {
   const d = window.departamentoEnFoco;
 
@@ -499,10 +491,8 @@ async function mostrarEstructuraFlujoVisita() {
   await mostrarInfoEdificio();
 }
 
-/**
- * 4. FICHADO TÉCNICO Y MAPA ESTÁTICO
- * Rellena la tarjeta informativa inferior y el mini mapa Leaflet desde el backend.
- */
+/** * 4. FICHADO TÉCNICO Y MAPA ESTÁTICO * Rellena la tarjeta informativa inferior y el mini mapa Leaflet desde el backend. */
+
 async function mostrarInfoEdificio() {
   const currentBuildingId = window.currentBuildingId;
   if (!currentBuildingId) {
@@ -623,12 +613,11 @@ async function mostrarInfoEdificio() {
   }
 }
 
-/**
- * 5. CAPTURA Y TRANSMISIÓN DE VISITAS
- * Intercepta los clicks de index.html y los procesa de forma segura hacia el backend.
- */
+/** * 5. CAPTURA Y TRANSMISIÓN DE VISITAS (Estrategia Red + Offline)
+ * Intercepta los clicks de index.html y los procesa de forma segura hacia el backend o local. */
+
 function marcar(estado) {
-  // 🔒 Validación estricta de nivel 2: Filtramos valores espurios antes de enviar a la BD
+  // 🔒 Validación estricta de nivel 2: Filtramos valores espurios antes de procesar
   if (estado !== "ATENDIO" && estado !== "NO_EN_CASA") {
     console.error(`❌ Error crítico: Se intentó marcar con un estado inválido o vacío: "${estado}"`);
     return;
@@ -652,8 +641,7 @@ async function registrarVisitaDesdeBoton(estadoBackend) {
   const notaInput = document.getElementById("nota") || document.getElementById("observacionRapida");
   const comentario = notaInput ? notaInput.value.trim() : "";
 
-  console.log(`🚀 Transmitiendo visita -> Depto ID: ${window.departamentoEnFoco._id}, Número: ${deptoNumero}, Estado: ${estadoBackend}`);
-
+  // Estructuramos el payload limpio para enviar o guardar localmente
   const cuerpoPayload = {
     departmentId: window.departamentoEnFoco._id,
     buildingId: window.currentBuildingId,
@@ -662,37 +650,37 @@ async function registrarVisitaDesdeBoton(estadoBackend) {
   };
 
   try {
+    console.log(`🚀 Intentando transmitir visita al servidor -> Depto: ${deptoNumero}, Estado: ${estadoBackend}`);
     const res = await apiFetch("/visit", {
       method: "POST",
       body: JSON.stringify(cuerpoPayload)
     });
 
-    if (res && (res.ok || !res.error)) {
-      console.log(`✅ Visita registrada en BD para depto ${deptoNumero} como ${estadoBackend}`);
-      
-      // 🔒 REGLA DE SEGURIDAD: Preservamos la nota intacta para revisión visual del usuario
-      console.log("📌 Nota preservada en pantalla temporalmente.");
-
-      // 🔓 DESBLOQUEO MANUAL: Revelamos el botón de avance
-      const btnSiguiente = document.getElementById("btnSiguiente");
-      if (btnSiguiente) {
-        console.log("🔓 Habilitando botón 'Siguiente depto' en la interfaz.");
-        btnSiguiente.style.visibility = "visible";
-        btnSiguiente.style.display = "inline-block";
-      }
-    } else {
-      alert("❌ Error al guardar visita. Revisar datos enviados.");
+    // Si la respuesta no es exitosa o trae errores controlados de red
+    if (!res || (!res.ok && res.error)) {
+      throw new Error("Respuesta del servidor no válida (posible micro-corte)");
     }
+
+    console.log(`✅ Visita registrada directamente en BD para depto ${deptoNumero} como ${estadoBackend}`);
+
   } catch (err) {
-    console.error("Falla de red en registrarVisitaDesdeBoton:", err);
-    alert("⚠️ Falla de conectividad. No se pudo transmitir el registro.");
+    // 💾 CAPA DE RESCATE OFFLINE: Si falla la red, guardamos en la mochila local
+    console.warn(`📡 [MODO OFFLINE ACTIVADO] Falla de red detectada al registrar depto ${deptoNumero}. Guardando localmente...`);
+    guardarEnMochilaLocal("visitas_pendientes", cuerpoPayload);
+  } finally {
+    // 🔓 DESBLOQUEO INTERFAZ: Pase lo que pase (se envíe o se guarde local), el flujo en la calle NO se frena
+    console.log("📌 Nota preservada en pantalla temporalmente para revisión.");
+    const btnSiguiente = document.getElementById("btnSiguiente");
+    if (btnSiguiente) {
+      console.log("🔓 Habilitando botón 'Siguiente depto' en la interfaz.");
+      btnSiguiente.style.visibility = "visible";
+      btnSiguiente.style.display = "inline-block";
+    }
   }
 }
 
-/**
- * 6. ACCIÓN DE CONTROL DE AVANCE MANUAL
- * Limpia los componentes temporales de la UI y dispara el siguiente sorteo.
- */
+/** * 6. ACCIÓN DE CONTROL DE AVANCE MANUAL * Limpia los componentes temporales de la UI y dispara el siguiente sorteo. */
+
 async function ejecutarAvanzarDepartamento() {
   console.log("🎯 El usuario confirmó avanzar al siguiente departamento.");
 
@@ -708,9 +696,80 @@ async function ejecutarAvanzarDepartamento() {
 }
 
 /**
- * 7. INTERRUPTOR VISUAL DE EXCEPCIONES
- * Oculta paneles y despliega opciones de rescate en caso de direcciones inexistentes.
+ * 💾 SOPORTE LOCALSTORAGE
+ * Función genérica para retener elementos en el almacenamiento local del teléfono.
  */
+function guardarEnMochilaLocal(clave, datos) {
+  let listado = JSON.parse(localStorage.getItem(clave)) || [];
+  datos.guardadoEnLocalEl = new Date().toISOString(); 
+  listado.push(datos);
+  localStorage.setItem(clave, JSON.stringify(listado));
+  console.log(`📦 Elemento retenido con éxito en la clave "${clave}". Total acumulado: ${listado.length}`);
+}
+
+/**
+ * 📡 EL VIGILANTE DE INTERNET
+ * Se dispara automáticamente en segundo plano en cuanto el navegador detecta señal.
+ */
+window.addEventListener('online', async () => {
+  const visitasPendientes = JSON.parse(localStorage.getItem("visitas_pendientes")) || [];
+  const reportesPendientes = JSON.parse(localStorage.getItem("reportes_pendientes")) || [];
+
+  if (visitasPendientes.length === 0 && reportesPendientes.length === 0) return;
+
+  console.log(`📡 Conexión recuperada. Sincronizando: ${visitasPendientes.length} visitas y ${reportesPendientes.length} reportes...`);
+
+  let erroresCarga = false;
+
+  // 1. Despachamos las visitas retenidas
+  if (visitasPendientes.length > 0) {
+    const visitasNoEnviadas = [];
+    for (let visita of visitasPendientes) {
+      try {
+        const res = await apiFetch("/visit", { method: "POST", body: JSON.stringify(visita) });
+        if (!res || !res.ok) throw new Error();
+      } catch (err) {
+        visitasNoEnviadas.push(visita);
+        erroresCarga = true;
+      }
+    }
+    if (visitasNoEnviadas.length > 0) {
+      localStorage.setItem("visitas_pendientes", JSON.stringify(visitasNoEnviadas));
+    } else {
+      localStorage.removeItem("visitas_pendientes");
+    }
+  }
+
+  // 2. Despachamos los reportes retenidos (issues)
+  if (reportesPendientes.length > 0) {
+    const reportesNoEnviados = [];
+    for (let reporte of reportesPendientes) {
+      try {
+        const res = await apiFetch("/issues", { method: "POST", body: JSON.stringify(reporte) });
+        if (!res || !res.ok) throw new Error();
+      } catch (err) {
+        reportesNoEnviados.push(reporte);
+        erroresCarga = true;
+      }
+    }
+    if (reportesNoEnviados.length > 0) {
+      localStorage.setItem("reportes_pendientes", JSON.stringify(reportesNoEnviados));
+    } else {
+      localStorage.removeItem("reportes_pendientes");
+    }
+  }
+
+  // Avisamos sutilmente si todo se sincronizó bien de fondo
+  if (!erroresCarga) {
+    alert("🔄 ¡Datos sincronizados! Las visitas y reportes tomados sin internet ya se subieron al servidor con éxito.");
+    if (typeof cargarEdificios === "function") cargarEdificios();
+  } else {
+    console.warn("⚠️ Sincronización parcial completa: Algunos elementos todavía esperan mejor señal.");
+  }
+});
+
+/** * 7. INTERRUPTOR VISUAL DE EXCEPCIONES * Oculta paneles y despliega opciones de rescate en caso de direcciones inexistentes. */
+
 function tratarEdificioNoEncontrado() {
   const resLabel = document.getElementById("resultado");
   const btnNuevo = document.getElementById("btnNuevoEdificio");
@@ -728,6 +787,7 @@ function tratarEdificioNoEncontrado() {
   if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "none";
   if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "none";
 }
+
 // =========================================================================
 // 🪟 CONTROLADORES DE MODALES: REPORTES DE PROBLEMAS / INCIDENCIAS
 // =========================================================================
