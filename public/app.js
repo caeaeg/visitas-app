@@ -14,6 +14,7 @@ let markerClusterGroup = null;
 let currentRole = "";
 let paginaActual = 1;
 
+
 // --- 📦 ESTRATOS DE PERSISTENCIA Y FLUJO EN MEMORIA LOCAL ---
 window.todosLosEdificiosDB = [];     // Pool central de sincronización de la base de datos
 window.edificiosEncontrados = [];    // Resultados del motor predictivo móvil (predi)
@@ -22,6 +23,9 @@ window.currentBuildingId = null;     // Transaccional: ID del edificio en foco o
 window.miniMapaAdminInstance = null; // Instancia del mapa lateral del administrador
 window.marcadoresClusterGlobal = null; // Grupo de empaquetado de marcadores (Clustering)
 window.miTemporizadorMapa = null;    // Controlador para delays de re-render (InvalidateSize)
+// Variables globales de tracking en memoria caliente
+window.edificioActivo = null;
+window.departamentoEnFoco = null; // Guardará el objeto completo del depto ({ _id, number })
 
 // Variables de estado del módulo SuperAdmin
 window.superAdminAutenticado = false;
@@ -44,10 +48,9 @@ const loadingBar = document.getElementById("loadingBar");
 // 🔌 SECTOR: MOTOR DE COMUNICACIÓN CENTRALIZADO (API FETCH INTEGRADO)
 // =========================================================================
 
-/**
- * Envoltura segura sobre Fetch API para resolver URL base, inyección de encabezados,
- * control visual de carga y manejo automatizado de credenciales (username y role).
- */
+/** * Envoltura segura sobre Fetch API para resolver URL base, inyección de encabezados,
+ * control visual de carga y manejo automatizado de credenciales (username y role). */
+
 async function apiFetch(endpoint, options = {}) {
   // 🔐 Recuperamos credenciales reales asegurando compatibilidad global
   const username = localStorage.getItem('username') || localStorage.getItem('user');
@@ -114,9 +117,8 @@ function obtenerHeadersSeguros() {
   };
 }
 
-/**
- * Controla la visibilidad de la barra o indicador de carga (spinner)
- */
+/** * Controla la visibilidad de la barra o indicador de carga (spinner) */
+
 function mostrarLoading(mostrar) {
   const spinner = document.getElementById("loading") || document.getElementById("loadingSpinner");
   if (spinner) {
@@ -125,7 +127,6 @@ function mostrarLoading(mostrar) {
     document.body.style.cursor = mostrar ? "wait" : "default";
   }
 }
-
 
 // =========================================================================
 // 🔐 SECTOR: CONTROL DE ACCESO, INICIO DE SESIÓN Y ORQUESTADOR DE VISTAS
@@ -201,9 +202,8 @@ async function login() {
   }
 }
 
-/**
- * Gestiona el arranque de la app y decide qué descargar según el rol (Solución definitiva al 403)
- */
+/** * Gestiona el arranque de la app y decide qué descargar según el rol (Solución definitiva al 403) */
+
 async function iniciarAppConPermisos() {
   const elLogin = document.getElementById("loginScreen");
   if (elLogin) elLogin.style.display = "none";
@@ -238,9 +238,8 @@ async function iniciarAppConPermisos() {
   }
 }
 
-/**
- * Descarga masiva exclusiva para roles administrativos
- */
+/** * Descarga masiva exclusiva para roles administrativos */
+
 async function descargarBaseAdministrativa() {
   try {
     console.log("⏳ Sincronizando datos administrativos con el servidor...");
@@ -257,9 +256,8 @@ async function descargarBaseAdministrativa() {
   }
 }
 
-/**
- * Orquestador dinámico de navegación: Apaga todas las pantallas y enciende la solicitada
- */
+/** * Orquestador dinámico de navegación: Apaga todas las pantallas y enciende la solicitada */
+
 function abrirVista(vistaId) {
   // 🚨 REGLA DE PRIVACIDAD: Si es predi y quiere husmear vistas de admin, lo devolvemos al módulo móvil
   if (currentRole === "predi" && vistaId !== "editarView" && vistaId !== "appContainer") {
@@ -298,9 +296,8 @@ function abrirVista(vistaId) {
   }
 }
 
-/**
- * Cierra sesión borrando el caché local y devuelve al usuario al loginScreen
- */
+/** * Cierra sesión borrando el caché local y devuelve al usuario al loginScreen */
+
 function logout() {
   localStorage.clear();
   currentUser = "";
@@ -311,9 +308,8 @@ function logout() {
   abrirVista("loginScreen");
 }
 
-/**
- * Oidor de carga inicial: Recupera la sesión guardada de forma automática al abrir la web
- */
+/** * Oidor de carga inicial: Recupera la sesión guardada de forma automática al abrir la web */
+
 window.addEventListener("load", async () => {
   const savedUser = localStorage.getItem("username") || localStorage.getItem("user");
   const savedRole = localStorage.getItem("role");
@@ -340,17 +336,13 @@ window.addEventListener("load", async () => {
 });
 
 // =========================================================================
-// 📱 SECTOR: NÚCLEO DE INTERACCION DEL BUSCADOR MÓVIL (PREDI) - INTEGRADO
-// =========================================================================
-// =========================================================================
-// 🔍 SECTOR: MOTOR DE BÚSQUEDA Y SORTEO INTELIGENTE DE DEPARTAMENTOS (BACKEND MATCH)
+// 📱 SECTOR: MOTOR DE BÚSQUEDA, FLUIDO DE VISITA Y CONTROL ANTI-ERROR (PREDI)
 // =========================================================================
 
-// Variables globales de tracking en memoria caliente
-window.edificioActivo = null;
-window.departamentoEnFoco = null; // Guardará el objeto completo del depto ({ _id, number })
+
 
 /**
+ * 1. MOTOR DE BÚSQUEDA
  * Busca un edificio por dirección o código en el backend.
  */
 async function buscar() {
@@ -360,7 +352,7 @@ async function buscar() {
     const res = document.getElementById("resultado");
     if (res) res.innerHTML = "";
   }
-  
+
   const inputCampo = document.getElementById("buildingId") || (typeof buildingId !== 'undefined' ? buildingId : null);
   if (!inputCampo) {
     console.error("❌ Error: No se encontró el elemento input 'buildingId'.");
@@ -369,20 +361,18 @@ async function buscar() {
 
   const input = typeof normalizarDireccion === "function" ? normalizarDireccion(inputCampo.value) : inputCampo.value.trim();
   if (!input) return;
-  
+
   console.log(`🔍 Buscando edificio en backend: '${input}'`);
-  
   if (document.getElementById("mensajeInicial")) {
     document.getElementById("mensajeInicial").style.display = "none";
   }
-  
+
   const resLabel = document.getElementById("resultado");
   if (resLabel) resLabel.innerText = "Buscando en servidor...";
 
   try {
-    // 1. Buscamos el edificio por su dirección
+    // Buscamos el edificio por su dirección
     const b = await apiFetch(`/building/${encodeURIComponent(input)}`);
-    
     if (!b.ok) {
       if (b.status === 404) {
         tratarEdificioNoEncontrado();
@@ -392,7 +382,7 @@ async function buscar() {
     }
     
     const building = await b.json();
-    
+
     // Control de respuesta vacía o error devuelto en JSON
     if (building.error === "NOT_FOUND" || !building || !building._id) {
       tratarEdificioNoEncontrado();
@@ -409,14 +399,13 @@ async function buscar() {
       return; 
     }
 
-    // Guardamos el edificio en el tracking global
-    window.edificioActivo = building;
-    currentBuildingId = building._id;
+    // Seteo único de variables globales del edificio seleccionado
     window.currentBuildingId = building._id;
-    
-    console.log(`✅ Edificio detectado: ${building.address}. Solicitando sorteo al backend...`);
+    window.edificioActivo = building;
 
-    // 🚀 2. LLAMAMOS AL ALGORITMO NATIVO DEL BACKEND PARA TRAER EL PRIMER DEPTO DISPONIBLE
+    console.log(`✅ Edificio detectado: ${building.address}. Solicitando primer depto...`);
+    
+    // Solicitamos el primer departamento disponible sin mostrar alerta inicial
     await sortearSiguienteDepartamento(false);
 
   } catch (error) {
@@ -425,13 +414,12 @@ async function buscar() {
   }
 }
 
-/** * Consulta la ruta /next del backend para obtener un departamento aleatorio no visitado recientemente.
- * @param {boolean} mostrarAlerta - Define si avisa visualmente en caso de reiniciar o asignar. */
-
+/**
+ * 2. ALGORITMO DE EXCLUSIÓN Y SORTEO
+ * Consulta la ruta /next del backend para obtener un departamento aleatorio no visitado recientemente.
+ */
 async function sortearSiguienteDepartamento(mostrarAlerta = true) {
-  // Soportamos cualquier variante de ID global que use tu app
-  const buildingId = window.currentBuildingId || (window.edificioActivo ? window.edificioActivo._id : null);
-  
+  const buildingId = window.currentBuildingId;
   if (!buildingId) {
     console.warn("⚠️ No se puede sortear un departamento porque no hay buildingId activo.");
     return;
@@ -439,48 +427,39 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
 
   try {
     console.log(`🎲 Solicitando depto aleatorio al backend para edificio: ${buildingId}...`);
-    
-    // Le pegamos a la ruta /next de tu backend pasándole la ID del edificio
     const res = await apiFetch(`/next/${buildingId}`);
     if (!res) throw new Error("No se obtuvo respuesta del servidor.");
 
-    // Si tu apiFetch ya resuelve el .json() internamente, usamos 'res'. Si es un Response nativo, usamos res.json()
     const data = res.json ? await res.json() : res;
 
-    // Si no hay departamentos disponibles en este bloque (o ya se visitaron todos)
+    // Si no hay departamentos disponibles en este bloque
     if (data.message === "NO_AVAILABLE" || data.message === "COMPLETED") {
       alert("🔄 Todos los departamentos de este edificio fueron visitados en los últimos 4 meses o no hay unidades configuradas.");
       window.departamentoEnFoco = null;
-      
       const resultadoH2 = document.getElementById("resultado");
       if (resultadoH2) resultadoH2.innerText = "Fin";
       return;
     }
 
-    // Si saltó un bloqueo行政 en el endpoint /next
+    // Si saltó un bloqueo administrativo en el endpoint /next
     if (data.message === "EDIFICIO_BLOQUEADO") {
       alert("🚫 Este edificio está bloqueado de forma administrativa.");
-      if (typeof tratarEdificioNoEncontrado === "function") tratarEdificioNoEncontrado();
+      tratarEdificioNoEncontrado();
       return;
     }
 
-    // 🎯 ÉXITO: Tu backend devuelve la propiedad "dept" que contiene { _id, number, buildingId }
+    // 🎯 ÉXITO: Seteamos el departamento en foco
     if (data && data.dept) {
       window.departamentoEnFoco = data.dept;
       console.log(`🎯 Sorteo exitoso. Próximo depto: ${data.dept.number}`);
       
-      // Aseguramos que la caja de texto esté limpia para la nueva visita por seguridad
-      const notaInput = document.getElementById("nota") || document.getElementById("observacionRapida");
-      if (notaInput) notaInput.value = "";
-
-      // Renderizamos la UI limpia con los datos utilizando tu estructura nativa
+      // Renderizamos el flujo adaptado y ocultamos el botón Siguiente
       mostrarEstructuraFlujoVisita();
-      
+
       if (mostrarAlerta && typeof notify === "function") {
         notify("Nuevo departamento asignado");
       }
     }
-
   } catch (err) {
     console.error("❌ Error en sorteo de departamento:", err);
     alert("⚠️ No se pudo obtener el siguiente departamento del servidor.");
@@ -488,45 +467,44 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
 }
 
 /**
- * Pinta la interfaz móvil adaptándose a los contenedores nativos de index.html
- * y disparando la carga completa de datos desde el backend para el edificio.
+ * 3. CONTROLADOR INTERFAZ FLUJO MÓVIL
+ * Sincroniza la visibilidad y limpia los paneles de index.html para iniciar la votación.
  */
 async function mostrarEstructuraFlujoVisita() {
   const d = window.departamentoEnFoco;
 
-  // 1. Renderizar el número de departamento en h2#resultado
+  // Renderizar el número de departamento en h2#resultado
   const resultadoH2 = document.getElementById("resultado");
   if (resultadoH2) {
     resultadoH2.innerText = d && d.number ? d.number : "--";
   }
 
-  // 2. Hacer visible y configurar el botón "Siguiente depto" nativo de tu HTML
+  // 🛑 BLINDAJE ANTI-ERROR: Ocultamos por completo el botón "Siguiente depto". Solo aparecerá al marcar.
   const btnSiguiente = document.getElementById("btnSiguiente");
   if (btnSiguiente) {
-    btnSiguiente.style.visibility = "visible";
-    btnSiguiente.style.display = "inline-block";
-    // Al clickearlo, ejecutará de forma estrictamente manual el sorteo del próximo departamento
-    btnSiguiente.setAttribute("onclick", "sortearSiguienteDepartamento(false)");
+    btnSiguiente.style.visibility = "hidden";
+    btnSiguiente.style.display = "none";
+    btnSiguiente.setAttribute("onclick", "ejecutarAvanzarDepartamento()");
   }
 
-  // 3. Manejo de visibilidad de paneles iniciales/de votación
+  // Ajustes de visibilidad de controles nativos
   if (document.getElementById("mensajeInicial")) document.getElementById("mensajeInicial").style.display = "none";
   if (document.getElementById("nota")) document.getElementById("nota").style.display = "block";
   if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "block";
   if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "block";
   if (document.getElementById("btnNuevoEdificio")) document.getElementById("btnNuevoEdificio").style.display = "none";
 
-  // 4. 🔥 LLAMADA CORE: Lanzamos tu función nativa para traer y dibujar la info completa del edificio abajo
-  console.log("🔄 Disparando carga de ficha técnica e información del edificio desde backend...");
+  // Lanzamos la carga de la ficha técnica estática e info abajo
+  console.log("🔄 Cargando info estática del edificio...");
   await mostrarInfoEdificio();
 }
 
-/** * Consulta la ruta /building-info del backend para rellenar la ficha técnica inferior de tu interfaz. */
-
+/**
+ * 4. FICHADO TÉCNICO Y MAPA ESTÁTICO
+ * Rellena la tarjeta informativa inferior y el mini mapa Leaflet desde el backend.
+ */
 async function mostrarInfoEdificio() {
-  // Aseguramos capturar el ID del edificio activo por cualquiera de las variables comunes
-  const currentBuildingId = window.currentBuildingId || (window.edificioActivo ? window.edificioActivo._id : null);
-
+  const currentBuildingId = window.currentBuildingId;
   if (!currentBuildingId) {
     console.warn("⚠️ No se puede cargar info del edificio porque currentBuildingId está vacío.");
     return;
@@ -556,19 +534,14 @@ async function mostrarInfoEdificio() {
       reportBtn.style.display = "none"; 
     }
 
-    // Ubicamos el div contenedor nativo del HTML
     const infoEdificio = document.getElementById("infoEdificio");
     if (!infoEdificio) return;
-
     infoEdificio.style.display = "block";
-    
-    // Formateamos la fecha de la última visita
+
     const fechaUltimaVisita = data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca";
-        
-    // Inyectamos exactamente tu diseño original con tus estilos integrados
+
     infoEdificio.innerHTML = `
       <div class="sectionCard" style="background: #121214; border: 1px solid #27272a; padding: 16px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
-        
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 14px;">
           <div>
             <div style="font-size:24px; font-weight:800; color:#ffffff; line-height:1.2; letter-spacing: -0.5px;">${b.address}</div>
@@ -576,7 +549,6 @@ async function mostrarInfoEdificio() {
           </div>
           <div style="background:#27272a; padding:6px 10px; border-radius:8px; font-size:13px; font-weight:700; white-space:nowrap; color:#ffffff; border: 1px solid #3f3f46;">🏢 ${b.name || "Edificio"}</div>
         </div>
-
         <div style="display: flex; gap: 14px; align-items: center; justify-content: space-between;">
           <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; font-size: 14px; color:#ffffff;">
             <div>🗺️ <b>Territorio:</b> <span style="background: #27272a; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${b.territory || "-"}</span></div>
@@ -585,13 +557,11 @@ async function mostrarInfoEdificio() {
           </div>
           <div style="display: flex; flex-direction: column; gap: 6px; align-items: center; flex-shrink: 0;">
             <div id="miniMapaPredi" style="width: 115px; height: 95px; border-radius: 10px; border: 1px solid #4b5563; background:#1f1f22; pointer-events: none;"></div>
-            
             <div style="background: #27272a; border: 1px solid #3f3f46; border-radius: 6px; padding: 4px 6px; display: flex; align-items: center; gap: 4px; font-size: 11px; color: #e4e4e7; width: 115px; justify-content: center; box-sizing: border-box;">
               <span>🗓️</span> <span>${fechaUltimaVisita}</span>
             </div>
           </div>
         </div>
-
         <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #27272a; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
           <div style="flex: 1; font-size: 12px; color:#a1a1aa; font-weight: 500; text-align: left;">
             ${cartelNuevoHtml ? `🏢 ${cartelNuevoHtml}` : ""}
@@ -602,7 +572,6 @@ async function mostrarInfoEdificio() {
             </button>
           </div>
         </div>
-
         ${data.issue ? `
           <div style="background:#7f1d1d; color:#fef2f2; border:1px solid #dc2626; padding:10px; border-radius:10px; margin-top:12px; font-size:13px; font-weight:600; line-height:1.4;">
             ⚠ <b>Alerta (${data.issue.type}):</b> ${data.issue.description || "Sin detalles"}
@@ -611,20 +580,18 @@ async function mostrarInfoEdificio() {
       </div>
     `;
 
-    // --- RENDERIZACIÓN DEL MAPA ---
+    // Renderización limpia del Mapa
     const miniMapaDiv = document.getElementById("miniMapaPredi");
     if (miniMapaDiv) {
       if (prediMiniMap) {
         try { prediMiniMap.remove(); } catch(e){}
         prediMiniMap = null;
       }
-      
       prediMiniMap = L.map('miniMapaPredi', {
         zoomControl: false, dragging: false, touchZoom: false,
         scrollWheelZoom: false, doubleClickZoom: false
       });
-      
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(prediMiniMap);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 17 }).addTo(prediMiniMap);
       
       let centradoExitoso = false;
       if (b.latitude && b.longitude) {
@@ -636,21 +603,18 @@ async function mostrarInfoEdificio() {
           centradoExitoso = true;
         }
       }
-      
       if (!centradoExitoso && b.territory && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON) {
         let capaGeoJSON = L.geoJSON(misTerritoriosGeoJSON, {
           filter: (f) => String(f.properties.name || f.properties.Territorio_N) === String(b.territory),
           style: { color: '#2563eb', weight: 2, fillColor: '#2563eb', fillOpacity: 0.15 }
         }).addTo(prediMiniMap);
-        
         if (capaGeoJSON.getLayers().length > 0) {
           prediMiniMap.fitBounds(capaGeoJSON.getBounds(), { padding: [5, 5] });
           centradoExitoso = true;
         }
       }
-      
       if (!centradoExitoso) {
-        prediMiniMap.setView([-27.36708, -55.89608], 14); // Posadas por defecto
+        prediMiniMap.setView([-27.36708, -55.89608], 15);
       }
       setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 220);
     }
@@ -658,8 +622,94 @@ async function mostrarInfoEdificio() {
     console.error("❌ Error en mostrarInfoEdificio:", error);
   }
 }
+
 /**
- * Control visual si la dirección no existe
+ * 5. CAPTURA Y TRANSMISIÓN DE VISITAS
+ * Intercepta los clicks de index.html y los procesa de forma segura hacia el backend.
+ */
+function marcar(estado) {
+  // 🔒 Validación estricta de nivel 2: Filtramos valores espurios antes de enviar a la BD
+  if (estado !== "ATENDIO" && estado !== "NO_EN_CASA") {
+    console.error(`❌ Error crítico: Se intentó marcar con un estado inválido o vacío: "${estado}"`);
+    return;
+  }
+
+  console.log(`🔀 Procesando clic de botón con estado verificado: ${estado}`);
+  registrarVisitaDesdeBoton(estado);
+}
+
+async function registrarVisitaDesdeBoton(estadoBackend) {
+  if (!window.currentBuildingId) {
+    alert("⚠️ No hay un edificio activo seleccionado.");
+    return;
+  }
+  if (!window.departamentoEnFoco || !window.departamentoEnFoco._id) {
+    alert("⚠️ No hay un departamento en foco para registrar la visita.");
+    return;
+  }
+
+  const deptoNumero = window.departamentoEnFoco.number;
+  const notaInput = document.getElementById("nota") || document.getElementById("observacionRapida");
+  const comentario = notaInput ? notaInput.value.trim() : "";
+
+  console.log(`🚀 Transmitiendo visita -> Depto ID: ${window.departamentoEnFoco._id}, Número: ${deptoNumero}, Estado: ${estadoBackend}`);
+
+  const cuerpoPayload = {
+    departmentId: window.departamentoEnFoco._id,
+    buildingId: window.currentBuildingId,
+    status: estadoBackend, 
+    note: comentario ? comentario : `Visita realizada al depto ${deptoNumero}`
+  };
+
+  try {
+    const res = await apiFetch("/visit", {
+      method: "POST",
+      body: JSON.stringify(cuerpoPayload)
+    });
+
+    if (res && (res.ok || !res.error)) {
+      console.log(`✅ Visita registrada en BD para depto ${deptoNumero} como ${estadoBackend}`);
+      
+      // 🔒 REGLA DE SEGURIDAD: Preservamos la nota intacta para revisión visual del usuario
+      console.log("📌 Nota preservada en pantalla temporalmente.");
+
+      // 🔓 DESBLOQUEO MANUAL: Revelamos el botón de avance
+      const btnSiguiente = document.getElementById("btnSiguiente");
+      if (btnSiguiente) {
+        console.log("🔓 Habilitando botón 'Siguiente depto' en la interfaz.");
+        btnSiguiente.style.visibility = "visible";
+        btnSiguiente.style.display = "inline-block";
+      }
+    } else {
+      alert("❌ Error al guardar visita. Revisar datos enviados.");
+    }
+  } catch (err) {
+    console.error("Falla de red en registrarVisitaDesdeBoton:", err);
+    alert("⚠️ Falla de conectividad. No se pudo transmitir el registro.");
+  }
+}
+
+/**
+ * 6. ACCIÓN DE CONTROL DE AVANCE MANUAL
+ * Limpia los componentes temporales de la UI y dispara el siguiente sorteo.
+ */
+async function ejecutarAvanzarDepartamento() {
+  console.log("🎯 El usuario confirmó avanzar al siguiente departamento.");
+
+  // 🧼 LIMPIEZA: Recién ahora vaciamos el campo de texto antes de cargar el nuevo depto
+  const notaInput = document.getElementById("nota") || document.getElementById("observacionRapida");
+  if (notaInput) {
+    notaInput.value = "";
+    console.log("🧼 Caja de notas limpia para la nueva visita.");
+  }
+
+  // Sorteamos el próximo departamento del edificio activo
+  await sortearSiguienteDepartamento(false);
+}
+
+/**
+ * 7. INTERRUPTOR VISUAL DE EXCEPCIONES
+ * Oculta paneles y despliega opciones de rescate en caso de direcciones inexistentes.
  */
 function tratarEdificioNoEncontrado() {
   const resLabel = document.getElementById("resultado");
@@ -678,79 +728,9 @@ function tratarEdificioNoEncontrado() {
   if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "none";
   if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "none";
 }
-
-/**
- * Despacha la visita de forma segura hacia el endpoint POST /visit de tu backend.
- * @param {string} estadoBackend - Debe ser "ATENDIO" o "NO_EN_CASA"
- */
-async function registrarVisitaDesdeBoton(estadoBackend) {
-  if (!window.currentBuildingId && !window.edificioActivo) {
-    alert("⚠️ No hay un edificio activo seleccionado.");
-    return;
-  }
-  if (!window.departamentoEnFoco || !window.departamentoEnFoco._id) {
-    alert("⚠️ No hay un departamento en foco para registrar la visita.");
-    return;
-  }
-
-  const deptoNumero = window.departamentoEnFoco.number;
-  // Buscamos el textarea usando los IDs válidos de tu HTML original
-  const notaInput = document.getElementById("nota") || document.getElementById("observacionRapida");
-  const comentario = notaInput ? notaInput.value.trim() : "";
-
-  console.log(`🚀 Enviando visita al Backend -> Depto ID: ${window.departamentoEnFoco._id}, Número: ${deptoNumero}, Estado: ${estadoBackend}, Nota: "${comentario}"`);
-
-  const cuerpoPayload = {
-    departmentId: window.departamentoEnFoco._id,
-    buildingId: window.currentBuildingId || (window.edificioActivo ? window.edificioActivo._id : null),
-    status: estadoBackend, 
-    note: comentario ? comentario : `Visita realizada al depto ${deptoNumero}`
-  };
-
-  try {
-    const res = await apiFetch("/visit", {
-      method: "POST",
-      body: JSON.stringify(cuerpoPayload)
-    });
-
-    if (res && (res.ok || !res.error)) {
-      console.log(`✅ Visita registrada en BD para depto ${deptoNumero} como ${estadoBackend}`);
-      
-      // 🧼 Limpieza del cuadro de texto del formulario
-      if (notaInput) {
-        notaInput.value = "";
-        console.log("🧼 Caja de notas limpia.");
-      }
-
-      // 🛑 FRENAMOS ACÁ: No llamamos a sortear automáticamente.
-      console.log("⏸️ Flujo pausado. Esperando que el usuario presione 'Siguiente depto' de forma manual.");
-      
-    } else {
-      alert("❌ Error al guardar visita. Revisar datos enviados.");
-    }
-  } catch (err) {
-    console.error("Falla de red en registrarVisitaDesdeBoton:", err);
-    alert("⚠️ Falla de conectividad. No se pudo transmitir el registro.");
-  }
-}
-
 // =========================================================================
-// 🔀 CONTROL DE VISITAS (Sincronizado con index.html)
+// 🪟 CONTROLADORES DE MODALES: REPORTES DE PROBLEMAS / INCIDENCIAS
 // =========================================================================
-
-/** * Función principal que recibe el estado directo desde los botones del HTML
- * @param {string} estado - Puede ser 'ATENDIO' o 'NO_EN_CASA' */
-function marcar(estado) {
-  // Salvavidas por si por alguna razón el parámetro viene vacío, por defecto es ATENDIO
-  const estadoFinal = estado || "ATENDIO"; 
-  console.log(`🔀 Procesando clic de botón con estado: ${estadoFinal}`);
-  registrarVisitaDesdeBoton(estadoFinal);
-}
-
-// Mantenemos estas funciones vivas por si se llaman como soporte en otra parte del script
-function marcarAtendido() { registrarVisitaDesdeBoton("ATENDIO"); }
-function marcarEnCasa() { registrarVisitaDesdeBoton("NO_EN_CASA"); }
-
 /** * Abre un prompt integrado para disparar una incidencia directo a tu app.post("/issues") */
 
 async function abrirModalIncidencia() {
@@ -784,14 +764,6 @@ async function abrirModalIncidencia() {
     console.error("Error al enviar issue:", err);
   }
 }
-
-
-
-
-// =========================================================================
-// 🪟 CONTROLADORES DE MODALES: REPORTES DE PROBLEMAS / INCIDENCIAS
-// =========================================================================
-
 /**
  * Despliega el modal flotante de incidencias críticas en pantalla
  */
