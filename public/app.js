@@ -796,18 +796,39 @@ function tratarEdificioNoEncontrado() {
   const resLabel = document.getElementById("resultado");
   const btnNuevo = document.getElementById("btnNuevoEdificio");
   const deptoLabel = document.getElementById("departamentoVisitar");
+  const inputCampo = document.getElementById("buildingId");
   
-  if (resLabel) resLabel.innerHTML = `<div style="color:#ef4444; text-align:center; padding:10px; font-weight:bold;">Edificio no encontrado</div>`;
+  if (resLabel) {
+    resLabel.innerHTML = `<div style="color:#ef4444; text-align:center; padding:10px; font-weight:bold;">Edificio no encontrado</div>`;
+  }
   if (deptoLabel) deptoLabel.innerText = "--";
   
+  // Desplegamos el botón de rescate en la interfaz
   if (btnNuevo) {
     btnNuevo.style.display = "block";
-    btnNuevo.onclick = function() { if (typeof crearEdificio === "function") crearEdificio(); };
+    
+    btnNuevo.onclick = function() {
+      console.log("➕ El usuario tocó el botón '+ Agregar edificio'. Enlazando con el Editor Expandido...");
+      
+      // Capturamos lo que escribió el usuario para precargárselo en el formulario nuevo
+      const direccionIngresada = inputCampo ? inputCampo.value.trim() : "";
+      
+      if (typeof abrirEditorEdificio === "function") {
+        console.log(`🚀 Abriendo formulario de creación con la dirección propuesta: "${direccionIngresada}"`);
+        // Llamamos a tu función expandida pasándole la dirección sugerida
+        abrirEditorEdificio({ address: direccionIngresada });
+      } else {
+        console.error("❌ Error crítico: No se encontró la función 'abrirEditorEdificio' en el archivo.");
+        alert("⚠️ No se pudo abrir el editor porque la función 'abrirEditorEdificio' no está disponible.");
+      }
+    };
   }
   
+  // Ocultamos de forma segura el formulario de la visita actual para evitar mezclas
   if (document.getElementById("nota")) document.getElementById("nota").style.display = "none";
   if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "none";
   if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "none";
+  if (document.getElementById("infoEdificio")) document.getElementById("infoEdificio").style.display = "none";
 }
 
 // =========================================================================
@@ -1440,7 +1461,11 @@ function abrirEditorEdificio(objetoEdificio = {}) {
     }
 
     leafletMap = L.map('mapaEditor', { zoomControl: true }).setView([latBase, lngBase], 15);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(leafletMap);
+    
+    // 🗺️ AJUSTE DE CLARIDAD: OpenStreetMap tradicional para ver nombres de calles al ubicar el Pin
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19
+    }).addTo(leafletMap);
 
     if (leafletMarker) { leafletMarker = null; }
 
