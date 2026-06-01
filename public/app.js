@@ -581,15 +581,17 @@ async function mostrarInfoEdificio() {
         zoomControl: false, dragging: false, touchZoom: false,
         scrollWheelZoom: false, doubleClickZoom: false
       });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 17 }).addTo(prediMiniMap);
-      
+     // 🗺️ CAPA LEAFLET ESTÁNDAR: Máxima claridad con nombres de calles 100% legibles
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+  maxZoom: 19 
+}).addTo(prediMiniMap);
       let centradoExitoso = false;
       if (b.latitude && b.longitude) {
         const lat = parseFloat(b.latitude);
         const lng = parseFloat(b.longitude);
         if (!isNaN(lat) && !isNaN(lng)) {
           L.marker([lat, lng]).addTo(prediMiniMap);
-          prediMiniMap.setView([lat, lng], 16);
+          prediMiniMap.setView([lat, lng], 17);
           centradoExitoso = true;
         }
       }
