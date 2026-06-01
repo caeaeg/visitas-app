@@ -613,27 +613,61 @@ async function mostrarInfoEdificio() {
   }
 }
 
-/** * 5. CAPTURA Y TRANSMISIÓN DE VISITAS (Estrategia Red + Offline)
- * Intercepta los clicks de index.html y los procesa de forma segura hacia el backend o local. */
+// =========================================================================
+// 🔀 CONTROL DE VISITAS EN MEMORIA VOLÁTIL Y TRANSMISIÓN AL AVANZAR (ACUMULADO)
+// =========================================================================
 
+// Variable global interna para retener el estado elegido en pantalla antes de confirmar el avance
+window.votoTemporal = null;
+
+/**
+ * 5. SELECCIÓN DE ESTADO EN PANTALLA (FASE DE PREPARACIÓN)
+ * Captura el clic de los botones, pinta visualmente la interfaz y habilita el avance.
+ */
 function marcar(estado) {
-  // 🔒 Validación estricta de nivel 2: Filtramos valores espurios antes de procesar
+  // 🔒 Validación estricta de nivel 2: Filtramos valores espurios antes de retener
   if (estado !== "ATENDIO" && estado !== "NO_EN_CASA") {
-    console.error(`❌ Error crítico: Se intentó marcar con un estado inválido o vacío: "${estado}"`);
+    console.error(`❌ Error crítico: Se intentó seleccionar un estado inválido: "${estado}"`);
     return;
   }
 
-  console.log(`🔀 Procesando clic de botón con estado verificado: ${estado}`);
-  registrarVisitaDesdeBoton(estado);
+  if (!window.departamentoEnFoco || !window.departamentoEnFoco._id) {
+    alert("⚠️ No hay un departamento en foco para asignarle este estado.");
+    return;
+  }
+
+  // Retenemos la elección de forma interna en memoria (No viaja al servidor todavía)
+  window.votoTemporal = estado;
+  console.log(`📌 Estado seleccionado temporalmente en memoria: "${window.votoTemporal}" para depto ${window.departamentoEnFoco.number}`);
+
+  // 🔓 REVELACIÓN DE CONTROL: Mostramos el botón para avanzar y confirmar el envío
+  const btnSiguiente = document.getElementById("btnSiguiente");
+  if (btnSiguiente) {
+    console.log("🔓 Habilitando botón 'Siguiente depto' para autorizar el envío definitivo.");
+    btnSiguiente.style.visibility = "visible";
+    btnSiguiente.style.display = "inline-block";
+  }
 }
 
-async function registrarVisitaDesdeBoton(estadoBackend) {
+/**
+ * 6. ACCIÓN DE CONFIRMACIÓN Y TRANSMISIÓN AL backend
+ * Se dispara al presionar "Siguiente depto". Empaqueta la nota actual, transmite a la nube/offline y rota el depto.
+ */
+async function ejecutarAvanzarDepartamento() {
+  console.log("🎯 El usuario presionó 'Siguiente depto'. Iniciando proceso de empaquetado y envío...");
+
   if (!window.currentBuildingId) {
-    alert("⚠️ No hay un edificio activo seleccionado.");
+    alert("⚠️ Error: No hay un edificio activo seleccionado.");
     return;
   }
   if (!window.departamentoEnFoco || !window.departamentoEnFoco._id) {
-    alert("⚠️ No hay un departamento en foco para registrar la visita.");
+    alert("⚠️ Error: No hay un departamento activo en foco.");
+    return;
+  }
+
+  // 🛑 CONTROL DE SEGURIDAD: Validamos que realmente haya seleccionado una opción antes de avanzar
+  if (!window.votoTemporal) {
+    alert("⚠️ Por favor, selecciona primero si atendió o no está en casa antes de avanzar.");
     return;
   }
 
@@ -641,57 +675,43 @@ async function registrarVisitaDesdeBoton(estadoBackend) {
   const notaInput = document.getElementById("nota") || document.getElementById("observacionRapida");
   const comentario = notaInput ? notaInput.value.trim() : "";
 
-  // Estructuramos el payload limpio para enviar o guardar localmente
+  // Construimos el Payload definitivo combinando el botón presionado y la nota final de la caja de texto
   const cuerpoPayload = {
     departmentId: window.departamentoEnFoco._id,
     buildingId: window.currentBuildingId,
-    status: estadoBackend, 
+    status: window.votoTemporal, 
     note: comentario ? comentario : `Visita realizada al depto ${deptoNumero}`
   };
 
+  // --- FASE DE TRANSMISIÓN (Estrategia Red Primero + Mochila de Auxilio) ---
   try {
-    console.log(`🚀 Intentando transmitir visita al servidor -> Depto: ${deptoNumero}, Estado: ${estadoBackend}`);
+    console.log(`🚀 Transmitiendo definitivo al servidor -> Depto: ${deptoNumero}, Estado: ${window.votoTemporal}`);
     const res = await apiFetch("/visit", {
       method: "POST",
       body: JSON.stringify(cuerpoPayload)
     });
 
-    // Si la respuesta no es exitosa o trae errores controlados de red
     if (!res || (!res.ok && res.error)) {
-      throw new Error("Respuesta del servidor no válida (posible micro-corte)");
+      throw new Error("Falla de respuesta controlada en el endpoint.");
     }
 
-    console.log(`✅ Visita registrada directamente en BD para depto ${deptoNumero} como ${estadoBackend}`);
+    console.log(`✅ Registro guardado con éxito en la nube para el depto ${deptoNumero}.`);
 
   } catch (err) {
-    // 💾 CAPA DE RESCATE OFFLINE: Si falla la red, guardamos en la mochila local
-    console.warn(`📡 [MODO OFFLINE ACTIVADO] Falla de red detectada al registrar depto ${deptoNumero}. Guardando localmente...`);
+    // 💾 CAPA DE RESCATE OFFLINE: Si no hay datos en la calle, directo a la mochila local sin trabar al predi
+    console.warn(`📡 [MODO OFFLINE] Sin señal en la calle para enviar depto ${deptoNumero}. Guardando en memoria local...`);
     guardarEnMochilaLocal("visitas_pendientes", cuerpoPayload);
-  } finally {
-    // 🔓 DESBLOQUEO INTERFAZ: Pase lo que pase (se envíe o se guarde local), el flujo en la calle NO se frena
-    console.log("📌 Nota preservada en pantalla temporalmente para revisión.");
-    const btnSiguiente = document.getElementById("btnSiguiente");
-    if (btnSiguiente) {
-      console.log("🔓 Habilitando botón 'Siguiente depto' en la interfaz.");
-      btnSiguiente.style.visibility = "visible";
-      btnSiguiente.style.display = "inline-block";
-    }
   }
-}
 
-/** * 6. ACCIÓN DE CONTROL DE AVANCE MANUAL * Limpia los componentes temporales de la UI y dispara el siguiente sorteo. */
-
-async function ejecutarAvanzarDepartamento() {
-  console.log("🎯 El usuario confirmó avanzar al siguiente departamento.");
-
-  // 🧼 LIMPIEZA: Recién ahora vaciamos el campo de texto antes de cargar el nuevo depto
-  const notaInput = document.getElementById("nota") || document.getElementById("observacionRapida");
+  // --- FASE DE RESETEO Y ROTACIÓN DE INTERFAZ ---
+  // 🧼 Limpiamos la caja de notas y el voto temporal para el depto que viene
   if (notaInput) {
     notaInput.value = "";
-    console.log("🧼 Caja de notas limpia para la nueva visita.");
+    console.log("🧼 Caja de comentarios vaciada para la próxima unidad.");
   }
+  window.votoTemporal = null; 
 
-  // Sorteamos el próximo departamento del edificio activo
+  // Traemos de forma automática el siguiente departamento sorteado
   await sortearSiguienteDepartamento(false);
 }
 
@@ -704,12 +724,12 @@ function guardarEnMochilaLocal(clave, datos) {
   datos.guardadoEnLocalEl = new Date().toISOString(); 
   listado.push(datos);
   localStorage.setItem(clave, JSON.stringify(listado));
-  console.log(`📦 Elemento retenido con éxito en la clave "${clave}". Total acumulado: ${listado.length}`);
+  console.log(`📦 Elemento retenido con éxito en la clave "${clave}". Total acumulado offline: ${listado.length}`);
 }
 
 /**
  * 📡 EL VIGILANTE DE INTERNET
- * Se dispara automáticamente en segundo plano en cuanto el navegador detecta señal.
+ * Sincroniza en segundo plano los datos acumulados apenas el dispositivo recupera señal móvil estable.
  */
 window.addEventListener('online', async () => {
   const visitasPendientes = JSON.parse(localStorage.getItem("visitas_pendientes")) || [];
@@ -759,12 +779,12 @@ window.addEventListener('online', async () => {
     }
   }
 
-  // Avisamos sutilmente si todo se sincronizó bien de fondo
+  // Alerta ligera al usuario
   if (!erroresCarga) {
     alert("🔄 ¡Datos sincronizados! Las visitas y reportes tomados sin internet ya se subieron al servidor con éxito.");
     if (typeof cargarEdificios === "function") cargarEdificios();
   } else {
-    console.warn("⚠️ Sincronización parcial completa: Algunos elementos todavía esperan mejor señal.");
+    console.warn("⚠️ Sincronización parcial: Quedan elementos pendientes en zonas de baja cobertura.");
   }
 });
 
