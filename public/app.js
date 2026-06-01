@@ -591,7 +591,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         const lng = parseFloat(b.longitude);
         if (!isNaN(lat) && !isNaN(lng)) {
           L.marker([lat, lng]).addTo(prediMiniMap);
-          prediMiniMap.setView([lat, lng], 17);
+          prediMiniMap.setView([lat, lng], 16);
           centradoExitoso = true;
         }
       }
