@@ -790,8 +790,10 @@ window.addEventListener('online', async () => {
   }
 });
 
-/** * 7. INTERRUPTOR VISUAL DE EXCEPCIONES * Oculta paneles y despliega opciones de rescate en caso de direcciones inexistentes. */
-
+/**
+ * 7. INTERRUPTOR VISUAL DE EXCEPCIONES
+ * Oculta paneles y despliega opciones de rescate en caso de direcciones inexistentes.
+ */
 function tratarEdificioNoEncontrado() {
   const resLabel = document.getElementById("resultado");
   const btnNuevo = document.getElementById("btnNuevoEdificio");
@@ -808,23 +810,27 @@ function tratarEdificioNoEncontrado() {
     btnNuevo.style.display = "block";
     
     btnNuevo.onclick = function() {
-      console.log("➕ El usuario tocó el botón '+ Agregar edificio'. Enlazando con el Editor Expandido...");
+      console.log("➕ El usuario tocó el botón '+ Agregar edificio'. Ejecutando pasarela de rescate...");
       
-      // Capturamos lo que escribió el usuario para precargárselo en el formulario nuevo
       const direccionIngresada = inputCampo ? inputCampo.value.trim() : "";
       
+      // 🛡️ CONTROL DE SEGURIDAD INTERNO
+      // Si estamos en la app móvil del predi y no existe la vista 'editarView', redirigimos o avisamos limpiamente
       if (typeof abrirEditorEdificio === "function") {
-        console.log(`🚀 Abriendo formulario de creación con la dirección propuesta: "${direccionIngresada}"`);
-        // Llamamos a tu función expandida pasándole la dirección sugerida
-        abrirEditorEdificio({ address: direccionIngresada });
+        try {
+          console.log("🚀 Intentando abrir editor expandido...");
+          abrirEditorEdificio({ address: direccionIngresada });
+        } catch (err) {
+          console.warn("⚠️ La vista extendida falló o no está disponible en este contenedor. Aplicando plan B.");
+          alert(`📍 Dirección no encontrada: "${direccionIngresada}"\n\nPara agregar este edificio, por favor ingresá desde el Panel de Control ('Nuevo edificio') o reportalo desde el botón 🚨 en la esquina superior izquierda.`);
+        }
       } else {
-        console.error("❌ Error crítico: No se encontró la función 'abrirEditorEdificio' en el archivo.");
-        alert("⚠️ No se pudo abrir el editor porque la función 'abrirEditorEdificio' no está disponible.");
+        alert(`📍 Dirección no encontrada: "${direccionIngresada}"\n\nPodés reportar este edificio nuevo usando el botón de alertas 🚨 en la parte superior.`);
       }
     };
   }
   
-  // Ocultamos de forma segura el formulario de la visita actual para evitar mezclas
+  // Ocultamos de forma segura el formulario de la visita actual para evitar errores
   if (document.getElementById("nota")) document.getElementById("nota").style.display = "none";
   if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "none";
   if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "none";
