@@ -1037,14 +1037,11 @@ function abrirEditorEdificio(objetoEdificio = null) {
   }, 250);
 }
 
-/**
- * 3. RETORNO DE INTERFAZ MÓVIL
- * Función de escape definitiva: Desactiva el editor de raíz y acopla el display del predi.
- */
+/** * 3. RETORNO DE INTERFAZ MÓVIL * Función de escape definitiva: Desactiva el editor de raíz y acopla el display del predi. */
+
 function cancelarEdificioMovil() {
   console.log("🚪 Ejecutando salida limpia del editor...");
 
-  // Apagamos físicamente el contenedor del editor y vaciamos su contenido
   const editarView = document.getElementById("editarView");
   if (editarView) {
     editarView.innerHTML = ""; 
@@ -1052,18 +1049,18 @@ function cancelarEdificioMovil() {
     editarView.style.setProperty("display", "none", "important");
   }
 
-  // Encendemos de forma mandatoria el appContainer restaurando su diseño nativo (.container)
   const appContainer = document.getElementById("appContainer");
   if (appContainer) {
     appContainer.style.setProperty("display", "block", "important");
   }
   
-  // Ejecutamos la limpieza interna nativa de tu app
   if (typeof limpiarVista === "function") {
     limpiarVista();
   }
   
-  // Encendemos el cartel guía del buscador
+  // 🌟 AGREGAMOS ESTO: Forzamos la limpieza para que no queden bloqueos residuales
+  forzarReinicioBuscador();
+  
   const msgInicial = document.getElementById("mensajeInicial");
   if (msgInicial) msgInicial.style.setProperty("display", "block", "important");
 }
