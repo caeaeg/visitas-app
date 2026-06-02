@@ -1,10 +1,8 @@
-// 🌐 CONFIGURACIÓN DEL SERVIDOR CENTRAL (BACKEND)
-const API_BASE_URL = "https://visitas-app-inxa.onrender.com"; 
-
 // =========================================================================
 // 🚀 PARTE 1: CONFIGURACIÓN ESTRUCTURAL, ESTADOS GLOBALES Y ENRUTADOR DE VISTAS
 // =========================================================================
-
+// 🌐 CONFIGURACIÓN DEL SERVIDOR CENTRAL (BACKEND)
+const API_BASE_URL = "https://visitas-app-inxa.onrender.com"; 
 // --- 🌐 DECLARACIÓN DE VARIABLES GLOBALES Y INSTANCIAS DE MAPAS ---
 let leafletMap = null;
 let leafletMarker = null;
@@ -14,7 +12,6 @@ let markerClusterGroup = null;
 let currentRole = "";
 let paginaActual = 1;
 
-
 // --- 📦 ESTRATOS DE PERSISTENCIA Y FLUJO EN MEMORIA LOCAL ---
 window.todosLosEdificiosDB = [];     // Pool central de sincronización de la base de datos
 window.edificiosEncontrados = [];    // Resultados del motor predictivo móvil (predi)
@@ -23,16 +20,13 @@ window.currentBuildingId = null;     // Transaccional: ID del edificio en foco o
 window.miniMapaAdminInstance = null; // Instancia del mapa lateral del administrador
 window.marcadoresClusterGlobal = null; // Grupo de empaquetado de marcadores (Clustering)
 window.miTemporizadorMapa = null;    // Controlador para delays de re-render (InvalidateSize)
-// Variables globales de tracking en memoria caliente
 window.edificioActivo = null;
 window.departamentoEnFoco = null; // Guardará el objeto completo del depto ({ _id, number })
-
 // Variables de estado del módulo SuperAdmin
 window.superAdminAutenticado = false;
 window.superAdminPaginaActual = 1;
 window.superAdminFiltrados = [];
 const ELEMENTOS_POR_PAGINA = 10;
-
 // --- 🎛️ SELECTORES NATIVOS DEL DOM (VISTA PREDICATIVA / MÓVIL) ---
 const resultado = document.getElementById("resultado");
 const infoEdificio = document.getElementById("infoEdificio");
@@ -334,6 +328,68 @@ window.addEventListener("load", async () => {
     await cargarDepto();
   }
 });
+
+// =========================================================================
+// 🚀 INICIALIZACIÓN AUTOMÁTICA AL CARGAR EL DOCUMENTO DOM
+// =========================================================================
+
+// 🚀 INICIALIZADOR BLINDADO DE ARRANCADO DIRECTO (Reemplaza al DOMContentLoaded viejo)
+(function iniciarValidacionInmediata() {
+  console.log("🔄 Inicializando núcleo de la aplicación de relevamiento...");
+
+  // Forzamos la ejecución apenas el script se lee en el navegador
+  const ejecutarControl = () => {
+    const usuarioGuardado = localStorage.getItem("username");
+    const rolGuardado = localStorage.getItem("role");
+
+    // Caso 1: No hay sesión activa. Forzamos el Login limpio en pantalla.
+    if (!usuarioGuardado || !rolGuardado) {
+      console.log("ℹ️ Sin credenciales en memoria. Desplegando formulario de acceso.");
+      localStorage.clear();
+
+      const loginScreen = document.getElementById("loginScreen");
+      if (loginScreen) {
+        loginScreen.style.display = "block";
+        loginScreen.classList.add("active");
+      }
+
+      // Apagamos el resto de las vistas de trabajo
+      ["dashboardView", "appContainer", "editarView", "superAdminView"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.style.display = "none";
+          el.classList.remove("active");
+        }
+      });
+      return;
+    }
+
+    // Caso 2: El usuario ya estaba logueado de antes de forma válida
+    currentRole = rolGuardado;
+    console.log(`🔄 Sesión recuperada: ${usuarioGuardado} (${currentRole})`);
+
+    const loginScreen = document.getElementById("loginScreen");
+    if (loginScreen) loginScreen.style.display = "none";
+
+    if (currentRole === "admin" || currentRole === "conductor") {
+      abrirVista("dashboardView");
+      setTimeout(() => {
+        if (typeof inicializarMapaGeneralAdministrador === "function") inicializarMapaGeneralAdministrador();
+        if (typeof cargarEdificios === "function") cargarEdificios();
+      }, 100);
+    } else {
+      abrirVista("appContainer");
+      if (typeof limpiarVista === "function") limpiarVista();
+    }
+  };
+
+  // Se ejecuta inmediatamente, y por las dudas, se asegura si el documento ya está listo
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", ejecutarControl);
+  } else {
+    ejecutarControl();
+  }
+})();
 
 // =========================================================================
 // 📱 SECTOR: MOTOR DE BÚSQUEDA, FLUIDO DE VISITA Y CONTROL ANTI-ERROR (PREDI)
@@ -805,32 +861,15 @@ function tratarEdificioNoEncontrado() {
   }
   if (deptoLabel) deptoLabel.innerText = "--";
   
-  // Desplegamos el botón de rescate en la interfaz
   if (btnNuevo) {
     btnNuevo.style.display = "block";
-    
     btnNuevo.onclick = function() {
-      console.log("➕ El usuario tocó el botón '+ Agregar edificio'. Ejecutando pasarela de rescate...");
-      
       const direccionIngresada = inputCampo ? inputCampo.value.trim() : "";
-      
-      // 🛡️ CONTROL DE SEGURIDAD INTERNO
-      // Si estamos en la app móvil del predi y no existe la vista 'editarView', redirigimos o avisamos limpiamente
-      if (typeof abrirEditorEdificio === "function") {
-        try {
-          console.log("🚀 Intentando abrir editor expandido...");
-          abrirEditorEdificio({ address: direccionIngresada });
-        } catch (err) {
-          console.warn("⚠️ La vista extendida falló o no está disponible en este contenedor. Aplicando plan B.");
-          alert(`📍 Dirección no encontrada: "${direccionIngresada}"\n\nPara agregar este edificio, por favor ingresá desde el Panel de Control ('Nuevo edificio') o reportalo desde el botón 🚨 en la esquina superior izquierda.`);
-        }
-      } else {
-        alert(`📍 Dirección no encontrada: "${direccionIngresada}"\n\nPodés reportar este edificio nuevo usando el botón de alertas 🚨 en la parte superior.`);
-      }
+      console.log(`➕ Pasarela de rescate: Abriendo editor dinámico para "${direccionIngresada}"`);
+      abrirEditorEdificio({ address: direccionIngresada });
     };
   }
   
-  // Ocultamos de forma segura el formulario de la visita actual para evitar errores
   if (document.getElementById("nota")) document.getElementById("nota").style.display = "none";
   if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "none";
   if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "none";
@@ -1435,87 +1474,86 @@ function normalizarDireccion(texto) {
 }
 
 // =========================================================================
-// 🛠️ MÓDULO ADICIONAL: EDITOR EXPANDIDO DE EDIFICIOS (CREACIÓN / EDICIÓN)
+// 🛠️ MÓDULO ADICIONAL: EDITOR EXPANDIDO DINÁMICO (CREACIÓN / EDICIÓN)
 // =========================================================================
 
-/**
- * Prepara la pantalla de edición levantando los mapas y cargando datos preexistentes
- * @param {Object} objetoEdificio - Datos parciales o completos del registro
- */
 function abrirEditorEdificio(objetoEdificio = {}) {
-  // 1. Primero abrimos la vista para que el HTML se renderice en pantalla
+  // 1. Forzamos la apertura e inyección visual del contenedor
   abrirVista("editarView");
   
-  const inDir = document.getElementById("edit_address");
-  const inNom = document.getElementById("edit_name");
-  const inTerr = document.getElementById("edit_territory");
-  const inId = document.getElementById("edit_building_id");
+  const userRole = localStorage.getItem("role") || "predi";
+  const funcionCancelar = (userRole === "predi") ? "cancelarEdificioMovil()" : "abrirVista('dashboardView')";
+  const esNuevo = !(objetoEdificio.id || objetoEdificio._id);
 
-  if (inDir) inDir.value = objetoEdificio.address || "";
-  if (inNom) inNom.value = objetoEdificio.name || "";
-  if (inTerr) inTerr.value = objetoEdificio.territory || objetoEdificio.territorio || "";
-  if (inId) inId.value = objetoEdificio.id || objetoEdificio._id || "";
+  // Inyectamos el HTML dinámico preservando el diseño adaptativo
+  let htmlContenido = `
+    <div class="card-container" style="padding: 20px; max-width: 500px; margin: 0 auto;">
+      <h3 style="margin-top:0; color:#fff;">${esNuevo ? "➕ Nuevo edificio" : "✏️ Editar edificio"}</h3>
+      
+      <input type="hidden" id="edit_building_id" value="${objetoEdificio.id || objetoEdificio._id || ''}">
+      
+      <label style="font-size:12px; color:#a1a1aa;">Dirección Física (Mandatoria)</label>
+      <input id="edit_address" placeholder="Ej: Corrientes 2223" value="${objetoEdificio.address || (document.getElementById('buildingId')?.value || '')}" style="width:100%; margin-bottom:10px;">
+      
+      <label style="font-size:12px; color:#a1a1aa;">Nombre del Edificio / Referencia</label>
+      <input id="edit_name" placeholder="Ej: Al lado de la hamburguesería" value="${objetoEdificio.name || ''}" style="width:100%; margin-bottom:10px;">
+      
+      <label style="font-size:12px; color:#a1a1aa;">Número de Territorio</label>
+      <input id="edit_territory" type="number" placeholder="Ej: 2" value="${objetoEdificio.territory || objetoEdificio.territorio || ''}" style="width:100%; margin-bottom:12px;">
+      
+      <p style="font-size:13px; margin: 10px 0 5px 0; color:#a1a1aa;">📍 Arrastrá el marcador o tocá el mapa para fijar la ubicación real:</p>
+      <div id="mapaEditor" class="mapaBox" style="height:220px; border-radius:12px; margin-bottom:15px; border:1px solid #3f3f46;"></div>
+      
+      <button class="ok" onclick="guardarCambiosEditor()" style="width:100%; margin-bottom:8px; font-weight:bold;">💾 Guardar Edificio</button>
+      <button class="secondary" onclick="${funcionCancelar}" style="width:100%; margin:0;">❌ Cancelar</button>
+    </div>
+  `;
 
-  // 2. Le damos un delay más seguro (300ms) para garantizar que el div #mapaEditor ya exista en el DOM
+  document.getElementById("editarView").innerHTML = `
+    <div style="padding:10px;"><button class="btn-atras-sutil" onclick="${funcionCancelar}">← Volver</button></div>
+    ${htmlContenido}
+  `;
+
+  // 2. Despliegue seguro de Leaflet sobre el div recién inyectado
   setTimeout(() => {
     const mapaContenedor = document.getElementById("mapaEditor");
-    
-    // 🛡️ CONTROL DE BLINDAJE: Si el div no existe en el HTML, frenamos para evitar el "Map container not found"
     if (!mapaContenedor) {
-      console.error("❌ Error crítico: El contenedor HTML 'mapaEditor' no se encontró en la vista activa.");
+      console.error("❌ Error crítico: No se encontró el div 'mapaEditor' inyectado.");
       return;
     }
 
     const latBase = parseFloat(objetoEdificio.latitude || -27.36708);
     const lngBase = parseFloat(objetoEdificio.longitude || -55.89608);
 
-    // Limpieza segura de instancias previas
     if (leafletMap) {
       try {
         leafletMap.off();
         leafletMap.remove();
-      } catch (e) {
-        console.warn("Aviso en limpieza de mapa:", e);
-      }
+      } catch (e) { console.warn("Limpieza de mapa:", e); }
       leafletMap = null;
     }
 
-    // Inicializamos el mapa de forma segura
-    console.log("🗺️ Inicializando 'mapaEditor' de forma segura...");
+    console.log("🗺️ Inicializando 'mapaEditor' dinámico...");
     leafletMap = L.map('mapaEditor', { zoomControl: true }).setView([latBase, lngBase], 15);
     
-    // Capa clara de OpenStreetMap con nombres de calles legibles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19
     }).addTo(leafletMap);
 
-    if (leafletMarker) { leafletMarker = null; }
-
     leafletMarker = L.marker([latBase, lngBase], { draggable: true }).addTo(leafletMap);
 
-    // Al arrastrar el marcador guardamos dinámicamente las coordenadas físicas finales
-    leafletMarker.on('dragend', function() {
-      const pos = leafletMarker.getLatLng();
-      console.log(`📌 Pin reposicionado: Lat ${pos.lat.toFixed(6)} | Lng ${pos.lng.toFixed(6)}`);
-    });
-
-    // Evento click único en la instancia para reubicar el pin de forma directa
+    // Click en mapa para reposicionar pin
     leafletMap.on('click', function(e) {
-      if (leafletMarker) {
-        leafletMarker.setLatLng(e.latlng);
-      }
+      if (leafletMarker) leafletMarker.setLatLng(e.latlng);
     });
 
-    // Forzamos el recalculo del tamaño del mapa para que no salga gris o cortado
-    setTimeout(() => { 
-      if (leafletMap) leafletMap.invalidateSize(); 
-    }, 150);
-
-  }, 300); // Subimos a 300ms para darle tiempo al renderizado en móviles
+    // Forzar redibujado geométrico para evitar cuadros grises
+    setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 150);
+  }, 250);
 }
 
 /**
- * Captura el formulario del editor y emite la actualización (PUT) o creación (POST)
+ * Captura el formulario dinámico y emite el guardado al backend
  */
 async function guardarCambiosEditor() {
   const id = document.getElementById("edit_building_id")?.value;
@@ -1528,7 +1566,7 @@ async function guardarCambiosEditor() {
     return;
   }
 
-  const coords = leafletMarker ? leafletMarker.getLatLng() : { lat: 0, lng: 0 };
+  const coords = leafletMarker ? leafletMarker.getLatLng() : { lat: -27.36708, lng: -55.89608 };
 
   const payload = {
     address,
@@ -1541,6 +1579,8 @@ async function guardarCambiosEditor() {
   const metodo = id ? "PUT" : "POST";
   const urlEndpoint = id ? `/buildings/${id}` : "/buildings";
 
+  console.log("📦 PAYLOAD DE ALTA ENVIADO:", payload);
+
   try {
     const res = await apiFetch(urlEndpoint, {
       method: metodo,
@@ -1548,92 +1588,36 @@ async function guardarCambiosEditor() {
     });
 
     if (res.ok) {
-      alert("💾 Datos guardados y sincronizados correctamente en la base central.");
-      await preCargarBaseDatosEnMemoria();
+      alert("💾 Edificio guardado y sincronizado correctamente en la base central.");
+      if (typeof preCargarBaseDatosEnMemoria === "function") await preCargarBaseDatosEnMemoria();
       
-      // Enrutamos de regreso al panel operativo según corresponda
-      if (localStorage.getItem("role") === "admin") {
+      const userRole = localStorage.getItem("role") || "predi";
+      if (userRole === "admin") {
         abrirVista("dashboardView");
-        cargarEdificios();
+        if (typeof cargarEdificios === "function") cargarEdificios();
       } else {
-        abrirVista("appContainer");
-        limpiarVista();
+        cancelarEdificioMovil();
       }
     } else {
-      alert("❌ Ocurrió un error en el guardado. Compruebe las validaciones de campos.");
+      alert("❌ Ocurrió un error en el guardado. Compruebe los campos obligatorios.");
     }
   } catch (err) {
     console.error("Error crítico en envío de editor:", err);
+    alert("Error de comunicación con el servidor central.");
   }
 }
 
-function cancelarEditor() {
-  if (localStorage.getItem("role") === "admin") {
-    abrirVista("dashboardView");
-  } else {
-    abrirVista("appContainer");
-    limpiarVista();
-  }
+function cancelarEdificioMovil() {
+  const editarView = document.getElementById("editarView");
+  const appContainer = document.getElementById("appContainer");
+  
+  if (editarView) editarView.classList.remove("active");
+  if (appContainer) appContainer.style.display = "block";
+  
+  if (typeof limpiarVista === "function") limpiarVista();
+  
+  const msgInicial = document.getElementById("mensajeInicial");
+  if (msgInicial) msgInicial.style.display = "block";
 }
 
-// =========================================================================
-// 🚀 INICIALIZACIÓN AUTOMÁTICA AL CARGAR EL DOCUMENTO DOM
-// =========================================================================
 
-// 🚀 INICIALIZADOR BLINDADO DE ARRANCADO DIRECTO (Reemplaza al DOMContentLoaded viejo)
-(function iniciarValidacionInmediata() {
-  console.log("🔄 Inicializando núcleo de la aplicación de relevamiento...");
-
-  // Forzamos la ejecución apenas el script se lee en el navegador
-  const ejecutarControl = () => {
-    const usuarioGuardado = localStorage.getItem("username");
-    const rolGuardado = localStorage.getItem("role");
-
-    // Caso 1: No hay sesión activa. Forzamos el Login limpio en pantalla.
-    if (!usuarioGuardado || !rolGuardado) {
-      console.log("ℹ️ Sin credenciales en memoria. Desplegando formulario de acceso.");
-      localStorage.clear();
-
-      const loginScreen = document.getElementById("loginScreen");
-      if (loginScreen) {
-        loginScreen.style.display = "block";
-        loginScreen.classList.add("active");
-      }
-
-      // Apagamos el resto de las vistas de trabajo
-      ["dashboardView", "appContainer", "editarView", "superAdminView"].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-          el.style.display = "none";
-          el.classList.remove("active");
-        }
-      });
-      return;
-    }
-
-    // Caso 2: El usuario ya estaba logueado de antes de forma válida
-    currentRole = rolGuardado;
-    console.log(`🔄 Sesión recuperada: ${usuarioGuardado} (${currentRole})`);
-
-    const loginScreen = document.getElementById("loginScreen");
-    if (loginScreen) loginScreen.style.display = "none";
-
-    if (currentRole === "admin" || currentRole === "conductor") {
-      abrirVista("dashboardView");
-      setTimeout(() => {
-        if (typeof inicializarMapaGeneralAdministrador === "function") inicializarMapaGeneralAdministrador();
-        if (typeof cargarEdificios === "function") cargarEdificios();
-      }, 100);
-    } else {
-      abrirVista("appContainer");
-      if (typeof limpiarVista === "function") limpiarVista();
-    }
-  };
-
-  // Se ejecuta inmediatamente, y por las dudas, se asegura si el documento ya está listo
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", ejecutarControl);
-  } else {
-    ejecutarControl();
-  }
-})();
