@@ -877,6 +877,222 @@ function tratarEdificioNoEncontrado() {
 }
 
 // =========================================================================
+// 🛠️ MÓDULO ADICIONAL: EDITOR EXPANDIDO DINÁMICO (CREACIÓN / EDICIÓN)
+// =========================================================================
+
+/** * Prepara e inyecta la pantalla de edición ocultando la interfaz del predi de forma segura. */
+function abrirEditorEdificio(objetoEdificio = null) {
+  // 1. Ocultamos el buscador operativo del predi para evitar superposiciones de pantalla
+  const appContainer = document.getElementById("appContainer");
+  if (appContainer) appContainer.style.display = "none";
+
+  // Activamos visualmente la vista del editor
+  abrirVista("editarView");
+  
+  const userRole = localStorage.getItem("role") || "predi";
+  const funcionCancelar = (userRole === "predi") ? "cancelarEdificioMovil()" : "abrirVista('dashboardView')";
+  const esNuevo = !objetoEdificio || !(objetoEdificio.id || objetoEdificio._id);
+
+  // Recuperamos la dirección que el usuario ya había tipeado si es un alta nueva
+  const direccionSugerida = esNuevo ? (document.getElementById('buildingId')?.value || '') : '';
+
+  // 2. Inyección del HTML recuperando el 100% de los campos de tu formulario anterior
+  let htmlContenido = `
+    <div class="card-container" style="padding: 20px; max-width: 500px; margin: 0 auto; text-align: left;">
+      <h3 style="margin-top:0; color:#fff; font-size: 20px; letter-spacing: -0.5px;">
+        ${esNuevo ? "➕ Nuevo edificio" : "✏️ Editar edificio"}
+      </h3>
+      
+      <input type="hidden" id="edit_building_id" value="${objetoEdificio?.id || objetoEdificio?._id || ''}">
+      
+      <label style="font-size:12px; color:#a1a1aa; display:block; margin-top:8px;">Dirección Principal (Obligatoria)</label>
+      <input id="edit_address" placeholder="Ej: Corrientes 2223" value="${objetoEdificio?.address || direccionSugerida}" style="width:100%; margin-bottom:8px; padding:10px; border-radius:8px;">
+      
+      <label style="font-size:12px; color:#a1a1aa; display:block;">Dirección 2 / Detalles de ubicación</label>
+      <input id="edit_address2" placeholder="Ej: Esquina San Martín" value="${objetoEdificio?.address2 || ''}" style="width:100%; margin-bottom:8px; padding:10px; border-radius:8px;">
+      
+      <label style="font-size:12px; color:#a1a1aa; display:block;">Nombre del Edificio / Referencia</label>
+      <input id="edit_name" placeholder="Ej: Torre del Sol" value="${objetoEdificio?.name || ''}" style="width:100%; margin-bottom:8px; padding:10px; border-radius:8px;">
+      
+      <div style="display:flex; gap:10px; margin-bottom:8px;">
+        <div style="flex:1;">
+          <label style="font-size:12px; color:#a1a1aa; display:block;">Territorio</label>
+          <input id="edit_territory" type="number" placeholder="N°" value="${objetoEdificio?.territory || objetoEdificio?.territorio || ''}" style="width:100%; padding:10px; border-radius:8px;">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:12px; color:#a1a1aa; display:block;">Pisos</label>
+          <input id="edit_floors" type="number" placeholder="Pisos" value="${objetoEdificio?.floors || ''}" style="width:100%; padding:10px; border-radius:8px;">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:12px; color:#a1a1aa; display:block;">Deptos x Piso</label>
+          <input id="edit_units" type="number" placeholder="Cant." value="${objetoEdificio?.unitsPerFloor || ''}" style="width:100%; padding:10px; border-radius:8px;">
+        </div>
+      </div>
+
+      <div style="display:flex; gap:20px; margin: 12px 0; background:#1c1c1e; padding:10px; border-radius:8px;">
+        <label style="color:#fff; font-size:14px; cursor:pointer;">
+          <input type="checkbox" id="edit_pb" ${objetoEdificio?.hasGroundFloor ? 'checked' : ''}> Planta Baja
+        </label>
+        <label style="color:#fff; font-size:14px; cursor:pointer;">
+          <input type="checkbox" id="edit_portero" ${objetoEdificio?.hasDoorman ? 'checked' : ''}> Portero Eléctrico
+        </label>
+      </div>
+      
+      <label style="font-size:12px; color:#a1a1aa; display:block;">Descripción / Notas del Edificio</label>
+      <textarea id="edit_description" placeholder="Notas operativas para ingresar..." rows="3" style="width:100%; margin-bottom:12px; padding:10px; border-radius:8px; background:#2c2c2e; border:1px solid #3a3a3c; color:#fff; resize:none;">${objetoEdificio?.description || ''}</textarea>
+      
+      <input type="hidden" id="edit_lat" value="${objetoEdificio?.latitude || ''}">
+      <input type="hidden" id="edit_lng" value="${objetoEdificio?.longitude || ''}">
+
+      <p style="font-size:13px; margin: 5px 0; color:#a1a1aa;">📍 Arrastrá el marcador para fijar la ubicación exacta:</p>
+      <div id="mapaEditor" class="mapaBox" style="height:200px; border-radius:12px; margin-bottom:15px; border:1px solid #3f3f46;"></div>
+      
+      <button class="ok" onclick="guardarCambiosEditor()" style="width:100%; margin-bottom:10px; font-weight:bold; padding:12px;">💾 Guardar Edificio</button>
+      <button class="secondary" onclick="${funcionCancelar}" style="width:100%; margin:0; padding:10px;">❌ Cancelar</button>
+    </div>
+  `;
+
+  // Seteamos la interfaz con su correspondiente botón superior de Volver
+  document.getElementById("editarView").innerHTML = `
+    <div style="padding:10px; text-align:left;">
+      <button class="btn-atras-sutil" onclick="${funcionCancelar}">← Volver al Buscador</button>
+    </div>
+    ${htmlContenido}
+  `;
+
+  // 3. Renderizado del sub-mapa Leaflet resguardando las coordenadas
+  setTimeout(() => {
+    const mapaContenedor = document.getElementById("mapaEditor");
+    if (!mapaContenedor) return;
+
+    const latBase = parseFloat(objetoEdificio?.latitude || -27.36708);
+    const lngBase = parseFloat(objetoEdificio?.longitude || -55.89608);
+
+    // Guardamos las coordenadas iniciales en los hidden inputs correspondientes
+    document.getElementById('edit_lat').value = latBase;
+    document.getElementById('edit_lng').value = lngBase;
+
+    if (leafletMap) {
+      try {
+        leafletMap.off();
+        leafletMap.remove();
+      } catch (e) { console.warn("Aviso en reseteo de mapa:", e); }
+      leafletMap = null;
+    }
+
+    console.log("🗺️ Inicializando mapa del editor...");
+    leafletMap = L.map('mapaEditor', { zoomControl: true }).setView([latBase, lngBase], 15);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19
+    }).addTo(leafletMap);
+
+    leafletMarker = L.marker([latBase, lngBase], { draggable: true }).addTo(leafletMap);
+
+    // Al arrastrar el pin, actualizamos los inputs ocultos correspondientes
+    leafletMarker.on('dragend', function() {
+      const pos = leafletMarker.getLatLng();
+      document.getElementById('edit_lat').value = pos.lat;
+      document.getElementById('edit_lng').value = pos.lng;
+    });
+
+    // Permitir reposicionar haciendo clic directo en cualquier punto del mapa
+    leafletMap.on('click', function(e) {
+      if (leafletMarker) {
+        leafletMarker.setLatLng(e.latlng);
+        document.getElementById('edit_lat').value = e.latlng.lat;
+        document.getElementById('edit_lng').value = e.latlng.lng;
+      }
+    });
+
+    setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 150);
+  }, 250);
+}
+
+/** * Procesa y emite los datos del formulario extendido al servidor central. */
+async function guardarCambiosEditor() {
+  const id = document.getElementById("edit_building_id")?.value;
+  const address = document.getElementById("edit_address")?.value.trim();
+  const address2 = document.getElementById("edit_address2")?.value.trim();
+  const name = document.getElementById("edit_name")?.value.trim();
+  const territory = document.getElementById("edit_territory")?.value.trim();
+  const floors = parseInt(document.getElementById("edit_floors")?.value) || 0;
+  const unitsPerFloor = parseInt(document.getElementById("edit_units")?.value) || 0;
+  const latitude = parseFloat(document.getElementById("edit_lat")?.value) || -27.36708;
+  const longitude = parseFloat(document.getElementById("edit_lng")?.value) || -55.89608;
+  const hasGroundFloor = document.getElementById("edit_pb")?.checked || false;
+  const hasDoorman = document.getElementById("edit_portero")?.checked || false;
+  const description = document.getElementById("edit_description")?.value.trim();
+
+  if (!address) {
+    alert("⚠️ El campo de dirección física es mandatorio.");
+    return;
+  }
+
+  // Empaquetamos la estructura exacta del backend para edificios
+  const payload = {
+    address,
+    address2,
+    name,
+    territory,
+    floors,
+    unitsPerFloor,
+    latitude,
+    longitude,
+    hasGroundFloor,
+    hasDoorman,
+    description
+  };
+
+  const metodo = id ? "PUT" : "POST";
+  const urlEndpoint = id ? `/building/${id}` : "/building"; // Cambiado a /building según tu especificación anterior
+
+  console.log("📦 ENVIANDO ALTA DE EDIFICIO:", payload);
+
+  try {
+    const res = await apiFetch(urlEndpoint, {
+      method: metodo,
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      alert("Edificio guardado exitosamente");
+      if (typeof preCargarBaseDatosEnMemoria === "function") await preCargarBaseDatosEnMemoria();
+      
+      const userRole = localStorage.getItem("role") || "predi";
+      if (userRole === "admin") {
+        abrirVista("dashboardView");
+        if (typeof cargarEdificios === "function") cargarEdificios();
+      } else {
+        cancelarEdificioMovil();
+      }
+    } else {
+      const data = await res.json().catch(() => ({}));
+      alert("Error: " + (data.message || "Error desconocido en el servidor"));
+    }
+  } catch (err) {
+    console.error("Error crítico al guardar el edificio:", err);
+    alert("Error crítico en comunicación con servidor.");
+  }
+}
+
+/** * Función de escape: Cierra el editor y restaura la pantalla del Predi limpia y en su lugar. */
+function cancelarEdificioMovil() {
+  // Quitamos la vista activa del editor
+  const editarView = document.getElementById("editarView");
+  if (editarView) editarView.classList.remove("active");
+
+  // Volvemos a encender el contenedor operativo del predi en primer plano
+  const appContainer = document.getElementById("appContainer");
+  if (appContainer) appContainer.style.display = "block";
+  
+  if (typeof limpiarVista === "function") limpiarVista();
+  
+  const msgInicial = document.getElementById("mensajeInicial");
+  if (msgInicial) msgInicial.style.display = "block";
+}
+
+// =========================================================================
 // 🪟 CONTROLADORES DE MODALES: REPORTES DE PROBLEMAS / INCIDENCIAS
 // =========================================================================
 /** * Abre un prompt integrado para disparar una incidencia directo a tu app.post("/issues") */
@@ -1473,151 +1689,6 @@ function normalizarDireccion(texto) {
     .replace(/\s+/g, " ");
 }
 
-// =========================================================================
-// 🛠️ MÓDULO ADICIONAL: EDITOR EXPANDIDO DINÁMICO (CREACIÓN / EDICIÓN)
-// =========================================================================
 
-function abrirEditorEdificio(objetoEdificio = {}) {
-  // 1. Forzamos la apertura e inyección visual del contenedor
-  abrirVista("editarView");
-  
-  const userRole = localStorage.getItem("role") || "predi";
-  const funcionCancelar = (userRole === "predi") ? "cancelarEdificioMovil()" : "abrirVista('dashboardView')";
-  const esNuevo = !(objetoEdificio.id || objetoEdificio._id);
-
-  // Inyectamos el HTML dinámico preservando el diseño adaptativo
-  let htmlContenido = `
-    <div class="card-container" style="padding: 20px; max-width: 500px; margin: 0 auto;">
-      <h3 style="margin-top:0; color:#fff;">${esNuevo ? "➕ Nuevo edificio" : "✏️ Editar edificio"}</h3>
-      
-      <input type="hidden" id="edit_building_id" value="${objetoEdificio.id || objetoEdificio._id || ''}">
-      
-      <label style="font-size:12px; color:#a1a1aa;">Dirección Física (Mandatoria)</label>
-      <input id="edit_address" placeholder="Ej: Corrientes 2223" value="${objetoEdificio.address || (document.getElementById('buildingId')?.value || '')}" style="width:100%; margin-bottom:10px;">
-      
-      <label style="font-size:12px; color:#a1a1aa;">Nombre del Edificio / Referencia</label>
-      <input id="edit_name" placeholder="Ej: Al lado de la hamburguesería" value="${objetoEdificio.name || ''}" style="width:100%; margin-bottom:10px;">
-      
-      <label style="font-size:12px; color:#a1a1aa;">Número de Territorio</label>
-      <input id="edit_territory" type="number" placeholder="Ej: 2" value="${objetoEdificio.territory || objetoEdificio.territorio || ''}" style="width:100%; margin-bottom:12px;">
-      
-      <p style="font-size:13px; margin: 10px 0 5px 0; color:#a1a1aa;">📍 Arrastrá el marcador o tocá el mapa para fijar la ubicación real:</p>
-      <div id="mapaEditor" class="mapaBox" style="height:220px; border-radius:12px; margin-bottom:15px; border:1px solid #3f3f46;"></div>
-      
-      <button class="ok" onclick="guardarCambiosEditor()" style="width:100%; margin-bottom:8px; font-weight:bold;">💾 Guardar Edificio</button>
-      <button class="secondary" onclick="${funcionCancelar}" style="width:100%; margin:0;">❌ Cancelar</button>
-    </div>
-  `;
-
-  document.getElementById("editarView").innerHTML = `
-    <div style="padding:10px;"><button class="btn-atras-sutil" onclick="${funcionCancelar}">← Volver</button></div>
-    ${htmlContenido}
-  `;
-
-  // 2. Despliegue seguro de Leaflet sobre el div recién inyectado
-  setTimeout(() => {
-    const mapaContenedor = document.getElementById("mapaEditor");
-    if (!mapaContenedor) {
-      console.error("❌ Error crítico: No se encontró el div 'mapaEditor' inyectado.");
-      return;
-    }
-
-    const latBase = parseFloat(objetoEdificio.latitude || -27.36708);
-    const lngBase = parseFloat(objetoEdificio.longitude || -55.89608);
-
-    if (leafletMap) {
-      try {
-        leafletMap.off();
-        leafletMap.remove();
-      } catch (e) { console.warn("Limpieza de mapa:", e); }
-      leafletMap = null;
-    }
-
-    console.log("🗺️ Inicializando 'mapaEditor' dinámico...");
-    leafletMap = L.map('mapaEditor', { zoomControl: true }).setView([latBase, lngBase], 15);
-    
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19
-    }).addTo(leafletMap);
-
-    leafletMarker = L.marker([latBase, lngBase], { draggable: true }).addTo(leafletMap);
-
-    // Click en mapa para reposicionar pin
-    leafletMap.on('click', function(e) {
-      if (leafletMarker) leafletMarker.setLatLng(e.latlng);
-    });
-
-    // Forzar redibujado geométrico para evitar cuadros grises
-    setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 150);
-  }, 250);
-}
-
-/**
- * Captura el formulario dinámico y emite el guardado al backend
- */
-async function guardarCambiosEditor() {
-  const id = document.getElementById("edit_building_id")?.value;
-  const address = document.getElementById("edit_address")?.value.trim();
-  const name = document.getElementById("edit_name")?.value.trim();
-  const territory = document.getElementById("edit_territory")?.value.trim();
-
-  if (!address) {
-    alert("⚠️ El campo de dirección física es mandatorio.");
-    return;
-  }
-
-  const coords = leafletMarker ? leafletMarker.getLatLng() : { lat: -27.36708, lng: -55.89608 };
-
-  const payload = {
-    address,
-    name,
-    territory,
-    latitude: coords.lat,
-    longitude: coords.lng
-  };
-
-  const metodo = id ? "PUT" : "POST";
-  const urlEndpoint = id ? `/buildings/${id}` : "/buildings";
-
-  console.log("📦 PAYLOAD DE ALTA ENVIADO:", payload);
-
-  try {
-    const res = await apiFetch(urlEndpoint, {
-      method: metodo,
-      body: JSON.stringify(payload)
-    });
-
-    if (res.ok) {
-      alert("💾 Edificio guardado y sincronizado correctamente en la base central.");
-      if (typeof preCargarBaseDatosEnMemoria === "function") await preCargarBaseDatosEnMemoria();
-      
-      const userRole = localStorage.getItem("role") || "predi";
-      if (userRole === "admin") {
-        abrirVista("dashboardView");
-        if (typeof cargarEdificios === "function") cargarEdificios();
-      } else {
-        cancelarEdificioMovil();
-      }
-    } else {
-      alert("❌ Ocurrió un error en el guardado. Compruebe los campos obligatorios.");
-    }
-  } catch (err) {
-    console.error("Error crítico en envío de editor:", err);
-    alert("Error de comunicación con el servidor central.");
-  }
-}
-
-function cancelarEdificioMovil() {
-  const editarView = document.getElementById("editarView");
-  const appContainer = document.getElementById("appContainer");
-  
-  if (editarView) editarView.classList.remove("active");
-  if (appContainer) appContainer.style.display = "block";
-  
-  if (typeof limpiarVista === "function") limpiarVista();
-  
-  const msgInicial = document.getElementById("mensajeInicial");
-  if (msgInicial) msgInicial.style.display = "block";
-}
 
 
