@@ -1137,10 +1137,21 @@ async function guardarCambiosEditor() {
 // =========================================================================
 // 🪟 CONTROLADORES DE MODALES: REPORTES DE PROBLEMAS / INCIDENCIAS
 // =========================================================================
-/** * Abre un prompt integrado para disparar una incidencia directo a tu app.post("/issues") */
+
+/** * 1. ALIAS ENRUTADOR DE ACCESO * Resuelve el quiebre de ejecución mapeando el clic inline del HTML ('abrirReporte') * hacia el despliegue del modal de incidencias críticas. */
+
+function abrirReporte() {
+  console.log("📋 Interceptando llamada de interfaz. Abriendo pasarela de incidencias...");
+  abrirModalProblema();
+}
+
+/** * 2. DISPARADOR DE INCIDENCIAS INTEGRADO (PROMPT NATIVO) * Lanza un cuadro emergente del navegador para registrar reportes rápidos en app.post("/issues")*/
 
 async function abrirModalIncidencia() {
-  if (!window.currentBuildingId) return;
+  if (!window.currentBuildingId) {
+    alert("⚠️ Error: No hay un edificio activo seleccionado para reportar.");
+    return;
+  }
   
   const detalle = prompt("⚠️ Escriba el reporte o problema detectado en el edificio:");
   if (!detalle || detalle.trim() === "") return;
@@ -1148,7 +1159,6 @@ async function abrirModalIncidencia() {
   const deptoId = window.departamentoEnFoco ? window.departamentoEnFoco._id : null;
 
   try {
-    // Apunta a tu ruta nativa app.post("/issues")
     const res = await apiFetch("/issues", {
       method: "POST",
       body: JSON.stringify({
@@ -1170,10 +1180,15 @@ async function abrirModalIncidencia() {
     console.error("Error al enviar issue:", err);
   }
 }
-/**
- * Despliega el modal flotante de incidencias críticas en pantalla
- */
+
+/** * 3. APERTURA DEL MODAL PERSONALIZADO * Despliega el contenedor flotante de incidencias críticas en pantalla y le da foco. */
+
 function abrirModalProblema() {
+  if (!window.currentBuildingId) {
+    alert("⚠️ Error: Debe seleccionar o buscar un edificio antes de reportar un problema.");
+    return;
+  }
+
   const modal = document.getElementById("modalProblema");
   if (modal) {
     modal.style.display = "flex";
@@ -1186,9 +1201,8 @@ function abrirModalProblema() {
   }
 }
 
-/**
- * Cierra y limpia de forma segura el modal de incidencias
- */
+/** * 4. CIERRE DEL MODAL PERSONALIZADO * Oculta la interfaz flotante y limpia los efectos visuales de animación. */
+
 function cerrarModalProblema() {
   const modal = document.getElementById("modalProblema");
   if (modal) {
@@ -1198,7 +1212,8 @@ function cerrarModalProblema() {
 }
 
 /**
- * Procesa y despacha el reporte de una incidencia crítica sobre el edificio en foco
+ * 5. DESPACHADOR CENTRAL DE REPORTES CRÍTICOS
+ * Transmite la incidencia al servidor, refresca la caché en segundo plano y actualiza el carrusel.
  */
 async function enviarProblema() {
   const txt = document.getElementById("txtProblema");
@@ -1225,12 +1240,20 @@ async function enviarProblema() {
       cerrarModalProblema();
       
       // Sincronización en caliente y re-renderizado sin perder la posición del carrusel
-      await preCargarBaseDatosEnMemoria();
-      const idx = window.todosLosEdificiosDB.findIndex(b => (b.id || b._id) === window.currentBuildingId);
-      if (idx !== -1) {
-        window.edificiosEncontrados[window.indiceEdificioActual] = window.todosLosEdificiosDB[idx];
+      if (typeof preCargarBaseDatosEnMemoria === "function") {
+        await preCargarBaseDatosEnMemoria();
       }
-      mostrarEdificioActual();
+      
+      if (window.todosLosEdificiosDB && window.todosLosEdificiosDB.length > 0) {
+        const idx = window.todosLosEdificiosDB.findIndex(b => (b.id || b._id) === window.currentBuildingId);
+        if (idx !== -1 && window.edificiosEncontrados[window.indiceEdificioActual]) {
+          window.edificiosEncontrados[window.indiceEdificioActual] = window.todosLosEdificiosDB[idx];
+        }
+      }
+      
+      if (typeof mostrarEdificioActual === "function") {
+        mostrarEdificioActual();
+      }
     } else {
       alert("❌ El servidor rechazó el envío del reporte.");
     }
@@ -1240,22 +1263,27 @@ async function enviarProblema() {
   }
 }
 
-/**
- * Resetea y apaga por completo las cajas del buscador predictivo móvil
- */
+/** * 6. LIMPIEZA TOTAL DE INTERFAZ MÓVIL * Resetea por completo los paneles predictivos del visor usando el objeto seguro UI. */
+
 function limpiarVista() {
-  if (resultado) resultado.innerHTML = "";
-  if (infoEdificio) infoEdificio.style.display = "none";
-  if (reportBtn) reportBtn.style.display = "none";
-  if (btnNuevoEdificio) btnNuevoEdificio.style.display = "none";
+  if (UI.resultado) UI.resultado.innerHTML = "";
+  if (UI.infoEdificio) UI.infoEdificio.style.display = "none";
+  if (UI.reportBtn) UI.reportBtn.style.display = "none";
+  if (UI.btnNuevoEdificio) UI.btnNuevoEdificio.style.display = "none";
   
   if (prediMiniMap) {
-    prediMiniMap.off();
-    prediMiniMap.remove();
+    try {
+      prediMiniMap.off();
+      prediMiniMap.remove();
+    } catch (e) {
+      console.warn("Aviso al remover mapa móvil:", e);
+    }
     prediMiniMap = null;
   }
   window.currentBuildingId = null;
+  console.log("🧼 Interfaz del visor móvil restablecida de forma segura.");
 }
+
 // =========================================================================
 // 💼 PARTE 3: PANEL DE ADMINISTRACIÓN, PAGINACIÓN, MODALES Y SUPERADMIN
 // =========================================================================
