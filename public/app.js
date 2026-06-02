@@ -1,80 +1,106 @@
 // =========================================================================
 // 🚀 PARTE 1: CONFIGURACIÓN ESTRUCTURAL, ESTADOS GLOBALES Y ENRUTADOR DE VISTAS
 // =========================================================================
-// 🌐 CONFIGURACIÓN DEL SERVIDOR CENTRAL (BACKEND)
+
+/**
+ * 1. CONFIGURACIÓN COMPORTAMENTAL DEL ENTORNO DE RED
+ * Establece el punto de enlace base por defecto alineado con el despliegue central.
+ */
 const API_BASE_URL = "https://visitas-app-inxa.onrender.com"; 
-// --- 🌐 DECLARACIÓN DE VARIABLES GLOBALES Y INSTANCIAS DE MAPAS ---
-let leafletMap = null;
-let leafletMarker = null;
-let map = null;
-let prediMiniMap = null;
-let markerClusterGroup = null;
-let currentRole = "";
+
+/**
+ * 2. CONTROL DE SESIÓN Y VARIABLES DE ENTORNO EN TIEMPO REAL
+ * Variables globales mandatorias compartidas por los módulos de autenticación y lógica.
+ */
+let currentUser = localStorage.getItem("username") || localStorage.getItem("user") || "";
+let currentRole = localStorage.getItem("role") || "";
 let paginaActual = 1;
 
-// --- 📦 ESTRATOS DE PERSISTENCIA Y FLUJO EN MEMORIA LOCAL ---
-window.todosLosEdificiosDB = [];     // Pool central de sincronización de la base de datos
-window.edificiosEncontrados = [];    // Resultados del motor predictivo móvil (predi)
-window.indiceEdificioActual = 0;     // Carrusel: Índice activo en el buscador de campo
-window.currentBuildingId = null;     // Transaccional: ID del edificio en foco operativo
-window.miniMapaAdminInstance = null; // Instancia del mapa lateral del administrador
-window.marcadoresClusterGlobal = null; // Grupo de empaquetado de marcadores (Clustering)
-window.miTemporizadorMapa = null;    // Controlador para delays de re-render (InvalidateSize)
-window.edificioActivo = null;
-window.departamentoEnFoco = null; // Guardará el objeto completo del depto ({ _id, number })
-// Variables de estado del módulo SuperAdmin
+/**
+ * 3. REFERENCIAS Y NÚCLEO GEOGRÁFICO (LEAFLET)
+ * Instancias de control para el despliegue, marcadores y agrupamientos de mapas.
+ */
+let leafletMap = null;       // Instancia transaccional utilizada en el formulario de edición
+let leafletMarker = null;    // Marcador arrastrable (Draggable) del formulario de edición
+let map = null;              // Instancia del mapa principal del panel administrativo
+let prediMiniMap = null;     // Instancia del mapa opcional adaptado a la visualización móvil
+let markerClusterGroup = null; // Contenedor lógico para el empaquetado de marcadores masivos
+
+/**
+ * 4. ESTRATOS DE PERSISTENCIA Y FLUJO EN MEMORIA VOLÁTIL
+ * Buffers e índices globales compartidos por el motor de relevamiento y paneles.
+ */
+window.todosLosEdificiosDB = [];       // Pool central de sincronización de la base de datos
+window.baseDatosEdificiosMemoria = []; // Caché unificado para roles de administración y conducción
+window.edificiosEncontrados = [];      // Resultados temporales del motor de búsqueda predictiva
+window.indiceEdificioActual = 0;       // Índice activo del carrusel en el visor móvil del predi
+window.currentBuildingId = null;       // Identificador transaccional del edificio en foco operativo
+window.edificioActivo = null;          // Objeto completo del edificio cargado en la sesión de campo
+window.departamentoEnFoco = null;      // Estructura relacional del departamento bajo análisis ({ _id, number })
+
+// Controladores avanzados de sincronización visual
+window.miTemporizadorMapa = null;      // Manejador del delay de redimensionamiento (InvalidateSize)
+window.miniMapaAdminInstance = null;   // Instancia aislada para previsualizaciones secundarias
+
+// Estados específicos asignados al subsistema SuperAdmin
 window.superAdminAutenticado = false;
 window.superAdminPaginaActual = 1;
 window.superAdminFiltrados = [];
 const ELEMENTOS_POR_PAGINA = 10;
-// --- 🎛️ SELECTORES NATIVOS DEL DOM (VISTA PREDICATIVA / MÓVIL) ---
-const resultado = document.getElementById("resultado");
-const infoEdificio = document.getElementById("infoEdificio");
-const nota = document.getElementById("nota");
-const btnOk = document.getElementById("btnOk");
-const btnNo = document.getElementById("btnNo");
-const btnSiguiente = document.getElementById("btnSiguiente");
-const btnNuevoEdificio = document.getElementById("btnNuevoEdificio");
-const reportBtn = document.getElementById("reportBtn");
-const loadingBar = document.getElementById("loadingBar");
+
+/**
+ * 5. CAPTURA DINÁMICA BLINDADA DEL DOM
+ * Acceso seguro a componentes del visor de campo. Evita inicializaciones nulas prematuras.
+ */
+const UI = {
+  get resultado() { return document.getElementById("resultado"); },
+  get infoEdificio() { return document.getElementById("infoEdificio"); },
+  get nota() { return document.getElementById("nota"); },
+  get btnOk() { return document.getElementById("btnOk"); },
+  get btnNo() { return document.getElementById("btnNo"); },
+  get btnSiguiente() { return document.getElementById("btnSiguiente"); },
+  get btnNuevoEdificio() { return document.getElementById("btnNuevoEdificio"); },
+  get reportBtn() { return document.getElementById("reportBtn"); },
+  get loadingBar() { return document.getElementById("loadingBar"); }
+};
 
 // =========================================================================
-// 🔌 SECTOR: MOTOR DE COMUNICACIÓN CENTRALIZADO (API FETCH INTEGRADO)
+// 🔐 SECTOR: CONTROL DE ACCESO, COMUNICACIÓN CENTRALIZADA Y CONTROL DE VISTAS
 // =========================================================================
 
-/** * Envoltura segura sobre Fetch API para resolver URL base, inyección de encabezados,
- * control visual de carga y manejo automatizado de credenciales (username y role). */
-
+/**
+ * 1. ENVOLTURA DE COMUNICACIÓN SEGURA (API FETCH INTEGRADO)
+ * Centraliza las peticiones al backend resolviendo URL base, headers automáticos de rol,
+ * manejo visual de barras de progreso y ruteo forzado por expiración de credenciales.
+ */
 async function apiFetch(endpoint, options = {}) {
-  // 🔐 Recuperamos credenciales reales asegurando compatibilidad global
+  // Recuperamos credenciales reales asegurando compatibilidad global
   const username = localStorage.getItem('username') || localStorage.getItem('user');
   const role = localStorage.getItem('role');
   
-  // Mantenemos vivas las variables de control global que exige tu backend original
+  // Mantenemos vivas las variables de control global exigidas por el núcleo original
   if (username) currentUser = username;
   if (role) currentRole = role;
   
-  // URL base adaptada para entornos de desarrollo local y tu despliegue en Render
+  // URL base unificada para entornos locales y despliegue definitivo
   const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:3000'
     : 'https://visitas-app-inxa.onrender.com';
 
-  // Si el endpoint ya viene con http o https, lo usamos directo; si no, le pegamos la baseUrl
   const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
 
-  // Configuración por defecto de cabeceras seguras alineadas con tu backend
+  // Configuración base de cabeceras seguras
   options.headers = {
     'Content-Type': 'application/json',
     ...options.headers
   };
 
-  // Inyección estricta en los headers para pasar el requireLogin del servidor
+  // Inyección estricta en cabeceras para validación del middleware 'requireLogin'
   if (username && role) {
     options.headers['x-user'] = username;
     options.headers['x-role'] = role;
   }
 
-  // Desplegamos la barra estética de carga en la parte superior de la UI si existe
   if (typeof loadingBar !== 'undefined' && loadingBar) loadingBar.style.width = "30%";
 
   try {
@@ -85,7 +111,7 @@ async function apiFetch(endpoint, options = {}) {
       if (typeof loadingBar !== 'undefined' && loadingBar) loadingBar.style.width = "0%"; 
     }, 400);
 
-    // Si detectamos que no está autorizado o el token expiró, limpiamos y mandamos al login real
+    // Si las credenciales caducaron o no posee permisos, deslogueamos forzadamente
     if (response.status === 401 || response.status === 403) {
       console.warn("🔐 Credenciales inválidas o sin permisos. Redireccionando...");
       logout();
@@ -101,7 +127,8 @@ async function apiFetch(endpoint, options = {}) {
 }
 
 /**
- * Genera de forma estandarizada los encabezados de autenticación 
+ * 2. ESTRUCTURADOR DE CABECERAS
+ * Genera de forma estandarizada los diccionarios de autenticación para llamadas externas manuales.
  */
 function obtenerHeadersSeguros() {
   return {
@@ -111,8 +138,10 @@ function obtenerHeadersSeguros() {
   };
 }
 
-/** * Controla la visibilidad de la barra o indicador de carga (spinner) */
-
+/**
+ * 3. CONTROLADOR VISUAL DE ESPERA (SPINNER)
+ * Manipula la visibilidad del indicador de carga global o altera el cursor del DOM.
+ */
 function mostrarLoading(mostrar) {
   const spinner = document.getElementById("loading") || document.getElementById("loadingSpinner");
   if (spinner) {
@@ -122,12 +151,9 @@ function mostrarLoading(mostrar) {
   }
 }
 
-// =========================================================================
-// 🔐 SECTOR: CONTROL DE ACCESO, INICIO DE SESIÓN Y ORQUESTADOR DE VISTAS
-// =========================================================================
-
 /**
- * Procesa el inicio de sesión autenticando contra el backend corporativo
+ * 4. PROCESADOR DE LOGEO CENTRAL
+ * Recoge datos de interfaz, valida campos mínimos y autentica la sesión contra el servidor.
  */
 async function login() {
   const userField = document.getElementById("loginUser") || (typeof loginUser !== 'undefined' ? loginUser : null);
@@ -168,18 +194,16 @@ async function login() {
       throw new Error("Usuario o contraseña incorrectos");
     }
 
-    // Almacenamiento seguro usando AMBAS llaves para blindar compatibilidad (Etapa vieja y nueva)
+    // Almacenamiento unificado cruzado para blindar compatibilidad histórica
     localStorage.setItem("username", datos.username);
     localStorage.setItem("user", datos.username);
     localStorage.setItem("role", datos.role);
     
-    // Forzamos inyección en las globales críticas de ejecución
     currentUser = datos.username;
     currentRole = datos.role;
 
     console.log(`🔑 Sesión iniciada con éxito. Usuario: ${currentUser}, Rol: ${currentRole}`);
     
-    // Ejecuta el ruteo inteligente y la carga condicional blindada
     await iniciarAppConPermisos();
 
   } catch (error) {
@@ -196,8 +220,10 @@ async function login() {
   }
 }
 
-/** * Gestiona el arranque de la app y decide qué descargar según el rol (Solución definitiva al 403) */
-
+/**
+ * 5. ORQUESTADOR DE ENTORNO SEGÚN PERMISOS
+ * Modula la UI al loguearse: restringe descargas masivas para evitar errores 403 al rol predi.
+ */
 async function iniciarAppConPermisos() {
   const elLogin = document.getElementById("loginScreen");
   if (elLogin) elLogin.style.display = "none";
@@ -208,32 +234,31 @@ async function iniciarAppConPermisos() {
   const mainDashboard = document.getElementById("mainDashboard");
 
   if (currentRole === "predi") {
-    // 📱 INTERFAZ MÓVIL FORZADA: Apagamos el dashboard administrativo por completo
+    // Interfaz móvil estricta para relevamiento en campo
     if (mainDashboard) mainDashboard.style.display = "none";
-    if (appContainer) appContainer.style.display = "flex";
+    if (appContainer) appContainer.style.setProperty("display", "block", "important");
     
-    // Desactivamos sub-vistas internas residuales
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
     
-    // 🛡️ REGLA DE ORO: Si es predi, TRABAJA BAJO DEMANDA. Cero descargas masivas para evitar el 403.
+    // Regla operativa: Trabajo bajo demanda en tiempo real. No precarga datos masivos.
     window.baseDatosEdificiosMemoria = [];
     console.log("⚡ Entorno Predi configurado. Buscador directo en tiempo real activo.");
     
     if (typeof limpiarVista === "function") limpiarVista();
   } else {
-    // 💻 PANEL DE CONTROL GENERAL (Admin / Conductor)
+    // Panel administrativo centralizado
     if (mainDashboard) mainDashboard.style.display = "block";
     if (appContainer) appContainer.style.display = "none";
     
-    // El administrador sí tiene permiso legal para precargar la base completa en memoria
     await descargarBaseAdministrativa();
-    
     abrirVista("dashboardView");
   }
 }
 
-/** * Descarga masiva exclusiva para roles administrativos */
-
+/**
+ * 6. RECOLECTOR MASIVO DE DATOS ADMINISTRATIVOS
+ * Descarga y almacena en memoria caché los registros globales del sistema para visualización de paneles.
+ */
 async function descargarBaseAdministrativa() {
   try {
     console.log("⏳ Sincronizando datos administrativos con el servidor...");
@@ -250,13 +275,15 @@ async function descargarBaseAdministrativa() {
   }
 }
 
-/** * Orquestador dinámico de navegación: Apaga todas las pantallas y enciende la solicitada */
-
+/**
+ * 7. ENRUTADOR DINÁMICO DE PANTALLAS
+ * Controla visualmente las transiciones ocultando y mostrando selectores de ID específicos.
+ */
 function abrirVista(vistaId) {
-  // 🚨 REGLA DE PRIVACIDAD: Si es predi y quiere husmear vistas de admin, lo devolvemos al módulo móvil
+  // Control de privacidad: Impide el acceso manual de predi a interfaces administrativas
   if (currentRole === "predi" && vistaId !== "editarView" && vistaId !== "appContainer") {
     if (document.getElementById("mainDashboard")) document.getElementById("mainDashboard").style.display = "none";
-    if (document.getElementById("appContainer")) document.getElementById("appContainer").style.display = "flex";
+    if (document.getElementById("appContainer")) document.getElementById("appContainer").style.setProperty("display", "block", "important");
     return;
   }
 
@@ -266,7 +293,9 @@ function abrirVista(vistaId) {
     const el = document.getElementById(id);
     if (el) {
       if (id === vistaId) {
-        if (id === "appContainer" || id === "dashboardView") {
+        if (id === "appContainer") {
+          el.style.setProperty("display", "block", "important");
+        } else if (id === "dashboardView") {
           el.style.display = "flex";
         } else {
           el.style.display = "block";
@@ -279,7 +308,7 @@ function abrirVista(vistaId) {
     }
   });
 
-  // Manejo de pantallas especiales para predi editando un edificio sugerido
+  // Excepción visual específica para cuando el predi opera el formulario de edición
   if (vistaId === "editarView" && currentRole === "predi") {
     if (document.getElementById("appContainer")) document.getElementById("appContainer").style.display = "none";
     if (document.getElementById("mainDashboard")) document.getElementById("mainDashboard").style.display = "block";
@@ -290,8 +319,10 @@ function abrirVista(vistaId) {
   }
 }
 
-/** * Cierra sesión borrando el caché local y devuelve al usuario al loginScreen */
-
+/**
+ * 8. CIERRE DE SESIÓN
+ * Borra las credenciales activas del almacenamiento, limpia buffers volátiles y reescribe UI al login.
+ */
 function logout() {
   localStorage.clear();
   currentUser = "";
@@ -302,8 +333,10 @@ function logout() {
   abrirVista("loginScreen");
 }
 
-/** * Oidor de carga inicial: Recupera la sesión guardada de forma automática al abrir la web */
-
+/**
+ * 9. RECEPTOR DE CARGA DEL DOCUMENTO Y ESCANEO QR
+ * Restaura sesiones e intercepta parámetros de búsqueda por query string (?building=) al inicializar.
+ */
 window.addEventListener("load", async () => {
   const savedUser = localStorage.getItem("username") || localStorage.getItem("user");
   const savedRole = localStorage.getItem("role");
@@ -317,7 +350,7 @@ window.addEventListener("load", async () => {
     abrirVista("loginScreen");
   }
   
-  // Soporte nativo para enlaces QR móviles (?building=ID)
+  // Enlaces QR directos
   const params = new URLSearchParams(window.location.search);
   const buildingIdParam = params.get("building");
   if (buildingIdParam && typeof cargarDepto === "function") {
@@ -329,20 +362,18 @@ window.addEventListener("load", async () => {
   }
 });
 
-// =========================================================================
-// 🚀 INICIALIZACIÓN AUTOMÁTICA AL CARGAR EL DOCUMENTO DOM
-// =========================================================================
-
-// 🚀 INICIALIZADOR BLINDADO DE ARRANCADO DIRECTO (Reemplaza al DOMContentLoaded viejo)
+/**
+ * 10. INICIALIZADOR INMEDIATO AUTOCONVOCADO
+ * Analiza el estado del LocalStorage en el milisegundo cero de carga para mitigar parpadeos de interfaz.
+ */
 (function iniciarValidacionInmediata() {
   console.log("🔄 Inicializando núcleo de la aplicación de relevamiento...");
 
-  // Forzamos la ejecución apenas el script se lee en el navegador
   const ejecutarControl = () => {
     const usuarioGuardado = localStorage.getItem("username");
     const rolGuardado = localStorage.getItem("role");
 
-    // Caso 1: No hay sesión activa. Forzamos el Login limpio en pantalla.
+    // Bloque A: Sin credenciales. Reset preventivo e imposición de login
     if (!usuarioGuardado || !rolGuardado) {
       console.log("ℹ️ Sin credenciales en memoria. Desplegando formulario de acceso.");
       localStorage.clear();
@@ -353,7 +384,6 @@ window.addEventListener("load", async () => {
         loginScreen.classList.add("active");
       }
 
-      // Apagamos el resto de las vistas de trabajo
       ["dashboardView", "appContainer", "editarView", "superAdminView"].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
@@ -364,8 +394,9 @@ window.addEventListener("load", async () => {
       return;
     }
 
-    // Caso 2: El usuario ya estaba logueado de antes de forma válida
+    // Bloque B: Sesión existente recuperada. Ruteo según rol
     currentRole = rolGuardado;
+    currentUser = usuarioGuardado;
     console.log(`🔄 Sesión recuperada: ${usuarioGuardado} (${currentRole})`);
 
     const loginScreen = document.getElementById("loginScreen");
@@ -383,7 +414,6 @@ window.addEventListener("load", async () => {
     }
   };
 
-  // Se ejecuta inmediatamente, y por las dudas, se asegura si el documento ya está listo
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", ejecutarControl);
   } else {
@@ -846,8 +876,14 @@ window.addEventListener('online', async () => {
   }
 });
 
+
+
+// =========================================================================
+// 🛠️ MÓDULO ADICIONAL: EDITOR EXPANDIDO DINÁMICO (CREACIÓN / EDICIÓN)
+// =========================================================================
+
 /**
- * 7. INTERRUPTOR VISUAL DE EXCEPCIONES
+ * 1. INTERRUPTOR VISUAL DE EXCEPCIONES
  * Oculta paneles y despliega opciones de rescate en caso de direcciones inexistentes.
  */
 function tratarEdificioNoEncontrado() {
@@ -862,7 +898,7 @@ function tratarEdificioNoEncontrado() {
   if (deptoLabel) deptoLabel.innerText = "--";
   
   if (btnNuevo) {
-    btnNuevo.style.display = "block";
+    btnNuevo.style.setProperty("display", "block", "important");
     btnNuevo.onclick = function() {
       const direccionIngresada = inputCampo ? inputCampo.value.trim() : "";
       console.log(`➕ Pasarela de rescate: Abriendo editor dinámico para "${direccionIngresada}"`);
@@ -876,27 +912,27 @@ function tratarEdificioNoEncontrado() {
   if (document.getElementById("infoEdificio")) document.getElementById("infoEdificio").style.display = "none";
 }
 
-// =========================================================================
-// 🛠️ MÓDULO ADICIONAL: EDITOR EXPANDIDO DINÁMICO (CREACIÓN / EDICIÓN)
-// =========================================================================
-
-/** * Prepara e inyecta la pantalla de edición ocultando la interfaz del predi de forma segura. */
+/**
+ * 2. APERTURA Y RENDERIZADO DEL EDITOR
+ * Prepara e inyecta la pantalla de edición ocultando de raíz la interfaz del predi.
+ */
 function abrirEditorEdificio(objetoEdificio = null) {
-  // 1. Ocultamos el buscador operativo del predi para evitar superposiciones de pantalla
+  // Apagamos los contenedores principales para evitar superposiciones
   const appContainer = document.getElementById("appContainer");
-  if (appContainer) appContainer.style.display = "none";
+  const dashboardView = document.getElementById("dashboardView");
+  
+  if (appContainer) appContainer.style.setProperty("display", "none", "important");
+  if (dashboardView) dashboardView.style.setProperty("display", "none", "important");
 
-  // Activamos visualmente la vista del editor
+  // Activamos la vista del editor
   abrirVista("editarView");
   
   const userRole = localStorage.getItem("role") || "predi";
   const funcionCancelar = (userRole === "predi") ? "cancelarEdificioMovil()" : "abrirVista('dashboardView')";
   const esNuevo = !objetoEdificio || !(objetoEdificio.id || objetoEdificio._id);
-
-  // Recuperamos la dirección que el usuario ya había tipeado si es un alta nueva
   const direccionSugerida = esNuevo ? (document.getElementById('buildingId')?.value || '') : '';
 
-  // 2. Inyección del HTML recuperando el 100% de los campos de tu formulario anterior
+  // Inyectamos el HTML con el diseño limpio y los campos recuperados
   let htmlContenido = `
     <div class="card-container" style="padding: 20px; max-width: 500px; margin: 0 auto; text-align: left;">
       <h3 style="margin-top:0; color:#fff; font-size: 20px; letter-spacing: -0.5px;">
@@ -952,15 +988,15 @@ function abrirEditorEdificio(objetoEdificio = null) {
     </div>
   `;
 
-  // Seteamos la interfaz con su correspondiente botón superior de Volver
+  // Modificación estética: Solo la flecha limpia de retroceso
   document.getElementById("editarView").innerHTML = `
-    <div style="padding:10px; text-align:left;">
-      <button class="btn-atras-sutil" onclick="${funcionCancelar}">← Volver al Buscador</button>
+    <div style="padding: 10px 15px; text-align: left;">
+      <button onclick="${funcionCancelar}" style="background: none; border: none; color: #a1a1aa; font-size: 26px; cursor: pointer; padding: 5px 10px;">←</button>
     </div>
     ${htmlContenido}
   `;
 
-  // 3. Renderizado del sub-mapa Leaflet resguardando las coordenadas
+  // Despliegue de mapa Leaflet coordinado
   setTimeout(() => {
     const mapaContenedor = document.getElementById("mapaEditor");
     if (!mapaContenedor) return;
@@ -968,7 +1004,6 @@ function abrirEditorEdificio(objetoEdificio = null) {
     const latBase = parseFloat(objetoEdificio?.latitude || -27.36708);
     const lngBase = parseFloat(objetoEdificio?.longitude || -55.89608);
 
-    // Guardamos las coordenadas iniciales en los hidden inputs correspondientes
     document.getElementById('edit_lat').value = latBase;
     document.getElementById('edit_lng').value = lngBase;
 
@@ -976,27 +1011,20 @@ function abrirEditorEdificio(objetoEdificio = null) {
       try {
         leafletMap.off();
         leafletMap.remove();
-      } catch (e) { console.warn("Aviso en reseteo de mapa:", e); }
+      } catch (e) { console.warn(e); }
       leafletMap = null;
     }
 
-    console.log("🗺️ Inicializando mapa del editor...");
     leafletMap = L.map('mapaEditor', { zoomControl: true }).setView([latBase, lngBase], 15);
-    
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19
-    }).addTo(leafletMap);
-
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(leafletMap);
     leafletMarker = L.marker([latBase, lngBase], { draggable: true }).addTo(leafletMap);
 
-    // Al arrastrar el pin, actualizamos los inputs ocultos correspondientes
     leafletMarker.on('dragend', function() {
       const pos = leafletMarker.getLatLng();
       document.getElementById('edit_lat').value = pos.lat;
       document.getElementById('edit_lng').value = pos.lng;
     });
 
-    // Permitir reposicionar haciendo clic directo en cualquier punto del mapa
     leafletMap.on('click', function(e) {
       if (leafletMarker) {
         leafletMarker.setLatLng(e.latlng);
@@ -1009,7 +1037,40 @@ function abrirEditorEdificio(objetoEdificio = null) {
   }, 250);
 }
 
-/** * Procesa y emite los datos del formulario extendido al servidor central. */
+/**
+ * 3. RETORNO DE INTERFAZ MÓVIL
+ * Función de escape definitiva: Desactiva el editor de raíz y acopla el display del predi.
+ */
+function cancelarEdificioMovil() {
+  console.log("🚪 Ejecutando salida limpia del editor...");
+
+  // Apagamos físicamente el contenedor del editor y vaciamos su contenido
+  const editarView = document.getElementById("editarView");
+  if (editarView) {
+    editarView.innerHTML = ""; 
+    editarView.classList.remove("active");
+    editarView.style.setProperty("display", "none", "important");
+  }
+
+  // Encendemos de forma mandatoria el appContainer restaurando su diseño nativo (.container)
+  const appContainer = document.getElementById("appContainer");
+  if (appContainer) {
+    appContainer.style.setProperty("display", "block", "important");
+  }
+  
+  // Ejecutamos la limpieza interna nativa de tu app
+  if (typeof limpiarVista === "function") {
+    limpiarVista();
+  }
+  
+  // Encendemos el cartel guía del buscador
+  const msgInicial = document.getElementById("mensajeInicial");
+  if (msgInicial) msgInicial.style.setProperty("display", "block", "important");
+}
+
+/** * 4. PERSISTENCIA EN SERVIDOR CENTRAL
+ * Procesa y emite los datos del formulario extendido al servidor central. 
+ */
 async function guardarCambiosEditor() {
   const id = document.getElementById("edit_building_id")?.value;
   const address = document.getElementById("edit_address")?.value.trim();
@@ -1045,7 +1106,7 @@ async function guardarCambiosEditor() {
   };
 
   const metodo = id ? "PUT" : "POST";
-  const urlEndpoint = id ? `/building/${id}` : "/building"; // Cambiado a /building según tu especificación anterior
+  const urlEndpoint = id ? `/building/${id}` : "/building";
 
   console.log("📦 ENVIANDO ALTA DE EDIFICIO:", payload);
 
@@ -1074,22 +1135,6 @@ async function guardarCambiosEditor() {
     console.error("Error crítico al guardar el edificio:", err);
     alert("Error crítico en comunicación con servidor.");
   }
-}
-
-/** * Función de escape: Cierra el editor y restaura la pantalla del Predi limpia y en su lugar. */
-function cancelarEdificioMovil() {
-  // Quitamos la vista activa del editor
-  const editarView = document.getElementById("editarView");
-  if (editarView) editarView.classList.remove("active");
-
-  // Volvemos a encender el contenedor operativo del predi en primer plano
-  const appContainer = document.getElementById("appContainer");
-  if (appContainer) appContainer.style.display = "block";
-  
-  if (typeof limpiarVista === "function") limpiarVista();
-  
-  const msgInicial = document.getElementById("mensajeInicial");
-  if (msgInicial) msgInicial.style.display = "block";
 }
 
 // =========================================================================
