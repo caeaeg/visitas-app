@@ -1305,13 +1305,29 @@ async function enviarReporte() {
 }
 
 /** * 4. REINICIO COMPORTAMENTAL DE INTERFAZ MÓVIL * Vacía y oculta los paneles del visor usando el objeto seguro UI. */
-
 function limpiarVista() {
   if (UI.resultado) UI.resultado.innerHTML = "";
   if (UI.infoEdificio) UI.infoEdificio.style.display = "none";
   if (UI.reportBtn) UI.reportBtn.style.display = "none";
   if (UI.btnNuevoEdificio) UI.btnNuevoEdificio.style.display = "none";
   
+  // 🎨 COMPLEMENTO GHOST: Apagamos y ocultamos los controles de votación y notas
+  const botonera = document.getElementById("botoneraVotacion");
+  if (botonera) botonera.style.display = "none";
+
+  const nota = document.getElementById("nota");
+  if (nota) nota.style.display = "none";
+
+  const btnSiguiente = document.getElementById("btnSiguiente");
+  if (btnSiguiente) {
+    btnSiguiente.style.visibility = "hidden";
+    btnSiguiente.style.display = "none";
+  }
+
+  // Reseteamos las clases de selección por seguridad
+  document.getElementById("btnOk")?.classList.remove("seleccionado");
+  document.getElementById("btnNo")?.classList.remove("seleccionado");
+
   if (prediMiniMap) {
     try {
       prediMiniMap.off();
@@ -1322,7 +1338,7 @@ function limpiarVista() {
     prediMiniMap = null;
   }
   window.currentBuildingId = null;
-  console.log("🧼 Interfaz del visor móvil restablecida de forma segura.");
+  console.log("🧼 Interfaz del visor móvil restablecida de forma segura (Limpieza completa).");
 }
 
 // =========================================================================
