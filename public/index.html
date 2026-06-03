@@ -92,23 +92,45 @@
     }
     .secondary:hover { background: #3f3f46; }
 
-    /* 🎨 Estilo Cuadrado Estético y Compacto para Fila Única */
+    /* 🎨 Estilo Avanzado Ghost / Border-Only para Fila Única (Modo Oscuro) */
     .ok {
-      background: #16a34a; /* Verde plano de alta visibilidad */
-      color: #ffffff;
+      background: rgba(22, 163, 74, 0.05); /* Fondo casi invisible de base */
+      color: #4ade80; /* Texto verde brillante pastel (legible en oscuro) */
       height: 54px;
       font-size: 17px;
-      border-radius: 6px; /* 📐 Estilo cuadrado pulido */
-      box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25);
+      border-radius: 6px;
+      border: 1px solid #16a34a; /* Borde verde sólido */
+      box-shadow: none;
+    }
+    .ok:hover {
+      background: rgba(22, 163, 74, 0.15); /* Feedback sutil al pasar el dedo/mouse */
+    }
+    /* 🔥 Estado encendido cuando se selecciona ATENDIÓ */
+    .ok.seleccionado {
+      background: #16a34a !important; /* Se enciende a verde pleno */
+      color: #ffffff !important;
+      border-color: #16a34a !important;
+      box-shadow: 0 4px 15px rgba(22, 163, 74, 0.4);
     }
 
     .no {
-      background: #dc2626; /* Rojo plano de alta visibilidad */
-      color: #ffffff;
+      background: rgba(220, 38, 38, 0.05); /* Fondo casi invisible de base */
+      color: #f87171; /* Texto rojo brillante pastel */
       height: 54px;
       font-size: 17px;
-      border-radius: 6px; /* 📐 Estilo cuadrado pulido */
-      box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
+      border-radius: 6px;
+      border: 1px solid #dc2626; /* Borde rojo sólido */
+      box-shadow: none;
+    }
+    .no:hover {
+      background: rgba(220, 38, 38, 0.15); /* Feedback sutil al pasar el dedo/mouse */
+    }
+    /* 🔥 Estado encendido cuando se selecciona NO EN CASA */
+    .no.seleccionado {
+      background: #dc2626 !important; /* Se enciende a rojo pleno */
+      color: #ffffff !important;
+      border-color: #dc2626 !important;
+      box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
     }
 
     /* --- CSS: SECCIONES GENERALES Y VISTAS --- */
