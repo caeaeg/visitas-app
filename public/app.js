@@ -76,44 +76,39 @@ const UI = {
  * manejo visual de barras de progreso y ruteo forzado por expiración de credenciales.
  */
 async function apiFetch(endpoint, options = {}) {
-  // Recuperamos credenciales reales asegurando compatibilidad global
   const username = localStorage.getItem('username') || localStorage.getItem('user');
   const role = localStorage.getItem('role');
   
-  // Mantenemos vivas las variables de control global exigidas por el núcleo original
   if (username) currentUser = username;
   if (role) currentRole = role;
   
-  // URL base unificada para entornos locales y despliegue definitivo
   const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:3000'
     : 'https://visitas-app-inxa.onrender.com';
 
   const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
 
-  // Configuración base de cabeceras seguras
   options.headers = {
     'Content-Type': 'application/json',
     ...options.headers
   };
 
-  // Inyección estricta en cabeceras para validación del middleware 'requireLogin'
   if (username && role) {
     options.headers['x-user'] = username;
     options.headers['x-role'] = role;
   }
 
-  if (typeof loadingBar !== 'undefined' && loadingBar) loadingBar.style.width = "30%";
+  const lBar = document.getElementById("loadingBar");
+  if (lBar) lBar.style.width = "30%";
 
   try {
     const response = await fetch(url, options);
     
-    if (typeof loadingBar !== 'undefined' && loadingBar) loadingBar.style.width = "100%";
+    if (lBar) lBar.style.width = "100%";
     setTimeout(() => { 
-      if (typeof loadingBar !== 'undefined' && loadingBar) loadingBar.style.width = "0%"; 
+      if (lBar) lBar.style.width = "0%"; 
     }, 400);
 
-    // Si las credenciales caducaron o no posee permisos, deslogueamos forzadamente
     if (response.status === 401 || response.status === 403) {
       console.warn("🔐 Credenciales inválidas o sin permisos. Redireccionando...");
       logout();
@@ -122,7 +117,7 @@ async function apiFetch(endpoint, options = {}) {
 
     return response;
   } catch (error) {
-    if (typeof loadingBar !== 'undefined' && loadingBar) loadingBar.style.width = "0%";
+    if (lBar) lBar.style.width = "0%";
     console.error("❌ Error físico de red en apiFetch:", error);
     throw error;
   }
@@ -130,7 +125,6 @@ async function apiFetch(endpoint, options = {}) {
 
 /**
  * 2. ESTRUCTURADOR DE CABECERAS
- * Genera de forma estandarizada los diccionarios de autenticación para llamadas externas manuales.
  */
 function obtenerHeadersSeguros() {
   return {
@@ -142,7 +136,6 @@ function obtenerHeadersSeguros() {
 
 /**
  * 3. CONTROLADOR VISUAL DE ESPERA (SPINNER)
- * Manipula la visibilidad del indicador de carga global o altera el cursor del DOM.
  */
 function mostrarLoading(mostrar) {
   const spinner = document.getElementById("loading") || document.getElementById("loadingSpinner");
@@ -155,11 +148,10 @@ function mostrarLoading(mostrar) {
 
 /**
  * 4. PROCESADOR DE LOGEO CENTRAL
- * Recoge datos de interfaz, valida campos mínimos y autentica la sesión contra el servidor.
  */
 async function login() {
-  const userField = document.getElementById("loginUser") || (typeof loginUser !== 'undefined' ? loginUser : null);
-  const passField = document.getElementById("loginPass") || (typeof loginPass !== 'undefined' ? loginPass : null);
+  const userField = document.getElementById("loginUser");
+  const passField = document.getElementById("loginPass");
   const msgLabel = document.getElementById("loginMsg");
 
   const user = userField?.value.trim();
@@ -196,7 +188,6 @@ async function login() {
       throw new Error("Usuario o contraseña incorrectos");
     }
 
-    // Almacenamiento unificado cruzado para blindar compatibilidad histórica
     localStorage.setItem("username", datos.username);
     localStorage.setItem("user", datos.username);
     localStorage.setItem("role", datos.role);
@@ -223,35 +214,46 @@ async function login() {
 }
 
 /**
- * 5. ORQUESTADOR DE ENTORNO SEGÚN PERMISOS
- * Modula la UI al loguearse: restringe descargas masivas para evitar errores 403 al rol predi.
+ * 5. ORQUESTADOR DE ENTORNO SEGÚN PERMISOS Y ROLES DE TRABAJO
+ * Modula la UI adaptándola de forma exacta al Publicador, Conductor o Admin.
  */
 async function iniciarAppConPermisos() {
   const elLogin = document.getElementById("loginScreen");
+  const navbar = document.getElementById("navbarGlobal");
+  const badge = document.getElementById("badge-rol-usuario");
+  const btnSuperAdmin = document.getElementById("btnSuperAdminMenu");
+
   if (elLogin) elLogin.style.display = "none";
+  if (navbar) navbar.style.display = "flex";
   
   if (typeof aplicarPermisos === "function") aplicarPermisos();
 
-  const appContainer = document.getElementById("appContainer");
-  const mainDashboard = document.getElementById("mainDashboard");
-
   if (currentRole === "predi") {
-    // Interfaz móvil estricta para relevamiento en campo
-    if (mainDashboard) mainDashboard.style.display = "none";
-    if (appContainer) appContainer.style.setProperty("display", "block", "important");
+    // 🚪 USUARIO PREDI (PUBLICADOR): Va directo puerta a puerta, visor móvil directo en tiempo real.
+    if (badge) badge.innerText = "Publicador (Predi)";
+    if (btnSuperAdmin) btnSuperAdmin.style.display = "none";
     
-    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-    
-    // Regla operativa: Trabajo bajo demanda en tiempo real. No precarga datos masivos.
     window.baseDatosEdificiosMemoria = [];
-    console.log("⚡ Entorno Predi configurado. Buscador directo en tiempo real activo.");
+    console.log("⚡ Entorno PUBLICADOR (Puerta a puerta) configurado. Visor móvil activo.");
     
     if (typeof limpiarVista === "function") limpiarVista();
-  } else {
-    // Panel administrativo centralizado
-    if (mainDashboard) mainDashboard.style.display = "block";
-    if (appContainer) appContainer.style.display = "none";
+    abrirVista("appContainer");
+
+  } else if (currentRole === "conductor") {
+    // 🧭 USUARIO CONDUCTOR: Capitanea un grupo, ve el mapa y estadísticas pero NO SuperAdmin.
+    if (badge) badge.innerText = "Conductor de Grupo";
+    if (btnSuperAdmin) btnSuperAdmin.style.display = "none";
     
+    console.log("🗺️ Entorno CONDUCTOR (Líder de Grupo) configurado. Cargando panel operativo.");
+    await descargarBaseAdministrativa();
+    abrirVista("dashboardView");
+
+  } else if (currentRole === "admin") {
+    // 👑 USUARIO ADMIN: Administrador total del sistema.
+    if (badge) badge.innerText = "Administrador";
+    if (btnSuperAdmin) btnSuperAdmin.style.display = "flex";
+    
+    console.log("👑 Entorno ADMINISTRADOR TOTAL activo.");
     await descargarBaseAdministrativa();
     abrirVista("dashboardView");
   }
@@ -259,7 +261,6 @@ async function iniciarAppConPermisos() {
 
 /**
  * 6. RECOLECTOR MASIVO DE DATOS ADMINISTRATIVOS
- * Descarga y almacena en memoria caché los registros globales del sistema para visualización de paneles.
  */
 async function descargarBaseAdministrativa() {
   try {
@@ -270,7 +271,7 @@ async function descargarBaseAdministrativa() {
     const resultado = await respuesta.json();
     window.baseDatosEdificiosMemoria = resultado.data || [];
     window.todosLosEdificiosDB = window.baseDatosEdificiosMemoria;
-    console.log(`✅ Sincronización exitosa. ${window.baseDatosEdificiosMemoria.length} edificios cargados en panel admin.`);
+    console.log(`✅ Sincronización exitosa. ${window.baseDatosEdificiosMemoria.length} edificios cargados.`);
   } catch (error) {
     console.warn("⚠️ Error en precarga masiva:", error.message);
     window.baseDatosEdificiosMemoria = []; 
@@ -278,30 +279,21 @@ async function descargarBaseAdministrativa() {
 }
 
 /**
- * 7. ENRUTADOR DINÁMICO DE PANTALLAS
- * Controla visualmente las transiciones ocultando y mostrando selectores de ID específicos.
+ * 7. ENRUTADOR DINÁMICO DE PANTALLAS (PROTECCIÓN ESTRICTA POR ROL)
  */
 function abrirVista(vistaId) {
-  // Control de privacidad: Impide el acceso manual de predi a interfaces administrativas
   if (currentRole === "predi" && vistaId !== "editarView" && vistaId !== "appContainer") {
-    if (document.getElementById("mainDashboard")) document.getElementById("mainDashboard").style.display = "none";
-    if (document.getElementById("appContainer")) document.getElementById("appContainer").style.setProperty("display", "block", "important");
+    abrirVista("appContainer");
     return;
   }
 
-  const vistas = ["loginScreen", "loginView", "dashboardView", "appContainer", "editarView", "superAdminView"];
+  const vistas = ["loginScreen", "dashboardView", "territorioView", "problemasView", "appContainer", "editarView", "superAdminView"];
   
   vistas.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       if (id === vistaId) {
-        if (id === "appContainer") {
-          el.style.setProperty("display", "block", "important");
-        } else if (id === "dashboardView") {
-          el.style.display = "flex";
-        } else {
-          el.style.display = "block";
-        }
+        el.style.display = "block";
         el.classList.add("active");
       } else {
         el.style.display = "none";
@@ -310,25 +302,42 @@ function abrirVista(vistaId) {
     }
   });
 
-  // Excepción visual específica para cuando el predi opera el formulario de edición
-  if (vistaId === "editarView" && currentRole === "predi") {
-    if (document.getElementById("appContainer")) document.getElementById("appContainer").style.display = "none";
-    if (document.getElementById("mainDashboard")) document.getElementById("mainDashboard").style.display = "block";
+  const navbar = document.getElementById("navbarGlobal");
+  const btnVolver = document.getElementById("btnVolverNavbar");
+
+  if (vistaId === "loginScreen") {
+    if (navbar) navbar.style.display = "none";
+  } else {
+    if (navbar) navbar.style.display = "flex";
+    if (vistaId === "dashboardView" || vistaId === "appContainer") {
+      if (btnVolver) btnVolver.style.display = "none";
+    } else {
+      if (btnVolver) btnVolver.style.display = "block";
+    }
   }
 
-  if (vistaId === "dashboardView" && typeof mapaGeneral !== 'undefined' && mapaGeneral) {
+  if (vistaId === "territorioView") {
+    setTimeout(() => {
+      if (typeof inicializarMapaGeneralAdministrador === "function") {
+        inicializarMapaGeneralAdministrador();
+      }
+      if (typeof ejecutarFiltrosAdmin === "function") {
+        ejecutarFiltrosAdmin();
+      }
+    }, 100);
+  }
+
+  if (vistaId === "territorioView" && typeof mapaGeneral !== 'undefined' && mapaGeneral) {
     setTimeout(() => { mapaGeneral.invalidateSize(); }, 200);
   }
 }
 
-/** * 8. CIERRE DE SESIÓN * Borra las credenciales activas del almacenamiento, limpia buffers volátiles y reescribe UI al login. */
-
+/**
+ * 8. CIERRE DE SESIÓN
+ */
 function logout() {
-  // 🔥 CONTRAGOLPE AL AUTOCOMPLETADO: Vaciamos el input únicamente al destruir la sesión
   const buscador = document.getElementById("buildingId");
-  if (buscador) {
-    buscador.value = "";
-  }
+  if (buscador) buscador.value = "";
 
   localStorage.clear();
   currentUser = "";
@@ -337,15 +346,13 @@ function logout() {
   window.baseDatosEdificiosMemoria = [];
   window.edificiosEncontrados = [];
   
-  // Limpiamos el resto de los paneles del visor (mapas, botones, notas)
-  limpiarVista();
+  if (typeof limpiarVista === "function") limpiarVista();
 
   abrirVista("loginScreen");
 }
 
 /**
  * 9. RECEPTOR DE CARGA DEL DOCUMENTO Y ESCANEO QR
- * Restaura sesiones e intercepta parámetros de búsqueda por query string (?building=) al inicializar.
  */
 window.addEventListener("load", async () => {
   const savedUser = localStorage.getItem("username") || localStorage.getItem("user");
@@ -354,13 +361,12 @@ window.addEventListener("load", async () => {
   if (savedUser && savedRole) {
     currentUser = savedUser;
     currentRole = savedRole;
-    console.log(`🔄 Restaurando sesión activa en segundo plano para: ${currentUser}`);
+    console.log(`🔄 Restaurando sesión activa para: ${currentUser} (${currentRole})`);
     await iniciarAppConPermisos();
   } else {
     abrirVista("loginScreen");
   }
   
-  // Enlaces QR directos
   const params = new URLSearchParams(window.location.search);
   const buildingIdParam = params.get("building");
   if (buildingIdParam && typeof cargarDepto === "function") {
@@ -374,27 +380,25 @@ window.addEventListener("load", async () => {
 
 /**
  * 10. INICIALIZADOR INMEDIATO AUTOCONVOCADO
- * Analiza el estado del LocalStorage en el milisegundo cero de carga para mitigar parpadeos de interfaz.
  */
 (function iniciarValidacionInmediata() {
-  console.log("🔄 Inicializando núcleo de la aplicación de relevamiento...");
+  console.log("🔄 Inicializando núcleo de la aplicación...");
 
   const ejecutarControl = () => {
     const usuarioGuardado = localStorage.getItem("username");
     const rolGuardado = localStorage.getItem("role");
 
-    // Bloque A: Sin credenciales. Reset preventivo e imposición de login
     if (!usuarioGuardado || !rolGuardado) {
-      console.log("ℹ️ Sin credenciales en memoria. Desplegando formulario de acceso.");
       localStorage.clear();
-
       const loginScreen = document.getElementById("loginScreen");
       if (loginScreen) {
         loginScreen.style.display = "block";
         loginScreen.classList.add("active");
       }
+      const navbar = document.getElementById("navbarGlobal");
+      if (navbar) navbar.style.display = "none";
 
-      ["dashboardView", "appContainer", "editarView", "superAdminView"].forEach(id => {
+      ["dashboardView", "territorioView", "problemasView", "appContainer", "editarView", "superAdminView"].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           el.style.display = "none";
@@ -404,23 +408,30 @@ window.addEventListener("load", async () => {
       return;
     }
 
-    // Bloque B: Sesión existente recuperada. Ruteo según rol
     currentRole = rolGuardado;
     currentUser = usuarioGuardado;
-    console.log(`🔄 Sesión recuperada: ${usuarioGuardado} (${currentRole})`);
 
     const loginScreen = document.getElementById("loginScreen");
     if (loginScreen) loginScreen.style.display = "none";
 
-    if (currentRole === "admin" || currentRole === "conductor") {
+    const navbar = document.getElementById("navbarGlobal");
+    const badge = document.getElementById("badge-rol-usuario");
+    const btnSuperAdmin = document.getElementById("btnSuperAdminMenu");
+
+    if (navbar) navbar.style.display = "flex";
+
+    if (currentRole === "admin") {
+      if (badge) badge.innerText = "Administrador";
+      if (btnSuperAdmin) btnSuperAdmin.style.display = "flex";
       abrirVista("dashboardView");
-      setTimeout(() => {
-        if (typeof inicializarMapaGeneralAdministrador === "function") inicializarMapaGeneralAdministrador();
-        if (typeof cargarEdificios === "function") cargarEdificios();
-      }, 100);
-    } else {
+    } else if (currentRole === "conductor") {
+      if (badge) badge.innerText = "Conductor de Grupo";
+      if (btnSuperAdmin) btnSuperAdmin.style.display = "none";
+      abrirVista("dashboardView");
+    } else if (currentRole === "predi") {
+      if (badge) badge.innerText = "Publicador (Predi)";
+      if (btnSuperAdmin) btnSuperAdmin.style.display = "none";
       abrirVista("appContainer");
-      if (typeof limpiarVista === "function") limpiarVista();
     }
   };
 
