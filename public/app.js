@@ -546,9 +546,8 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
   }
 }
 
-/** * 3. CONTROLADOR INTERFAZ FLUJO MÓVIL 
- * Sincroniza la visibilidad y limpia los paneles de index.html para iniciar la votación. 
- */
+/** * 3. CONTROLADOR INTERFAZ FLUJO MÓVIL  * Sincroniza la visibilidad y limpia los paneles de index.html para iniciar la votación.  */
+
 async function mostrarEstructuraFlujoVisita() {
   const d = window.departamentoEnFoco;
 
@@ -566,9 +565,13 @@ async function mostrarEstructuraFlujoVisita() {
     btnSiguiente.setAttribute("onclick", "ejecutarAvanzarDepartamento()");
   }
 
-  // 🎨 APAGADO PREVENTIVO GHOST: Apaga los botones para el nuevo departamento entrante
+  // 🎨 APAGADO PREVENTIVO GHOST: Apaga los botones individuales para el nuevo departamento entrante
   document.getElementById("btnOk")?.classList.remove("seleccionado");
   document.getElementById("btnNo")?.classList.remove("seleccionado");
+
+  // 🔥 NUEVO: Encendemos el contenedor general de la botonera envoltura
+  const botonera = document.getElementById("botoneraVotacion");
+  if (botonera) botonera.style.display = "flex";
 
   // Ajustes de visibilidad de controles nativos
   if (document.getElementById("mensajeInicial")) document.getElementById("mensajeInicial").style.display = "none";
