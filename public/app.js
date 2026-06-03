@@ -546,8 +546,9 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
   }
 }
 
-/** * 3. CONTROLADOR INTERFAZ FLUJO MÓVIL * Sincroniza la visibilidad y limpia los paneles de index.html para iniciar la votación. */
-
+/** * 3. CONTROLADOR INTERFAZ FLUJO MÓVIL 
+ * Sincroniza la visibilidad y limpia los paneles de index.html para iniciar la votación. 
+ */
 async function mostrarEstructuraFlujoVisita() {
   const d = window.departamentoEnFoco;
 
@@ -564,6 +565,10 @@ async function mostrarEstructuraFlujoVisita() {
     btnSiguiente.style.display = "none";
     btnSiguiente.setAttribute("onclick", "ejecutarAvanzarDepartamento()");
   }
+
+  // 🎨 APAGADO PREVENTIVO GHOST: Apaga los botones para el nuevo departamento entrante
+  document.getElementById("btnOk")?.classList.remove("seleccionado");
+  document.getElementById("btnNo")?.classList.remove("seleccionado");
 
   // Ajustes de visibilidad de controles nativos
   if (document.getElementById("mensajeInicial")) document.getElementById("mensajeInicial").style.display = "none";
@@ -711,6 +716,7 @@ window.votoTemporal = null;
 /**
  * 5. SELECCIÓN DE ESTADO EN PANTALLA (FASE DE PREPARACIÓN)
  * Captura el clic de los botones, pinta visualmente la interfaz y habilita el avance.
+ * Aplica encendido dinámico sólido sobre estilos Ghost en Modo Oscuro.
  */
 function marcar(estado) {
   // 🔒 Validación estricta de nivel 2: Filtramos valores espurios antes de retener
@@ -722,6 +728,21 @@ function marcar(estado) {
   if (!window.departamentoEnFoco || !window.departamentoEnFoco._id) {
     alert("⚠️ No hay un departamento en foco para asignarle este estado.");
     return;
+  }
+
+  // 🎨 CONTROL VISUAL GHOST: Captura de botones y encendido inteligente
+  const btnOk = document.getElementById("btnOk");
+  const btnNo = document.getElementById("btnNo");
+
+  if (btnOk) btnOk.classList.remove("seleccionado");
+  if (btnNo) btnNo.classList.remove("seleccionado");
+
+  if (estado === "ATENDIO" && btnOk) {
+    btnOk.classList.add("seleccionado");
+    console.log("🟢 Interfaz: Botón 'ATENDIÓ' encendido en verde sólido.");
+  } else if (estado === "NO_EN_CASA" && btnNo) {
+    btnNo.classList.add("seleccionado");
+    console.log("🔴 Interfaz: Botón 'NO EN CASA' encendido en rojo sólido.");
   }
 
   // Retenemos la elección de forma interna en memoria (No viaja al servidor todavía)
