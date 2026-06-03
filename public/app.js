@@ -1626,14 +1626,10 @@ async function verHistorialLogs(id) {
 // 🗺️ SECCIÓN 7: MOTOR CARTOGRÁFICO MAESTRO CENTRAL (ADMIN APP)
 // =========================================================================
 
-let mapaGeneral = null;
-let marcadoresClusterGlobal = null;
-
-/**
- * 7.1 INICIALIZACIÓN DE LA ARQUITECTURA DEL MAPA MAESTRO GENERAL
+/** * 7.1 INICIALIZACIÓN DE LA ARQUITECTURA DEL MAPA MAESTRO GENERAL
  * Levanta la instancia principal enfocada en Posadas usando el set global directo
- * de polígonos e inicializa el detector de zooms profundos para las capas visuales.
- */
+ * de polígonos e inicializa el detector de zooms profundos para las capas visuales. */
+
 function inicializarMapaGeneralAdministrador() {
   const mapaDiv = document.getElementById("mapaGeneralAdmin") || document.getElementById("map");
   if (!mapaDiv || mapaGeneral) return;
