@@ -1351,13 +1351,19 @@ function limpiarVista() {
   console.log("🧼 Interfaz del visor móvil restablecida de forma segura (Limpieza completa).");
 }
 
-// =========================================================================
-// 💼 PARTE 3: PANEL DE ADMINISTRACIÓN, PAGINACIÓN, MODALES Y SUPERADMIN
-// =========================================================================
+/**
+ * =========================================================================
+ * 💼 SECCIÓN 6: PANEL DE ADMINISTRACIÓN, PAGINACIÓN, MODALES Y SUPERADMIN
+ * =========================================================================
+ * Este módulo unifica el renderizado de la grilla operativa del Administrador,
+ * los controles de paginación optimizados en memoria, el control de modales de
+ * detalle técnico y la consola avanzada con clave maestra para el SuperAdmin.
+ */
 
 /**
- * Renderiza la tabla principal del Administrador con paginación integrada.
- * Consume los datos directamente de 'window.todosLosEdificiosDB'.
+ * 6.1 RENDERIZADO DE LA GRILLA OPERATIVA DEL ADMINISTRADOR
+ * Consume los datos directamente de 'window.todosLosEdificiosDB' y dibuja las filas
+ * aplicando un formato estético de estados en base a la paleta de colores del sistema.
  */
 async function cargarEdificios() {
   const tablaCuerpo = document.getElementById("tablaEdificiosCuerpo");
@@ -1367,10 +1373,12 @@ async function cargarEdificios() {
 
   // Si no hay datos cargados, intentamos una sincronización rápida
   if (!window.todosLosEdificiosDB || window.todosLosEdificiosDB.length === 0) {
-    await preCargarBaseDatosEnMemoria();
+    if (typeof preCargarBaseDatosEnMemoria === 'function') {
+      await preCargarBaseDatosEnMemoria();
+    }
   }
 
-  const datosAIterar = window.todosLosEdificiosDB;
+  const datosAIterar = window.todosLosEdificiosDB || [];
 
   if (datosAIterar.length === 0) {
     tablaCuerpo.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#a1a1aa; padding:20px;">📭 No hay edificios registrados en el sistema.</td></tr>`;
@@ -1401,7 +1409,7 @@ async function cargarEdificios() {
       <td><span style="color: ${colorEstado}; font-weight: bold; font-size: 13px;">● ${estado}</span></td>
       <td style="text-align: center;">
         <button class="btn-action-view" onclick="verDetalleEdificioAdmin('${idEdificio}')" title="Ver Detalles">👁️</button>
-        <button class="btn-action-edit" onclick="abrirEditorEdificio({id: '${idEdificio}'})" title="Editar">✏️</button>
+        <button class="btn-action-edit" onclick="abrirEditorEdificio(${JSON.stringify(e).replace(/'/g, "&apos;")})" title="Editar">✏️</button>
       </td>
     `;
     tablaCuerpo.appendChild(fila);
@@ -1411,7 +1419,8 @@ async function cargarEdificios() {
 }
 
 /**
- * Actualiza dinámicamente las etiquetas y estados de los botones de paginación del Admin
+ * 6.2 CONTROLES DE FLUJO DE PAGINACIÓN ADMIN
+ * Actualiza dinámicamente las etiquetas de estado y procesa el desplazamiento incremental de la grilla.
  */
 function actualizarControlesPaginacion(totalElementos) {
   const totalPaginas = Math.ceil(totalElementos / ELEMENTOS_POR_PAGINA) || 1;
@@ -1427,7 +1436,8 @@ function actualizarControlesPaginacion(totalElementos) {
 }
 
 function cambiarPaginaAdmin(direccion) {
-  const totalPaginas = Math.ceil(window.todosLosEdificiosDB.length / ELEMENTOS_POR_PAGINA) || 1;
+  const totalElementos = window.todosLosEdificiosDB ? window.todosLosEdificiosDB.length : 0;
+  const totalPaginas = Math.ceil(totalElementos / ELEMENTOS_POR_PAGINA) || 1;
   
   if (direccion === -1 && paginaActual > 1) {
     paginaActual--;
@@ -1438,96 +1448,30 @@ function cambiarPaginaAdmin(direccion) {
 }
 
 /**
- * Despliega el panel lateral/modal con el desglose técnico completo de un edificio
- * @param {string} id - ID único del edificio seleccionado
+ * 6.3 INTERRUPTOR GENERAL DE MODALES DE AUDITORÍA
+ * Oculta el panel técnico lateral de administración y remueve de memoria de forma limpia las instancias cartográficas.
  */
-async function verDetalleEdificioAdmin(id) {
-  const edificio = window.todosLosEdificiosDB.find(b => (b.id || b._id) === id);
-  if (!edificio) return;
-
-  const panel = document.getElementById("panelDetalleAdmin");
-  const contenido = document.getElementById("contenidoDetalleAdmin");
-  
-  if (!panel || !contenido) return;
-
-  window.currentBuildingId = id; // Fijamos contexto de operación
-
-  contenido.innerHTML = `
-    <h3 style="margin-top:0; color:#ffffff; font-size:20px; border-bottom:1px solid #3f3f46; padding-bottom:8px;">${edificio.address || 'Sin Dirección'}</h3>
-    <table class="table-detalle-tecnico" style="width:100%; border-collapse:collapse; margin-top:10px; font-size:13px; color:#e4e4e7;">
-      <tr><td style="padding:6px 0; color:#a1a1aa;">🏢 Nombre:</td><td style="font-weight:600;">${edificio.name || '-'}</td></tr>
-      <tr><td style="padding:6px 0; color:#a1a1aa;">📍 Dirección 2:</td><td>${edificio.address2 || edificio.direccion2 || '-'}</td></tr>
-      <tr><td style="padding:6px 0; color:#a1a1aa;">🗺️ Territorio:</td><td><strong>${edificio.territory || edificio.territorio || '-'}</strong></td></tr>
-      <tr><td style="padding:6px 0; color:#a1a1aa;">📊 Estado Actual:</td><td><span style="font-weight:bold;">${(edificio.status || edificio.estado || 'Pendiente').toUpperCase()}</span></td></tr>
-      <tr><td style="padding:6px 0; color:#a1a1aa;">📈 Total Visitas:</td><td>${edificio.visitas || 0}</td></tr>
-      <tr><td style="padding:6px 0; color:#a1a1aa;">🌐 Latitud:</td><td style="font-family:monospace;">${edificio.latitude || edificio.lat || '-'}</td></tr>
-      <tr><td style="padding:6px 0; color:#a1a1aa;">🌐 Longitud:</td><td style="font-family:monospace;">${edificio.longitude || edificio.lng || '-'}</td></tr>
-      <tr><td style="padding:6px 0; color:#a1a1aa;">📝 Historial/Notas:</td><td style="font-style:italic; color:#cbd5e1;">"${edificio.notes || 'Sin anotaciones registradas'}"</td></tr>
-    </table>
-    
-    <div id="adminMiniMapContainer" style="width:100%; height:180px; border-radius:8px; margin-top:15px; background:#27272a; position:relative;"></div>
-  `;
-
-  panel.style.display = "block";
-
-  // --- Render del Mapa de Detalle para el Administrador ---
-  setTimeout(() => {
-    const lat = parseFloat(edificio.latitude || edificio.lat);
-    const lng = parseFloat(edificio.longitude || edificio.lng);
-
-    if (isNaN(lat) || isNaN(lng)) {
-      const container = document.getElementById("adminMiniMapContainer");
-      if (container) container.innerHTML = `<div style="color:#a1a1aa; text-align:center; padding-top:75px; font-size:12px;">📍 Registro sin coordenadas geográficas asociadas</div>`;
-      return;
-    }
-
-    if (window.miniMapaAdminInstance) {
-      window.miniMapaAdminInstance.off();
-      window.miniMapaAdminInstance.remove();
-      window.miniMapaAdminInstance = null;
-    }
-
-    try {
-      window.miniMapaAdminInstance = L.map('adminMiniMapContainer', {
-        zoomControl: true,
-        attributionControl: false
-      }).setView([lat, lng], 16);
-
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(window.miniMapaAdminInstance);
-
-      L.marker([lat, lng]).addTo(window.miniMapaAdminInstance)
-        .bindPopup(edificio.address || "Edificio")
-        .openPopup();
-
-      setTimeout(() => { if (window.miniMapaAdminInstance) window.miniMapaAdminInstance.invalidateSize(); }, 150);
-    } catch (err) {
-      console.error("Error al instanciar mapa del administrador:", err);
-    }
-  }, 120);
-}
-
 function cerrarDetalleAdmin() {
-  const panel = document.getElementById("panelDetalleAdmin");
+  const panel = document.getElementById("panelDetalleEdificio") || document.getElementById("panelDetalleAdmin");
   if (panel) panel.style.display = "none";
   
   if (window.miniMapaAdminInstance) {
-    window.miniMapaAdminInstance.off();
-    window.miniMapaAdminInstance.remove();
+    try {
+      window.miniMapaAdminInstance.off();
+      window.miniMapaAdminInstance.remove();
+    } catch (e) { console.warn("Error apagando miniMapaAdminInstance:", e); }
     window.miniMapaAdminInstance = null;
   }
 }
 
-// =========================================================================
-// 🔑 CORE DE PRIVILEGIOS AVANZADOS: MÓDULO SUPERADMIN
-// =========================================================================
-
 /**
- * Valida la clave maestra de acceso y abre la consola avanzada del SuperAdmin
+ * 6.4 CONSOLA DE VALIDACIÓN SUPERADMIN
+ * Procesa la llave maestra estructural de seguridad y conmuta la vista hacia el entorno analítico.
  */
 function verificarAccesoSuperAdmin() {
   const claveInput = document.getElementById("superAdminKey")?.value.trim();
 
-  if (claveInput === "2414") { // Llave maestra estructural de seguridad
+  if (claveInput === "2414") {
     window.superAdminAutenticado = true;
     alert("🔓 Acceso de SuperAdmin Autorizado. Abriendo panel avanzado...");
     if (document.getElementById("superAdminKey")) document.getElementById("superAdminKey").value = "";
@@ -1539,36 +1483,50 @@ function verificarAccesoSuperAdmin() {
   }
 }
 
+function abrirAccesoSuperAdmin() {
+  const clave = prompt("🔑 Ingrese la clave maestra de SuperAdmin:");
+  if (clave) {
+    if (clave === "2414") {
+      window.superAdminAutenticado = true;
+      alert("🔓 Acceso de SuperAdmin Autorizado. Abriendo panel avanzado...");
+      abrirVista("superAdminView");
+      window.superAdminPaginaActual = 1;
+      ejecutarFiltroSuperAdmin();
+    } else {
+      alert("❌ Clave maestra incorrecta. Intento denegado.");
+    }
+  }
+}
+
 /**
- * Procesa filtros cruzados de incidencias y renderiza la tabla analítica avanzada
+ * 6.5 FILTRADO E INTERFACES DE CONTROL DEL SUPERADMIN
+ * Filtra cruzadamente las incidencias críticas reportadas desde el campo de trabajo y renderiza la grilla analítica destructiva.
  */
 function ejecutarFiltroSuperAdmin() {
   if (!window.superAdminAutenticado) return;
 
   const selectorFiltro = document.getElementById("superAdminFiltroEstado")?.value || "TODOS";
+  const origenDatos = window.todosLosEdificiosDB || [];
   
-  // El SuperAdmin trabaja priorizando edificios que reporten problemas o notas de campo
-  window.superAdminFiltrados = window.todosLosEdificiosDB.filter(e => {
+  window.superAdminFiltrados = origenDatos.filter(e => {
     const estado = (e.status || e.estado || "Pendiente").toUpperCase();
     
     if (selectorFiltro === "TODOS") return true;
-    if (selectorFiltro === "PROBLEMA") return (estado === "PROBLEMA" || estado === "INCIDENCIA" || !!e.problema);
+    if (selectorFiltro === "PROBLEMA") return (estado === "PROBLEMA" || estado === "INCIDENCIA" || !!e.problema || !!e.issue);
     return estado === selectorFiltro;
   });
 
   renderizarTablaSuperAdmin();
 }
 
-/**
- * Renderiza la grilla operativa del SuperAdmin con herramientas de borrado e historiales
- */
 function renderizarTablaSuperAdmin() {
   const tabla = document.getElementById("tablaSuperAdminCuerpo");
   if (!tabla) return;
 
   tabla.innerHTML = "";
+  const datosSuper = window.superAdminFiltrados || [];
 
-  if (window.superAdminFiltrados.length === 0) {
+  if (datosSuper.length === 0) {
     tabla.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#a1a1aa; padding:20px;">📭 Ningún registro cumple el criterio del filtro seleccionado.</td></tr>`;
     actualizarPaginacionSuperAdmin(0);
     return;
@@ -1576,16 +1534,17 @@ function renderizarTablaSuperAdmin() {
 
   const inicio = (window.superAdminPaginaActual - 1) * ELEMENTOS_POR_PAGINA;
   const fin = inicio + ELEMENTOS_POR_PAGINA;
-  const segmento = window.superAdminFiltrados.slice(inicio, fin);
+  const segmento = datosSuper.slice(inicio, fin);
 
   segmento.forEach(e => {
     const id = e.id || e._id;
     const fila = document.createElement("tr");
+    const detalleProblema = e.notes || e.problema || (e.issue ? e.issue.description : 'Sin incidencias activas');
     
     fila.innerHTML = `
       <td style="color:#ffffff; font-weight:500;">${e.address || 'Sin Dirección'}</td>
       <td style="color:#e4e4e7;">${e.territory || e.territorio || '-'}</td>
-      <td style="color:#fcd34d; font-size:12px; max-width:200px; overflow:hidden; text-overflow:ellipsis;">${e.notes || e.problema || 'Sin incidencias activas'}</td>
+      <td style="color:#fcd34d; font-size:12px; max-width:200px; overflow:hidden; text-overflow:ellipsis;">${detalleProblema}</td>
       <td style="color:#cbd5e1; font-weight:bold; font-size:12px;">${(e.status || e.estado || 'Pendiente').toUpperCase()}</td>
       <td style="text-align:center;">
         <button class="btn-super-history" onclick="verHistorialLogs('${id}')" title="Ver Historial de Logs">📜</button>
@@ -1595,7 +1554,7 @@ function renderizarTablaSuperAdmin() {
     tabla.appendChild(fila);
   });
 
-  actualizarPaginacionSuperAdmin(window.superAdminFiltrados.length);
+  actualizarPaginacionSuperAdmin(datosSuper.length);
 }
 
 function actualizarPaginacionSuperAdmin(total) {
@@ -1611,15 +1570,16 @@ function actualizarPaginacionSuperAdmin(total) {
 }
 
 function cambiarPaginaSuper(dir) {
-  const totalPaginas = Math.ceil(window.superAdminFiltrados.length / ELEMENTOS_POR_PAGINA) || 1;
+  const datosSuper = window.superAdminFiltrados || [];
+  const totalPaginas = Math.ceil(datosSuper.length / ELEMENTOS_POR_PAGINA) || 1;
   if (dir === -1 && window.superAdminPaginaActual > 1) window.superAdminPaginaActual--;
   if (dir === 1 && window.superAdminPaginaActual < totalPaginas) window.superAdminPaginaActual++;
   renderizarTablaSuperAdmin();
 }
 
 /**
- * Ejecuta la eliminación física definitiva de un registro en la Base de Datos
- * @param {string} id - ID del edificio a destruir
+ * 6.6 ACCIONES CRÍTICAS EN CASCADA Y HISTÓRICOS DE LOGS
+ * Ejecuta la eliminación física irreversible en el backend y parsea las trazas de auditoría profunda.
  */
 async function eliminarEdificioDestructivo(id) {
   const confirmacion = confirm("⚠️ ADVERTENCIA CRÍTICA ⚠️\n\n¿Está absolutamente seguro de eliminar permanentemente este edificio? Esta acción borrará de forma irreversible el historial de visitas, coordenadas y reportes asociados.");
@@ -1629,9 +1589,9 @@ async function eliminarEdificioDestructivo(id) {
     const res = await apiFetch(`/admin/buildings/${id}`, { method: "DELETE" });
     if (res.ok) {
       alert("🗑️ El registro ha sido eliminado físicamente de la base de datos.");
-      await preCargarBaseDatosEnMemoria();
+      if (typeof preCargarBaseDatosEnMemoria === 'function') await preCargarBaseDatosEnMemoria();
       ejecutarFiltroSuperAdmin();
-      if (typeof cargarEdificios === "function") cargarEdificios(); // Sincroniza la vista general de Admin
+      if (typeof cargarEdificios === "function") cargarEdificios();
     } else {
       alert("❌ Error: El servidor denegó la solicitud de borrado.");
     }
@@ -1641,9 +1601,6 @@ async function eliminarEdificioDestructivo(id) {
   }
 }
 
-/**
- * Consulta y despliega la traza de auditoría profunda de acciones de un registro
- */
 async function verHistorialLogs(id) {
   try {
     const res = await apiFetch(`/admin/buildings/${id}/logs`);
@@ -1663,137 +1620,96 @@ async function verHistorialLogs(id) {
   }
 }
 
-// Enlace de compatibilidad para el botón de SuperAdmin del HTML
-function abrirAccesoSuperAdmin() {
-  const clave = prompt("🔑 Ingrese la clave maestra de SuperAdmin:");
-  if (clave) {
-    const inputOculto = document.getElementById("superAdminKey") || { value: "" };
-    inputOculto.value = clave; 
-    // Si no tenés el input físico en el HTML, le pasamos el valor directo a la función de validación
-    if (clave === "2414") {
-      window.superAdminAutenticado = true;
-      alert("🔓 Acceso de SuperAdmin Autorizado. Abriendo panel avanzado...");
-      abrirVista("superAdminView");
-      window.superAdminPaginaActual = 1;
-      if (typeof ejecutarFiltroSuperAdmin === "function") ejecutarFiltroSuperAdmin();
-    } else {
-      alert("❌ Clave maestra incorrecta. Intento denegado.");
-    }
-  }
-}
 // =========================================================================
-// 🗺️ PARTE 4: MOTOR CARTOGRÁFICO MAESTRO, CAPAS GEOJSON Y COMPLEMENTOS VIALES
+// 🗺️ SECCIÓN 7: MOTOR CARTOGRÁFICO MAESTRO CENTRAL (ADMIN APP)
 // =========================================================================
 
 let mapaGeneral = null;
-let capaGeoJSONFija = null;
+let marcadoresClusterGlobal = null;
 
 /**
- * Inicializa la arquitectura del mapa general interactivo del Administrador.
- * Monta las coordenadas de centrado enfocadas en Posadas.
+ * 7.1 INICIALIZACIÓN DE LA ARQUITECTURA DEL MAPA MAESTRO GENERAL
+ * Levanta la instancia principal enfocada en Posadas usando el set global directo
+ * de polígonos e inicializa el detector de zooms profundos para las capas visuales.
  */
 function inicializarMapaGeneralAdministrador() {
-  const mapaDiv = document.getElementById("mapaGeneralAdmin");
-  if (!mapaDiv || mapaGeneral) return; // Salvaguarda contra duplicación de instancia
+  const mapaDiv = document.getElementById("mapaGeneralAdmin") || document.getElementById("map");
+  if (!mapaDiv || mapaGeneral) return;
 
   try {
-    // Coordenadas base centradas en Posadas, Misiones, Argentina
-    mapaGeneral = L.map('mapaGeneralAdmin', {
+    mapaGeneral = L.map(mapaDiv.id, {
       zoomControl: true,
       attributionControl: false
     }).setView([-27.36708, -55.89608], 13);
 
-    // Capa base de mapas en estética oscura (Dark Mode Pro)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 20,
-      subdomains: 'abcd'
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19
     }).addTo(mapaGeneral);
 
-    // Carga complementaria de los polígonos de zonas y territorios
-    cargarZonasGeoJSON();
+    // Renderizado inmediato y directo de los polígonos estables de territorios.js
+    if (typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
+      L.geoJSON(misTerritoriosGeoJSON, {
+        style: function(feature) {
+          const idTerritorio = parseInt(feature.properties?.name || feature.properties?.Territorio_N || 0);
+          const paletaPastel = ["#473f57", "#394a51", "#3d4a3e", "#54483b", "#513939", "#4b3947", "#393b51"];
+          const colorAsignado = paletaPastel[idTerritorio % paletaPastel.length];
 
-    // Event listener único y optimizado para ajustar visibilidad de etiquetas según el zoom
+          return {
+            fillColor: colorAsignado,
+            weight: 2,
+            opacity: 0.9,
+            color: "#52525b",
+            fillOpacity: 0.35
+          };
+        },
+        onEachFeature: function(feature, layer) {
+          const nombreZona = feature.properties?.name || feature.properties?.Territorio_N || "S/D";
+          
+          layer.bindTooltip(String(nombreZona), {
+            permanent: true,
+            direction: 'center',
+            className: 'texto-territorio-elegante'
+          });
+
+          layer.on('mouseover', function () { this.setStyle({ fillOpacity: 0.60 }); });
+          layer.on('mouseout', function () { this.setStyle({ fillOpacity: 0.35 }); });
+
+          layer.on('click', function(e) {
+            const comboFiltro = document.getElementById("busquedaTerritorio");
+            if (comboFiltro) {
+              comboFiltro.value = nombreZona;
+              paginaActual = 1;
+              if (typeof ejecutarFiltrosAdmin === 'function') {
+                ejecutarFiltrosAdmin();
+              } else {
+                cargarEdificios();
+              }
+            }
+          });
+        }
+      }).addTo(mapaGeneral);
+      
+      console.log("🗺️ Capa vectorial de polígonos inyectada con éxito en Mapa Maestro.");
+    }
+
+    // Detector dinámico para optimizar las etiquetas de texto según profundidad de zoom
     mapaGeneral.on('zoomend', function() {
       const zoomActual = mapaGeneral.getZoom();
-      const etiquetas = document.querySelectorAll('.label-territorio-mapa');
+      const etiquetas = document.querySelectorAll('.texto-territorio-elegante');
       
       etiquetas.forEach(tag => {
-        // Solo mostramos textos de zonas en zooms profundos para evitar saturar la GPU
         if (zoomActual >= 14) {
-          tag.style.display = 'block';
+          tag.classList.add('vista-cerca');
+          tag.classList.remove('zoom-alejado');
         } else {
-          tag.style.display = 'none';
+          tag.classList.remove('vista-cerca');
+          tag.classList.add('zoom-alejado');
         }
       });
     });
 
   } catch (err) {
     console.error("❌ Fallo crítico al levantar la arquitectura Leaflet principal:", err);
-  }
-}
-
-/**
- * Descarga e inyecta la capa de polígonos vectoriales GeoJSON en el mapa maestro.
- * Aplica estilos en paleta de colores pasteles translúcidos sobre fondo oscuro.
- */
-async function cargarZonasGeoJSON() {
-  if (!mapaGeneral) return;
-
-  try {
-    // Si manejás el GeoJSON local en memoria o desde un endpoint específico
-    const res = await apiFetch('/assets/territorios.geojson');
-    if (!res.ok) {
-      console.warn("⚠️ Archivo territorios.geojson no disponible en el servidor o ruta inválida.");
-      return;
-    }
-    
-    const datosGeoJSON = await res.json();
-
-    capaGeoJSONFija = L.geoJSON(datosGeoJSON, {
-      style: function(feature) {
-        // Asignación de colores pasteles basada en el residuo numérico de la zona
-        const idTerritorio = parseInt(feature.properties?.name || feature.properties?.Territorio_N || 0);
-        const paletaPastel = ["#473f57", "#394a51", "#3d4a3e", "#54483b", "#513939", "#4b3947", "#393b51"];
-        const colorAsignado = paletaPastel[idTerritorio % paletaPastel.length];
-
-        return {
-          fillColor: colorAsignado,
-          weight: 1.5,
-          opacity: 0.7,
-          color: "#52525b", // Gris neutro oscuro para las líneas divisorias
-          fillOpacity: 0.25
-        };
-      },
-      onEachFeature: function(feature, layer) {
-        const nombreZona = feature.properties?.name || feature.properties?.Territorio_N || "S/D";
-        
-        // Vinculamos un tooltip permanente en el centro geométrico del polígono
-        layer.bindTooltip(`Zona ${nombreZona}`, {
-          permanent: true,
-          direction: 'center',
-          className: 'label-territorio-mapa'
-        });
-
-        // Interacción táctil o clic sobre el territorio para el Administrador
-        layer.on('click', function(e) {
-          const comboFiltro = document.getElementById("busquedaTerritorio");
-          if (comboFiltro) {
-            comboFiltro.value = nombreZona;
-            // Forzamos el filtrado cruzado automático de la grilla al tocar el mapa
-            paginaActual = 1;
-            if (typeof ejecutarFiltrosAdmin === 'function') {
-              ejecutarFiltrosAdmin();
-            } else {
-              cargarEdificios();
-            }
-          }
-        });
-      }
-    }).addTo(mapaGeneral);
-
-    console.log("🗺️ Capa vectorial GeoJSON inyectada y parseada con éxito.");
-  } catch (err) {
-    console.error("Error al procesar la capa GeoJSON:", err);
   }
 }
 
