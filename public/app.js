@@ -1714,7 +1714,26 @@ function inicializarMapaGeneralAdministrador() {
     console.error("❌ Fallo crítico al levantar la arquitectura Leaflet principal:", err);
   }
 }
+/**
+ * 7.2 INTERCONEXIÓN DE FILTROS ADMINISTRATIVOS
+ * Procesa en tiempo real las búsquedas por dirección o territorio cruzando los
+ * datos contra la caché global para actualizar la grilla operativa de forma inmediata.
+ */
+function ejecutarFiltrosAdmin() {
+  const filtroDir = document.getElementById("busquedaDireccionAdmin")?.value.toLowerCase().trim() || "";
+  const filtroTerr = document.getElementById("busquedaTerritorio")?.value.toLowerCase().trim() || "";
 
+  // Filtramos la base de datos completa basándonos en los inputs activos
+  window.todosLosEdificiosDB = window.baseDatosEdificiosMemoria.filter(e => {
+    const cumpleDir = !filtroDir || (e.address && e.address.toLowerCase().includes(filtroDir));
+    const cumpleTerr = !filtroTerr || (e.territory && String(e.territory).toLowerCase().includes(filtroTerr)) || (e.territorio && String(e.territorio).toLowerCase().includes(filtroTerr));
+    return cumpleDir && cumpleTerr;
+  });
+
+  // Reseteamos a la página 1 para evitar desbordamientos de índice y redibujamos
+  paginaActual = 1;
+  cargarEdificios();
+}
 // =========================================================================
 // 🔤 SECTOR: NORMALIZADOR ALFANUMÉRICO DE DIRECCIONES Y NOMENCLATURA VIAL
 // =========================================================================
