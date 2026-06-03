@@ -15,16 +15,19 @@ const API_BASE_URL = "https://visitas-app-inxa.onrender.com";
 let currentUser = localStorage.getItem("username") || localStorage.getItem("user") || "";
 let currentRole = localStorage.getItem("role") || "";
 let paginaActual = 1;
+const ELEMENTOS_POR_PAGINA = 10;
 
 /**
  * 3. REFERENCIAS Y NÚCLEO GEOGRÁFICO (LEAFLET)
  * Instancias de control para el despliegue, marcadores y agrupamientos de mapas.
  */
-let leafletMap = null;       // Instancia transaccional utilizada en el formulario de edición
-let leafletMarker = null;    // Marcador arrastrable (Draggable) del formulario de edición
-let map = null;              // Instancia del mapa principal del panel administrativo
-let prediMiniMap = null;     // Instancia del mapa opcional adaptado a la visualización móvil
-let markerClusterGroup = null; // Contenedor lógico para el empaquetado de marcadores masivos
+let leafletMap = null;          // Instancia transaccional utilizada en el formulario de edición
+let leafletMarker = null;       // Marcador arrastrable (Draggable) del formulario de edición
+let map = null;                 // Instancia del mapa principal del panel administrativo
+let prediMiniMap = null;        // Instancia del mapa opcional adaptado a la visualización móvil
+let markerClusterGroup = null;  // Contenedor lógico para el empaquetado de marcadores masivos anterior
+let mapaGeneral = null;         // ✨ Instancia maestra unificada del mapa (Admin / General)
+let marcadoresClusterGlobal = null; // ✨ Grupo de clústeres dinámicos translúcidos Dark Mode
 
 /**
  * 4. ESTRATOS DE PERSISTENCIA Y FLUJO EN MEMORIA VOLÁTIL
@@ -38,15 +41,14 @@ window.currentBuildingId = null;       // Identificador transaccional del edific
 window.edificioActivo = null;          // Objeto completo del edificio cargado en la sesión de campo
 window.departamentoEnFoco = null;      // Estructura relacional del departamento bajo análisis ({ _id, number })
 
-// Controladores avanzados de sincronización visual
-window.miTemporizadorMapa = null;      // Manejador del delay de redimensionamiento (InvalidateSize)
-window.miniMapaAdminInstance = null;   // Instancia aislada para previsualizaciones secundarias
+// Controladores avanzados de sincronización visual (Compatibilidad de ventanas y sub-mapas)
+let miTemporizadorMapa = null;         // ✨ Declaración limpia para el delay de redimensionamiento (InvalidateSize)
+let miniMapaAdminInstance = null;      // ✨ Instancia aislada limpia para previsualizaciones secundarias
 
 // Estados específicos asignados al subsistema SuperAdmin
 window.superAdminAutenticado = false;
 window.superAdminPaginaActual = 1;
 window.superAdminFiltrados = [];
-const ELEMENTOS_POR_PAGINA = 10;
 
 /**
  * 5. CAPTURA DINÁMICA BLINDADA DEL DOM
