@@ -1135,135 +1135,152 @@ async function guardarCambiosEditor() {
 }
 
 // =========================================================================
-// 🪟 CONTROLADORES DE MODALES: REPORTES DE PROBLEMAS / INCIDENCIAS
+// 🪟 CONTROLADORES DE MODALES: REPORTES DE PROBLEMAS / INCIDENCIAS (CON RETORNO OFFLINE)
 // =========================================================================
 
-/** * 1. ALIAS ENRUTADOR DE ACCESO * Resuelve el quiebre de ejecución mapeando el clic inline del HTML ('abrirReporte') * hacia el despliegue del modal de incidencias críticas. */
+/** * 1. ENRUTADOR DE ACCESO GLOBAL * Mapea el evento inline onclick="abrirReporte()" del HTML apuntando * directamente al contenedor con ID real de tu interfaz. */
 
-function abrirReporte() {
-  console.log("📋 Interceptando llamada de interfaz. Abriendo pasarela de incidencias...");
-  abrirModalProblema();
-}
-
-/** * 2. DISPARADOR DE INCIDENCIAS INTEGRADO (PROMPT NATIVO) * Lanza un cuadro emergente del navegador para registrar reportes rápidos en app.post("/issues")*/
-
-async function abrirModalIncidencia() {
-  if (!window.currentBuildingId) {
-    alert("⚠️ Error: No hay un edificio activo seleccionado para reportar.");
-    return;
-  }
-  
-  const detalle = prompt("⚠️ Escriba el reporte o problema detectado en el edificio:");
-  if (!detalle || detalle.trim() === "") return;
-
-  const deptoId = window.departamentoEnFoco ? window.departamentoEnFoco._id : null;
-
-  try {
-    const res = await apiFetch("/issues", {
-      method: "POST",
-      body: JSON.stringify({
-        buildingId: window.currentBuildingId,
-        departmentId: deptoId,
-        type: "Infraestructura",
-        description: detalle.trim(),
-        reportedBy: "Predi Campo",
-        status: "PENDIENTE"
-      })
-    });
-
-    if (res.ok) {
-      alert("✅ Reporte de incidencia enviado al Administrador con éxito.");
-    } else {
-      alert("❌ No se pudo registrar la incidencia.");
-    }
-  } catch (err) {
-    console.error("Error al enviar issue:", err);
-  }
-}
-
-/** * 3. APERTURA DEL MODAL PERSONALIZADO * Despliega el contenedor flotante de incidencias críticas en pantalla y le da foco. */
-
-function abrirModalProblema() {
+function abrirReporte() { 
   if (!window.currentBuildingId) {
     alert("⚠️ Error: Debe seleccionar o buscar un edificio antes de reportar un problema.");
     return;
   }
 
-  const modal = document.getElementById("modalProblema");
-  if (modal) {
-    modal.style.display = "flex";
-    modal.classList.add("animate-fade-in");
+  console.log("📋 Abriendo pasarela de incidencias críticas...");
+  
+  if (typeof modalReporte !== 'undefined' && modalReporte) {
+    modalReporte.style.setProperty("display", "flex", "important"); 
+  } else {
+    const modal = document.getElementById("modalReporte");
+    if (modal) modal.style.setProperty("display", "flex", "important");
   }
-  const txt = document.getElementById("txtProblema");
-  if (txt) {
-    txt.value = "";
-    txt.focus();
-  }
-}
 
-/** * 4. CIERRE DEL MODAL PERSONALIZADO * Oculta la interfaz flotante y limpia los efectos visuales de animación. */
-
-function cerrarModalProblema() {
-  const modal = document.getElementById("modalProblema");
-  if (modal) {
-    modal.style.display = "none";
-    modal.classList.remove("animate-fade-in");
+  // Auto-foco en la caja de descripción si existe
+  if (typeof descProblema !== 'undefined' && descProblema) {
+    descProblema.value = "";
+    descProblema.focus();
   }
 }
 
 /**
- * 5. DESPACHADOR CENTRAL DE REPORTES CRÍTICOS
- * Transmite la incidencia al servidor, refresca la caché en segundo plano y actualiza el carrusel.
+ * 2. RECEPTOR DE CIERRE DE INTERFAZ
+ * Oculta el modal de reportes restableciendo el flujo operativo visual.
  */
-async function enviarProblema() {
-  const txt = document.getElementById("txtProblema");
-  const detalleProblema = txt ? txt.value.trim() : "";
-
-  if (!detalleProblema) {
-    alert("⚠️ Por favor, describa detalladamente la incidencia observada.");
-    return;
-  }
-
-  if (!window.currentBuildingId) {
-    alert("⚠️ Error operativo: Falta referencia ID del edificio.");
-    return;
-  }
-
-  try {
-    const res = await apiFetch(`/buildings/${window.currentBuildingId}/report`, {
-      method: "POST",
-      body: JSON.stringify({ problema: detalleProblema })
-    });
-
-    if (res.ok) {
-      alert("⚠️ Incidencia reportada y escalada al panel del Administrador.");
-      cerrarModalProblema();
-      
-      // Sincronización en caliente y re-renderizado sin perder la posición del carrusel
-      if (typeof preCargarBaseDatosEnMemoria === "function") {
-        await preCargarBaseDatosEnMemoria();
-      }
-      
-      if (window.todosLosEdificiosDB && window.todosLosEdificiosDB.length > 0) {
-        const idx = window.todosLosEdificiosDB.findIndex(b => (b.id || b._id) === window.currentBuildingId);
-        if (idx !== -1 && window.edificiosEncontrados[window.indiceEdificioActual]) {
-          window.edificiosEncontrados[window.indiceEdificioActual] = window.todosLosEdificiosDB[idx];
-        }
-      }
-      
-      if (typeof mostrarEdificioActual === "function") {
-        mostrarEdificioActual();
-      }
-    } else {
-      alert("❌ El servidor rechazó el envío del reporte.");
-    }
-  } catch (err) {
-    console.error("Error físico al enviar reporte de incidencia:", err);
-    alert("⚠️ Error de red. Compruebe su conexión a internet.");
+function cerrarReporte() { 
+  if (typeof modalReporte !== 'undefined' && modalReporte) {
+    modalReporte.style.display = "none"; 
+  } else {
+    const modal = document.getElementById("modalReporte");
+    if (modal) modal.style.display = "none";
   }
 }
 
-/** * 6. LIMPIEZA TOTAL DE INTERFAZ MÓVIL * Resetea por completo los paneles predictivos del visor usando el objeto seguro UI. */
+/** * 3. DESPACHADOR CENTRAL DE REPORTES (BLINDADO SIN INTERNET) * Recoge los selectores reales del HTML, valida campos mandatorios, evalúa la * conectividad del dispositivo y resguarda datos localmente si falla la señal. */
+
+async function enviarReporte() {
+  // Captura dinámica de descripción resguardando variables globales del DOM
+  const txtArea = typeof descProblema !== 'undefined' ? descProblema : document.getElementById("descProblema");
+  const descripcion = txtArea ? txtArea.value.trim() : "";
+  
+  // Captura de los selectores añadidos en el index.html
+  const inputNombre = document.getElementById("edit_nombre_reporta");
+  const nombreReporta = inputNombre ? inputNombre.value.trim() : "";
+  
+  const selectorTipo = document.getElementById("tipoProblema");
+  const tipo = selectorTipo ? selectorTipo.value : "Otro";
+
+  // 1. Validaciones preventivas de datos obligatorios
+  if (!nombreReporta) {
+    alert("Por favor, introduce tu nombre para saber quién reporta el problema.");
+    return;
+  }
+  if (!descripcion) {
+    alert("Por favor, escribe los detalles del problema antes de enviar.");
+    return;
+  }
+
+  // 2. Extracción y normalización segura del ID del edificio en foco
+  let idEdificioLimpia = window.currentBuildingId;
+  if (window.currentBuildingId && typeof window.currentBuildingId === 'object') {
+    idEdificioLimpia = window.currentBuildingId._id || window.currentBuildingId.id;
+  }
+
+  if (!idEdificioLimpia || idEdificioLimpia === "[object Object]") {
+    alert("Error local: No se pudo identificar el edificio actual. Intenta recargar la página del edificio.");
+    return;
+  }
+
+  // 3. Mapeo relacional del departamento en foco operativo
+  
+  const deptoId = window.departamentoEnFoco ? window.departamentoEnFoco._id : (typeof currentDept !== 'undefined' ? currentDept?._id : null);
+  const deptoNum = window.departamentoEnFoco ? window.departamentoEnFoco.number : (typeof currentDept !== 'undefined' ? currentDept?.number : null);
+
+  // Armamos el paquete de datos estructurado idéntico a tu esquema backend
+  const datosReporte = {
+    buildingId: idEdificioLimpia, 
+    departmentId: deptoId,
+    departmentNumber: deptoNum, 
+    type: tipo,
+    description: descripcion,
+    reportedBy: nombreReporta, 
+    status: "PENDIENTE" 
+  };
+
+  console.log("🚀 Procesando reporte con ID de edificio:", idEdificioLimpia);
+
+  // 🛰️ CASO A: El teléfono está sin conexión a internet de antemano
+  if (!navigator.onLine) {
+    if (typeof guardarEnMochilaLocal === "function") {
+      guardarEnMochilaLocal("reportes_pendientes", datosReporte);
+    } else {
+      console.warn("⚠️ No se encontró la función 'guardarEnMochilaLocal' para el respaldo offline.");
+    }
+    
+    cerrarReporte();
+    if (txtArea) txtArea.value = "";
+    if (inputNombre) inputNombre.value = ""; 
+    alert("⚠️ Guardado localmente (Sin Internet). El reporte de problemas se enviará solo cuando recuperes señal.");
+    return;
+  }
+
+  // 💻 CASO B: Transmisión directa por red usando apiFetch unificado
+  try {
+    const res = await apiFetch("/issues", {
+      method: "POST",
+      body: JSON.stringify(datosReporte)
+    });
+
+    if (res.ok) {
+      cerrarReporte();
+      if (txtArea) txtArea.value = "";
+      if (inputNombre) inputNombre.value = ""; 
+      alert("Reporte enviado con éxito al panel de control.");
+      
+      if (typeof mostrarInfoEdificio === "function") {
+        await mostrarInfoEdificio();
+      } else if (typeof mostrarEdificioActual === "function") {
+        mostrarEdificioActual();
+      }
+    } else {
+      const errorData = await res.json().catch(() => ({}));
+      alert("No se pudo enviar el reporte: " + (errorData.error || "Error en el servidor"));
+    }
+  } catch (error) {
+    console.error("Error crítico al enviar reporte, respaldando en almacenamiento secundario...", error);
+    
+    // Rescate de emergencia por micro-cortes de red en plena subida
+    if (typeof guardarEnMochilaLocal === "function") {
+      guardarEnMochilaLocal("reportes_pendientes", datosReporte);
+    }
+    
+    cerrarReporte();
+    if (txtArea) txtArea.value = "";
+    if (inputNombre) inputNombre.value = ""; 
+    alert("⏳ Problema temporal de red. El reporte quedó guardado de forma segura en tu celu y se reenviará automáticamente.");
+  }
+}
+
+/** * 4. REINICIO COMPORTAMENTAL DE INTERFAZ MÓVIL * Vacía y oculta los paneles del visor usando el objeto seguro UI. */
 
 function limpiarVista() {
   if (UI.resultado) UI.resultado.innerHTML = "";
