@@ -1305,12 +1305,18 @@ async function enviarReporte() {
 }
 
 /** * 4. REINICIO COMPORTAMENTAL DE INTERFAZ MÓVIL * Vacía y oculta los paneles del visor usando el objeto seguro UI. */
+
 function limpiarVista() {
+  // 🔥 CONTRAGOLPE AL AUTOCOMPLETADO: Vaciamos el input usando su ID real
+  const buscador = document.getElementById("buildingId");
+  if (buscador) {
+    buscador.value = "";
+  }
+
   if (UI.resultado) UI.resultado.innerHTML = "";
   if (UI.infoEdificio) UI.infoEdificio.style.display = "none";
   if (UI.reportBtn) UI.reportBtn.style.display = "none";
   if (UI.btnNuevoEdificio) UI.btnNuevoEdificio.style.display = "none";
-  
   // 🎨 COMPLEMENTO GHOST: Apagamos y ocultamos los controles de votación y notas
   const botonera = document.getElementById("botoneraVotacion");
   if (botonera) botonera.style.display = "none";
