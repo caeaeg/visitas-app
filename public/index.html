@@ -763,6 +763,33 @@
   background-color: #dc2626 !important;
   box-shadow: 0 0 8px rgba(220, 38, 38, 0.4);
 }
+    /* Números fijos de Territorio en el mapa */
+.texto-territorio-elegante {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 14px;
+    font-weight: 800;
+    transition: all 0.2s ease-in-out;
+    pointer-events: none;
+}
+
+/* Modificadores dinámicos controlados por JS según el Zoom */
+.texto-territorio-elegante.vista-cerca {
+    color: #ffffff !important;
+    background: #1f2937 !important;
+    border: 1px solid #4b5563 !important;
+    padding: 2px 6px !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+    font-size: 12px;
+}
+
+.texto-territorio-elegante.zoom-alejado {
+    opacity: 0 !important;
+    visibility: hidden;
+}
   </style>
 </head>
 <body>
