@@ -796,10 +796,10 @@
 <div id="navbarGlobal" class="admin-nav-bar" style="display: none; width: 100%; box-sizing: border-box; justify-content: space-between; align-items: center; padding: 12px 24px; background: #18181b; border-bottom: 1px solid #27272a; position: sticky; top: 0; z-index: 1000;">
   <div class="nav-left" style="display: flex; align-items: center; gap: 10px;">
     <button id="btnVolverNavbar" class="btn-atras-sutil" onclick="abrirVista('dashboardView')" style="display: none; background: transparent; border: none; color: #a1a1aa; font-size: 24px; cursor: pointer; margin-right: 8px; font-weight: bold;">←</button>
-<div>
-  <span class="nav-title" style="font-weight: 800; color: #ffffff; font-size: 16px; display: block;">📍 Gestión de Territorio</span>
-  <span id="badge-rol-usuario" style="font-size: 13px; color: #a1a1aa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Panel de Control</span>
-</div>
+    <div>
+      <span class="nav-title" style="font-weight: 800; color: #ffffff; font-size: 16px; display: block;">📍 Gestión de Territorio</span>
+      <span id="badge-rol-usuario" style="font-size: 13px; color: #a1a1aa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Panel de Control</span>
+    </div>
   </div>
   <div class="nav-right" style="display: flex; align-items: center; gap: 12px;">
     <button id="btnSuperAdminMenu" class="secondary" onclick="abrirAccesoSuperAdmin()" style="background: #1c1c1e; border: 1px solid #2c2c2e; font-size: 13px; color: #a1a1aa; padding: 8px 14px; border-radius: 6px; cursor: pointer; display: none; align-items: center; gap: 6px;">
@@ -860,34 +860,34 @@
   <div class="workspace-grid">
     <div class="workspace-col col-lista">
       <div class="component-card">
-  <div class="tabs-filtros">
-    <button id="btnTabDireccion" class="tab-btn active" onclick="cambiarTabFiltro('direccion')">📍 Dirección</button>
-    <button id="btnTabTerritorio" class="tab-btn" onclick="cambiarTabFiltro('territorio')">🗺️ Territorio</button>
-  </div>
+        <div class="tabs-filtros">
+          <button id="btnTabDireccion" class="tab-btn active" onclick="cambiarTabFiltro('direccion')">📍 Dirección</button>
+          <button id="btnTabTerritorio" class="tab-btn" onclick="cambiarTabFiltro('territorio')">🗺️ Territorio</button>
+        </div>
 
-  <div class="filtros-compactos">
-    <div id="buscarDireccionContainer" class="tab-content active">
-      <div style="display: flex; gap: 6px; align-items: center;">
-        <input type="text" id="busquedaDireccionAdmin" placeholder="Buscar por calle, altura o nombre..." onkeypress="if(event.key==='Enter') ejecutarFiltrosAdmin()" style="margin: 0; flex: 1; padding: 10px 12px; font-size: 14px;">
-        <button class="buscar" onclick="ejecutarFiltrosAdmin()" style="width: 42px; height: 38px; margin: 0; padding: 0; border-radius: 8px; flex-shrink: 0; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer;">🔍</button>
-      </div>
-    </div>
+        <div class="filtros-compactos">
+          <div id="buscarDireccionContainer" class="tab-content active">
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <input type="text" id="busquedaDireccionAdmin" placeholder="Buscar por calle, altura o nombre..." onkeypress="if(event.key==='Enter') ejecutarFiltrosAdmin()" style="margin: 0; flex: 1; padding: 10px 12px; font-size: 14px;">
+              <button class="buscar" onclick="ejecutarFiltrosAdmin()" style="width: 42px; height: 38px; margin: 0; padding: 0; border-radius: 8px; flex-shrink: 0; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer;">🔍</button>
+            </div>
+          </div>
 
-    <div id="buscarTerritorioContainer" class="tab-content" style="display: none;">
-      <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 8px;">
-        <input type="number" id="busquedaTerritorio" placeholder="Número de territorio..." onkeypress="if(event.key==='Enter') ejecutarFiltrosAdmin()" style="margin: 0; flex: 1; padding: 10px 12px; font-size: 14px;">
-        <button class="buscar" onclick="ejecutarFiltrosAdmin()" style="width: 42px; height: 38px; margin: 0; padding: 0; border-radius: 8px; flex-shrink: 0; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer;">🔍</button>
+          <div id="buscarTerritorioContainer" class="tab-content" style="display: none;">
+            <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 8px;">
+              <input type="number" id="busquedaTerritorio" placeholder="Número de territorio..." onkeypress="if(event.key==='Enter') ejecutarFiltrosAdmin()" style="margin: 0; flex: 1; padding: 10px 12px; font-size: 14px;">
+              <button class="buscar" onclick="ejecutarFiltrosAdmin()" style="width: 42px; height: 38px; margin: 0; padding: 0; border-radius: 8px; flex-shrink: 0; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer;">🔍</button>
+            </div>
+            <div class="filtro-doble-fila" style="margin: 0;">
+              <select id="filtroOrden" onchange="ejecutarFiltrosAdmin()" style="margin: 0; width: 100%; padding: 8px; font-size: 13px;">
+                <option value="address">🔤 Orden Alfabético</option>
+                <option value="recent">🆕 Agregados Recientemente</option> 
+                <option value="territory">📍 Agrupar por Territorio</option>
+              </select>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="filtro-doble-fila" style="margin: 0;">
-        <select id="filtroOrden" onchange="ejecutarFiltrosAdmin()" style="margin: 0; width: 100%; padding: 8px; font-size: 13px;">
-          <option value="address">🔤 Orden Alfabético</option>
-          <option value="recent">🆕 Agregados Recientemente</option> 
-          <option value="territory">📍 Agrupar por Territorio</option>
-        </select>
-      </div>
-    </div>
-  </div>
-</div>
 
       <div class="component-card list-container-card">
         <div class="card-header-sm"><h3>📋 Edificios Registrados</h3></div>
@@ -896,17 +896,16 @@
             <thead>
               <tr style="border-bottom: 1px solid #27272a; color: #a1a1aa;">
                 <th style="padding: 10px 5px;">Dirección</th>
-               
                 <th style="padding: 10px 5px; text-align:center;">Acciones</th>
               </tr>
             </thead>
             <tbody id="tablaEdificiosCuerpo">
-  <tr>
-    <td colspan="2" style="text-align: center; color: #71717a; padding: 20px;">
-      🔍 Introduzca un término en el buscador superior para desplegar resultados.
-    </td>
-  </tr>
-</tbody>
+              <tr>
+                <td colspan="2" style="text-align: center; color: #71717a; padding: 20px;">
+                  🔍 Introduzca un término en el buscador superior para desplegar resultados.
+                </td>
+              </tr>
+            </tbody>
           </table>
         </div>
         <div class="paginador-sutil" id="paginadorAdmin" style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; padding: 0 5px;">
