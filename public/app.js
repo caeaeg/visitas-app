@@ -962,6 +962,11 @@ function tratarEdificioNoEncontrado() {
  * Prepara e inyecta la pantalla de edición ocultando de raíz la interfaz del predi.
  */
 function abrirEditorEdificio(objetoEdificio = null) {
+  // CONFIGURACIÓN EXTRA: Si lo que nos pasaron es un texto (el ID) en lugar de un objeto, lo buscamos en la base de datos de memoria
+  if (typeof objetoEdificio === "string") {
+    const idBuscado = objetoEdificio;
+    objetoEdificio = (window.todosLosEdificiosDB || []).find(e => (e.id === idBuscado || e._id === idBuscado)) || null;
+  }
   // Apagamos los contenedores principales para evitar superposiciones
   const appContainer = document.getElementById("appContainer");
   const dashboardView = document.getElementById("dashboardView");
@@ -1375,8 +1380,7 @@ function limpiarVista() {
 
 /**
  * 6.1 RENDERIZADO DE LA GRILLA OPERATIVA DEL ADMINISTRADOR
- * Consume los datos directamente de 'window.todosLosEdificiosDB' y dibuja las filas
- * aplicando un formato estético de estados en base a la paleta de colores del sistema.
+ * Simplificado para mostrar solo Dirección y Acciones, resolviendo el problema de strings en atributos inline.
  */
 async function cargarEdificios() {
   const tablaCuerpo = document.getElementById("tablaEdificiosCuerpo");
@@ -1394,7 +1398,7 @@ async function cargarEdificios() {
   const datosAIterar = window.todosLosEdificiosDB || [];
 
   if (datosAIterar.length === 0) {
-    tablaCuerpo.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#a1a1aa; padding:20px;">📭 No hay edificios registrados en el sistema.</td></tr>`;
+    tablaCuerpo.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#a1a1aa; padding:20px;">📭 No hay edificios registrados en el sistema.</td></tr>`;
     actualizarControlesPaginacion(0);
     return;
   }
@@ -1407,22 +1411,16 @@ async function cargarEdificios() {
   paginaSegmentada.forEach(e => {
     const fila = document.createElement("tr");
     const idEdificio = e.id || e._id;
-    
-    // Formateo estético del estado
-    const estado = (e.status || e.estado || "Pendiente").toUpperCase();
-    let colorEstado = "#cbd5e1";
-    if (estado === "OK" || estado === "EFECTUADA") colorEstado = "#4ade80";
-    else if (estado === "NO" || estado === "RECHAZADA") colorEstado = "#f87171";
-    else if (estado === "PROBLEMA" || estado === "INCIDENCIA") colorEstado = "#fbbf24";
 
+    // Inyección limpia: Solo Dirección y Acciones (Pasando el ID como string seguro)
     fila.innerHTML = `
-      <td style="font-weight: 600; color: #ffffff;">${e.address || "Sin Dirección"}</td>
-      <td style="color: #cbd5e1;">${e.name || "-"}</td>
-      <td style="color: #a1a1aa;">${e.territory || e.territorio || "-"}</td>
-      <td><span style="color: ${colorEstado}; font-weight: bold; font-size: 13px;">● ${estado}</span></td>
-      <td style="text-align: center;">
-        <button class="btn-action-view" onclick="verDetalleEdificioAdmin('${idEdificio}')" title="Ver Detalles">👁️</button>
-        <button class="btn-action-edit" onclick="abrirEditorEdificio(${JSON.stringify(e).replace(/'/g, "&apos;")})" title="Editar">✏️</button>
+      <td style="font-weight: 600; color: #ffffff; padding: 12px 8px;">
+        ${e.address || "Sin Dirección"}
+        ${e.name ? `<br><small style="color:#a1a1aa; font-weight:normal;">${e.name}</small>` : ''}
+      </td>
+      <td style="text-align: center; width: 100px; padding: 12px 8px;">
+        <button class="btn-action-view" onclick="verDetalleEdificioAdmin('${idEdificio}')" title="Ver Detalles" style="background:none; border:none; cursor:pointer; font-size:1.2rem; margin-right:8px;">👁️</button>
+        <button class="btn-action-edit" onclick="abrirEditorEdificio('${idEdificio}')" title="Editar" style="background:none; border:none; cursor:pointer; font-size:1.2rem;">✏️</button>
       </td>
     `;
     tablaCuerpo.appendChild(fila);
@@ -1770,6 +1768,23 @@ function normalizarDireccion(texto) {
     .replace(/\s+/g, " ");
 }
 
-
+/**
+ * REPARACIÓN: CONTROLADOR DE PESTAÑAS DE BÚSQUEDA (Dirección / Territorio)
+ */
+function cambiarTabFiltro(tabTipo) {
+  const btnDireccion = document.getElementById("btnTabDireccion");
+  const btnTerritorio = document.getElementById("btnTabTerritorio");
+  
+  // Contenedores o campos de entrada específicos si los tuvieras
+  if (tabTipo === 'direccion') {
+    btnDireccion?.classList.add('active');
+    btnTerritorio?.classList.remove('active');
+    console.log("🔍 Modo de búsqueda establecido en: Dirección");
+  } else {
+    btnTerritorio?.classList.add('active');
+    btnDireccion?.classList.remove('active');
+    console.log("🔍 Modo de búsqueda establecido en: Territorio");
+  }
+}
 
 
