@@ -959,7 +959,7 @@ function tratarEdificioNoEncontrado() {
 
 /**
  * 2. APERTURA Y RENDERIZADO DEL EDITOR
- * Prepara e inyecta la pantalla de edición ocultando de raíz la interfaz del predi.
+ * Prepara e inyecta la pantalla de edición ocultando de raíz la interfaz del predi y sin botones flotantes sobrantes.
  */
 function abrirEditorEdificio(objetoEdificio = null) {
   // CONFIGURACIÓN EXTRA: Si lo que nos pasaron es un texto (el ID) en lugar de un objeto, lo buscamos en la base de datos de memoria
@@ -1038,13 +1038,8 @@ function abrirEditorEdificio(objetoEdificio = null) {
     </div>
   `;
 
-  // Modificación estética: Solo la flecha limpia de retroceso
-  document.getElementById("editarView").innerHTML = `
-    <div style="padding: 10px 15px; text-align: left;">
-      <button onclick="${funcionCancelar}" style="background: none; border: none; color: #a1a1aa; font-size: 26px; cursor: pointer; padding: 5px 10px;">←</button>
-    </div>
-    ${htmlContenido}
-  `;
+  // 🟢 CORRECCIÓN: Se remueve la flecha flotante superior para evitar duplicación estética
+  document.getElementById("editarView").innerHTML = htmlContenido;
 
   // Despliegue de mapa Leaflet coordinado
   setTimeout(() => {
@@ -1380,11 +1375,28 @@ function limpiarVista() {
 
 /**
  * 6.1 RENDERIZADO DE LA GRILLA OPERATIVA DEL ADMINISTRADOR
- * Simplificado para mostrar solo Dirección y Acciones, resolviendo el problema de strings en atributos inline.
+ * Simplificado para mostrar solo Dirección y Acciones, controlado para NO cargar todo de entrada.
  */
 async function cargarEdificios() {
   const tablaCuerpo = document.getElementById("tablaEdificiosCuerpo");
   if (!tablaCuerpo) return;
+
+  // RESTRICCIÓN: Validamos si el usuario escribió algo en los campos de búsqueda
+  const TXT_DIR = document.getElementById("busquedaDireccionAdmin")?.value.trim() || "";
+  const TXT_TERR = document.getElementById("busquedaTerritorio")?.value.trim() || "";
+
+  // Si ambos campos están vacíos, forzamos que permanezca el mensaje instructivo y salimos
+  if (TXT_DIR === "" && TXT_TERR === "") {
+    tablaCuerpo.innerHTML = `
+      <tr>
+        <td colspan="2" style="text-align: center; color: #71717a; padding: 20px;">
+          🔍 Introduzca un término en el buscador superior para desplegar resultados.
+        </td>
+      </tr>
+    `;
+    actualizarControlesPaginacion(0);
+    return;
+  }
 
   tablaCuerpo.innerHTML = "";
 
