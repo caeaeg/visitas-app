@@ -1631,6 +1631,185 @@ async function verHistorialLogs(id) {
   }
 }
 
+/** * 6.7 VISUALIZADOR DE DETALLES, ALERTAS HISTORIAL Y MINI-MAPA INDEPENDIENTE (ADMIN)
+ * Consume la información extendida desde el backend y despliega el panel técnico. */
+
+async function verDetalleEdificioAdmin(buildingId) {
+  // Guardamos el ID en la variable global para que la app sepa qué edificio está en pantalla
+  currentBuildingId = buildingId; 
+
+  const panel = document.getElementById("panelDetalleEdificio");
+  if (!panel) {
+    console.warn("⚠️ No se encontró el contenedor 'panelDetalleEdificio' en el HTML.");
+    return;
+  }
+  
+  panel.style.display = "block";
+  panel.innerHTML = `<p style="text-align:center; color:gray; padding:20px;">Cargando historial y detalles...</p>`;
+
+  try {
+    const res = await apiFetch(`/building-info/${buildingId}`);
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    
+    const data = await res.json();
+    const b = data.building;
+    if (!b) throw new Error("No se recibieron datos válidos del edificio.");
+
+    // ✨ CALCULO DE EDIFICIO NUEVO EN PANEL ADMIN
+    let cartelNuevoAdminHtml = "";
+    if (b.createdAt || b.fechaCreacion) {
+      const fechaCreacion = new Date(b.createdAt || b.fechaCreacion);
+      const hoy = new Date();
+      const diferenciaDias = Math.floor((hoy - fechaCreacion) / (1000 * 60 * 60 * 24));
+      
+      if (diferenciaDias <= 30) {
+        const fechaFormateada = fechaCreacion.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        cartelNuevoAdminHtml = `
+          <div style="background:#064e3b; border: 1px solid #059669; color:#a7f3d0; padding:10px; border-radius:12px; margin-bottom:12px; font-size:14px; font-weight:600;">
+            ✨ Edificio nuevo: ingresado al sistema el ${fechaFormateada}
+          </div>
+        `;
+      }
+    }
+
+    let alertaHtml = "";
+    if (data.issue) {
+      alertaHtml = `
+        <div style="background:#3a1f1f; border: 1px solid #f44336; color:#ff8a80; padding:12px; border-radius:12px; margin-bottom:15px; font-size:15px;">
+          ⚠️ <b>Problema Reportado (${data.issue.type}):</b> ${data.issue.description || "Sin descripción adicional"}
+        </div>
+      `;
+    }
+
+    // Renderizamos la estructura base aplicando el diseño compatible con ID como string simple
+    panel.innerHTML = `
+      ${cartelNuevoAdminHtml}
+      ${alertaHtml}
+      
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px; gap: 10px;">
+        <div>
+          <h3 style="margin:0; color:white; font-size:22px;">${b.address || "Sin Dirección"}</h3>
+          <p style="color:gray; margin:2px 0;">${b.address2 || ""}</p>
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="secondary" style="width:auto; min-height:38px; padding:6px 12px; font-size:13px; border-radius:8px; white-space:nowrap; background:#1e293b; color:#3b82f6; border-color:#1e3a8a;" onclick="abrirHistorialEdificio()">📜 Historial</button>
+          <button class="secondary" style="width:auto; min-height:38px; padding:6px 12px; font-size:13px; border-radius:8px; white-space:nowrap;" onclick="abrirEditorEdificio('${b._id || b.id}')">✏️ Editar</button>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 14px; align-items: stretch; margin-bottom: 15px;">
+        
+        <div style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 13px; background:#252525; padding:12px; border-radius:12px; color: #e4e4e7;">
+          <div>🏢 <b>Nombre:</b> ${b.name || "-"}</div>
+          <div>🗺️ <b>Territorio:</b> ${b.territory || b.territorio || "-"}</div>
+          <div>🔢 <b>Pisos:</b> ${b.floors || 0}</div>
+          <div>🚪 <b>Deptos/Piso:</b> ${b.unitsPerFloor || 0}</div>
+          <div>🌱 <b>PB:</b> ${b.hasGroundFloor ? "Sí" : "No"} | 🛎️ <b>Portero:</b> ${b.hasDoorman ? "Sí" : "No"}</div>
+        </div>
+
+        <div id="contenedorMapaAdminSquare" style="width: 140px; height: 140px; flex-shrink: 0; position: relative;">
+          <div id="miniMapaDetalle" style="width: 140px; height: 140px; border-radius: 12px; border: 1px solid #3f3f46; background:#181818;"></div>
+        </div>
+
+      </div>
+
+      <h4 style="margin:10px 0 5px; color:#2196F3; font-size:16px;">🕒 Historial de Visitas e Información</h4>
+      <div style="font-size:14px; background:#181818; padding:10px; border-radius:10px; max-height:180px; overflow-y:auto; border:1px solid #2b2b2b;">
+        <p style="margin:0; color:#bdbdbd;">Última visita registrada: ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca"}</p>
+        ${b.description ? `<p style="margin-top:8px; color:gray; font-style: italic;"><b>Descripción interna:</b> ${b.description}</p>` : ""}
+      </div>
+    `;
+
+    // Manejo seguro del temporizador global
+    if (typeof miTemporizadorMapa !== 'undefined' && miTemporizadorMapa) {
+      clearTimeout(miTemporizadorMapa);
+    }
+
+    miTemporizadorMapa = setTimeout(() => {
+      const miMapaReal = (typeof mapaGeneral !== 'undefined' && mapaGeneral !== null) ? mapaGeneral : 
+                         (typeof leafletMap !== 'undefined' && leafletMap !== null) ? leafletMap : 
+                         (typeof map !== 'undefined' && map !== null) ? map : null;
+
+      if (miMapaReal) {
+        try { miMapaReal.invalidateSize({ animate: false }); } catch(e){}
+
+        const latValida = parseFloat(b.latitude);
+        const lngValida = parseFloat(b.longitude);
+        const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
+
+        // 📍 SI TIENE COORDENADAS: Renderizamos el mapa estático cuadrado
+        if (tieneCoordenadas) {
+          console.log(`📍 Inicializando mini-mapa estático para: ${latValida}, ${lngValida}`);
+          try { miMapaReal.setView([latValida, lngValida], 16); } catch(e){}
+
+          if (typeof miniMapaAdminInstance !== 'undefined' && miniMapaAdminInstance !== null) {
+            try {
+              miniMapaAdminInstance.remove();
+            } catch (e) { console.warn("Error limpiando mapa anterior:", e); }
+            miniMapaAdminInstance = null;
+          }
+
+          setTimeout(() => {
+            try {
+              miniMapaAdminInstance = L.map('miniMapaDetalle', {
+                center: [latValida, lngValida],
+                zoom: 16,
+                zoomControl: false,
+                attributionControl: false,
+                dragging: false,
+                touchZoom: false,
+                doubleClickZoom: false,
+                scrollWheelZoom: false,
+                boxZoom: false,
+                keyboard: false
+              });
+
+              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMapaAdminInstance);
+              L.marker([latValida, lngValida]).addTo(miniMapaAdminInstance);
+              miniMapaAdminInstance.invalidateSize();
+              console.log("🟢 Mini-mapa estático cuadrado renderizado con éxito.");
+            } catch (miniMapError) {
+              console.error("Error creando el mini-mapa independiente:", miniMapError);
+            }
+          }, 50);
+
+        // 🗺️ SI NO TIENE COORDENADAS PERO SÍ TERRITORIO: Encuadra en el polígono
+        } else if ((b.territory || b.territorio) && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
+          try {
+            const numTerritorio = b.territory || b.territorio;
+            let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
+              filter: function(feature) {
+                const numeroTerritorio = feature.properties && (feature.properties.name || feature.properties.Territorio_N);
+                return String(numeroTerritorio) === String(numTerritorio);
+              }
+            });
+
+            if (capaGeoJSONAdmin.getLayers().length > 0) {
+              console.log(`🗺️ Encuadrando mapa general en el Territorio ${numTerritorio}`);
+              miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { padding: [25, 25], maxZoom: 16 });
+            }
+          } catch (geoError) {
+            console.warn("Fallo al encuadrar territorio:", geoError);
+          }
+          
+          const minMapDiv = document.getElementById("miniMapaDetalle");
+          if (minMapDiv) minMapDiv.innerHTML = `<p style="color:#71717a; font-size:11px; text-align:center; padding-top:55px; margin:0;">Falta geolocalización</p>`;
+
+        } else {
+          // Coordenadas fallback por defecto de Posadas
+          try { miMapaReal.setView([-27.36708, -55.89608], 15); } catch(e){}
+        }
+          
+      } else {
+        console.warn("⚠️ No se encontró la instancia activa del mapa general.");
+      }
+    }, 100);
+
+  } catch (error) {
+    console.error("Error al cargar detalles del edificio:", error);
+    panel.innerHTML = `<p style="color:#f87171; text-align:center; padding: 20px;">⚠️ Error al conectar con los detalles del edificio.</p>`;
+  }
+}
 // =========================================================================
 // 🗺️ SECCIÓN 7: MOTOR CARTOGRÁFICO MAESTRO CENTRAL (ADMIN APP)
 // =========================================================================
