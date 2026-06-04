@@ -1948,20 +1948,27 @@ function normalizarDireccion(texto) {
 }
 
 /**
- * REPARACIÓN: CONTROLADOR DE PESTAÑAS DE BÚSQUEDA (Dirección / Territorio)
+ * REPARACIÓN DEFINITIVA: CONTROLADOR DE PESTAÑAS DE BÚSQUEDA (Dirección / Territorio)
+ * Sincroniza las clases 'active' y alterna la visibilidad de los contenedores compactos.
  */
 function cambiarTabFiltro(tabTipo) {
   const btnDireccion = document.getElementById("btnTabDireccion");
   const btnTerritorio = document.getElementById("btnTabTerritorio");
   
-  // Contenedores o campos de entrada específicos si los tuvieras
+  const contenedorDireccion = document.getElementById("buscarDireccionContainer");
+  const contenedorTerritorio = document.getElementById("buscarTerritorioContainer");
+
   if (tabTipo === 'direccion') {
     btnDireccion?.classList.add('active');
     btnTerritorio?.classList.remove('active');
+    if (contenedorDireccion) contenedorDireccion.style.display = "block";
+    if (contenedorTerritorio) contenedorTerritorio.style.display = "none";
     console.log("🔍 Modo de búsqueda establecido en: Dirección");
   } else {
     btnTerritorio?.classList.add('active');
     btnDireccion?.classList.remove('active');
+    if (contenedorDireccion) contenedorDireccion.style.display = "none";
+    if (contenedorTerritorio) contenedorTerritorio.style.display = "block";
     console.log("🔍 Modo de búsqueda establecido en: Territorio");
   }
 }
