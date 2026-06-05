@@ -1370,8 +1370,7 @@ function limpiarVista() {
  * =========================================================================
  * Este módulo unifica el renderizado de la grilla operativa del Administrador,
  * los controles de paginación optimizados en memoria, el control de modales de
- * detalle técnico y la consola avanzada con clave maestra para el SuperAdmin.
- */
+ * detalle técnico, auditorías de visitas y la consola avanzada con clave maestra. */
 
 /**
  * 6.1 RENDERIZADO DE LA GRILLA OPERATIVA DEL ADMINISTRADOR
@@ -1471,9 +1470,100 @@ function cambiarPaginaAdmin(direccion) {
 }
 
 /**
- * 6.3 INTERRUPTOR GENERAL DE MODALES DE AUDITORÍA
- * Oculta el panel técnico lateral de administración y remueve de memoria de forma limpia las instancias cartográficas.
+ * 6.3 INTERRUPTOR GENERAL DE MODALES DE AUDITORÍA E HISTORIAL de VISITAS
+ * Controla el despliegue del modal de visitas, limpia sus tarjetas y cierra el panel lateral analítico.
  */
+async function abrirHistorialEdificio(idEdificioOpcional = null) {
+  const idEdificio = idEdificioOpcional || (typeof currentBuildingId !== 'undefined' ? currentBuildingId : null);
+  const contenedorHistorial = document.getElementById("historialContenido");
+  const modal = document.getElementById("modalHistorial");
+  
+  if (!idEdificio) {
+    alert("Primero selecciona un edificio de la lista.");
+    return;
+  }
+  
+  if (modal) modal.style.display = "flex";
+  if (contenedorHistorial) {
+    contenedorHistorial.innerHTML = `<p style="color:#71717a; text-align:center; padding:20px; font-size:13px;">Buscando registros...</p>`;
+  }
+  
+  try {
+    const res = await apiFetch(`/building-info/${idEdificio}`);
+    if (!res.ok) throw new Error("No se pudo obtener el historial");
+    
+    const resData = await res.json();
+    const visitas = resData.history || resData.visits || resData.visitas || (resData.lastVisit ? [resData.lastVisit] : []); 
+    
+    if (visitas.length === 0) {
+      if (contenedorHistorial) {
+        contenedorHistorial.innerHTML = `
+          <div style="text-align:center; padding:30px; color:#71717a;">
+            <p style="font-size:24px; margin-bottom:5px;">📂</p>
+            <p style="font-size:13px; margin:0;">Este edificio todavía no tiene visitas registradas.</p>
+          </div>`;
+      }
+      return;
+    }
+
+    visitas.sort((a, b) => new Date(b.date || b.fecha || b.createdAt) - new Date(a.date || a.fecha || a.createdAt));
+    if (contenedorHistorial) contenedorHistorial.innerHTML = "";
+    
+    visitas.forEach(vis => {
+      const fechaRaw = vis.date || vis.fecha || vis.createdAt;
+      const fechaFormateada = fechaRaw ? new Date(fechaRaw).toLocaleDateString('es-AR', {
+        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit'
+      }) : "Fecha desconocida";
+      
+      const depto = vis.department || vis.depto || vis.departamento || "-";
+      const estado = vis.status || vis.resultado || "REGISTRADO";
+      const nota = vis.notes || vis.nota || "";
+      const tieneProblema = vis.hasIssue || vis.issue || vis.problema;
+      
+      let badgeColor = "#71717a"; 
+      let badgeText = estado;
+      
+      if (estado === "ATENDIO" || estado === "ATENDIÓ") {
+        badgeColor = "#16a34a"; 
+        badgeText = "✔ ATENDIÓ";
+      } else if (estado === "NO_EN_CASA" || estado === "NO EN CASA") {
+        badgeColor = "#ca8a04"; 
+        badgeText = "✕ NO EN CASA";
+      }
+      
+      const tarjetaVisita = `
+        <div style="background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; text-align: left;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: bold; color: #f4f4f5; font-size: 14px;">🚪 Depto / Unidad: <span style="color:#3b82f6;">${depto}</span></span>
+            <span style="font-size: 11px; color: #a1a1aa;">📅 ${fechaFormateada}</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; margin-top: 2px;">
+            <span style="background: ${badgeColor}; color: white; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${badgeText}</span>
+            ${tieneProblema ? `<span style="background: #ef4444; color: white; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: bold;">⚠️ PROBLEMA</span>` : ''}
+            ${vis.user || vis.usuario ? `<span style="font-size: 11px; color: #71717a;">Por: ${vis.user || vis.usuario}</span>` : ''}
+          </div>
+          ${nota ? `
+          <div style="background: #1c1c1e; border-left: 3px solid #3b82f6; padding: 6px 10px; border-radius: 4px; margin-top: 4px;">
+            <p style="margin: 0; font-size: 12px; color: #d4d4d8; font-style: italic;">" ${nota} "</p>
+          </div>
+          ` : ''}
+        </div>
+      `;
+      if (contenedorHistorial) contenedorHistorial.insertAdjacentHTML("beforeend", tarjetaVisita);
+    });
+  } catch (error) {
+    console.error("Error cargando historial:", error);
+    if (contenedorHistorial) {
+      contenedorHistorial.innerHTML = `<p style="color:#ef4444; text-align:center; padding:20px; font-size:13px;">Error al conectar con el servidor para traer el historial.</p>`;
+    }
+  }
+}
+
+function cerrarHistorial() {
+  const modal = document.getElementById("modalHistorial");
+  if (modal) modal.style.display = "none";
+}
+
 function cerrarDetalleAdmin() {
   const panel = document.getElementById("panelDetalleEdificio") || document.getElementById("panelDetalleAdmin");
   if (panel) panel.style.display = "none";
@@ -1643,9 +1733,10 @@ async function verHistorialLogs(id) {
   }
 }
 
-/** * 6.7 VISUALIZADOR DE DETALLES, ALERTAS HISTORIAL Y MINI-MAPA INDEPENDIENTE (ADMIN)
- * Consume la información extendida desde el backend y despliega el panel técnico. */
-
+/**
+ * 6.7 VISUALIZADOR DE DETALLES, ALERTAS HISTORIAL Y MINI-MAPA INDEPENDIENTE (ADMIN)
+ * Consume la información extendida desde el backend y despliega el panel técnico.
+ */
 async function verDetalleEdificioAdmin(buildingId) {
   // Guardamos el ID en la variable global para que la app sepa qué edificio está en pantalla
   currentBuildingId = buildingId; 
