@@ -937,18 +937,20 @@
   </div>
 </div>
 
-<div id="mapaView" class="view" style="display: none; padding: 15px; position: relative;">
-  <div class="component-card" style="padding: 15px; background: #1c1c1e; border: 1px solid #27272a; border-radius: 14px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+<div id="mapaView" class="view" style="display: none; padding: 10px; box-sizing: border-box; height: 100dvh; max-height: 100vh; overflow: hidden; position: relative;">
+  <div class="component-card" style="padding: 12px; background: #1c1c1e; border: 1px solid #27272a; border-radius: 14px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
       <div>
-        
-        <p style="margin: 2px 0 0 0; font-size: 13px; color: #a1a1aa;">Visualización de territorios y edificios</p>
+        <h2 style="color: #ffffff; margin: 0; font-size: 18px; line-height: 1.2;">🗺️ Mapa Maestro de Coordenadas</h2>
+        <p style="margin: 2px 0 0 0; font-size: 12px; color: #a1a1aa; display: block;">Territorios y edificios geolocalizados</p>
       </div>
-      <button class="secondary" onclick="abrirVista('territorioView')" style="margin: 0; width: auto; padding: 8px 10px; font-size: 10px; font-weight: 600; background: #27272a; border-color: #3f3f46; color: white; cursor: pointer;">
-        ⬅️ 
+      <button class="secondary" onclick="abrirVista('territorioView')" style="margin: 0; width: auto; padding: 8px 14px; font-size: 12px; font-weight: 600; background: #27272a; border-color: #3f3f46; color: white; cursor: pointer; border-radius: 8px; white-space: nowrap;">
+        ⬅️ Volver
       </button>
     </div>
-    <div id="mapaMaestroFullscreen" style="height: calc(100vh - 190px); min-height: 500px; border-radius: 12px; border: 1px solid #27272a; background: #18181b;"></div>
+
+    <div id="mapaMaestroFullscreen" style="flex: 1; width: 100%; border-radius: 10px; border: 1px solid #27272a; background: #18181b;"></div>
   </div>
 </div>
 
