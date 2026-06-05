@@ -278,8 +278,8 @@ async function descargarBaseAdministrativa() {
   }
 }
 
-/**
- * 7. ENRUTADOR DINÁMICO DE PANTALLAS (PROTECCIÓN ESTRICTA POR ROL)
+/** * 7. ENRUTADOR DINÁMICO DE PANTALLAS (PROTECCIÓN ESTRICTA POR ROL) 
+ * Actualizado: Incorpora 'mapaView' para el aislamiento cartográfico a pantalla completa.
  */
 function abrirVista(vistaId) {
   if (currentRole === "predi" && vistaId !== "editarView" && vistaId !== "appContainer") {
@@ -287,7 +287,8 @@ function abrirVista(vistaId) {
     return;
   }
 
-  const vistas = ["loginScreen", "dashboardView", "territorioView", "problemasView", "appContainer", "editarView", "superAdminView"];
+  // Agregamos 'mapaView' al listado de pantallas controladas por el enrutador
+  const vistas = ["loginScreen", "dashboardView", "territorioView", "problemasView", "appContainer", "editarView", "superAdminView", "mapaView"];
   
   vistas.forEach(id => {
     const el = document.getElementById(id);
@@ -309,7 +310,7 @@ function abrirVista(vistaId) {
     if (navbar) navbar.style.display = "none";
   } else {
     if (navbar) navbar.style.display = "flex";
-    if (vistaId === "dashboardView" || vistaId === "appContainer") {
+    if (vistaId === "dashboardView" || vistaId === "appContainer" || vistaId === "mapaView") {
       if (btnVolver) btnVolver.style.display = "none";
     } else {
       if (btnVolver) btnVolver.style.display = "block";
@@ -318,17 +319,22 @@ function abrirVista(vistaId) {
 
   if (vistaId === "territorioView") {
     setTimeout(() => {
-      if (typeof inicializarMapaGeneralAdministrador === "function") {
-        inicializarMapaGeneralAdministrador();
-      }
       if (typeof ejecutarFiltrosAdmin === "function") {
         ejecutarFiltrosAdmin();
       }
     }, 100);
   }
 
-  if (vistaId === "territorioView" && typeof mapaGeneral !== 'undefined' && mapaGeneral) {
-    setTimeout(() => { mapaGeneral.invalidateSize(); }, 200);
+  // Si entra a la nueva vista del mapa fullscreen, gatillamos la inicialización y el ajuste de tamaño
+  if (vistaId === "mapaView") {
+    setTimeout(() => {
+      if (typeof inicializarMapaGeneralAdministrador === "function") {
+        inicializarMapaGeneralAdministrador();
+      }
+      if (typeof mapaGeneral !== 'undefined' && mapaGeneral) {
+        mapaGeneral.invalidateSize({ animate: false });
+      }
+    }, 100);
   }
 }
 
@@ -1740,8 +1746,7 @@ async function verHistorialLogs(id) {
 
 /**
  * 6.7 VISUALIZADOR DE DETALLES, ALERTAS HISTORIAL Y MINI-MAPA INDEPENDIENTE (ADMIN)
- * Consume la información extendida desde el backend y despliega el panel técnico.
- */
+ * Consume la información extendida desde el backend y despliega el panel técnico. */
 async function verDetalleEdificioAdmin(buildingId) {
   // Guardamos el ID en la variable global para que la app sepa qué edificio está en pantalla
   currentBuildingId = buildingId; 
@@ -1834,54 +1839,56 @@ async function verDetalleEdificioAdmin(buildingId) {
     }
 
     miTemporizadorMapa = setTimeout(() => {
-      const miMapaReal = (typeof mapaGeneral !== 'undefined' && mapaGeneral !== null) ? mapaGeneral : 
+      // Intentamos enlazar primero con la instancia dedicada al mapa de pantalla completa
+      const miMapaReal = (typeof mapaMaestroFullscreenInstance !== 'undefined' && mapaMaestroFullscreenInstance !== null) ? mapaMaestroFullscreenInstance :
+                         (typeof mapaGeneral !== 'undefined' && mapaGeneral !== null) ? mapaGeneral : 
                          (typeof leafletMap !== 'undefined' && leafletMap !== null) ? leafletMap : 
                          (typeof map !== 'undefined' && map !== null) ? map : null;
 
+      const latValida = parseFloat(b.latitude);
+      const lngValida = parseFloat(b.longitude);
+      const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
+
+      // 1. INICIALIZAR SIEMPRE EL MINI-MAPA CUADRADO DEL DETALLE INTERNO
+      if (typeof miniMapaAdminInstance !== 'undefined' && miniMapaAdminInstance !== null) {
+        try { miniMapaAdminInstance.remove(); } catch (e) { console.warn("Error limpiando mini-mapa anterior:", e); }
+        miniMapaAdminInstance = null;
+      }
+
+      if (tieneCoordenadas) {
+        setTimeout(() => {
+          try {
+            miniMapaAdminInstance = L.map('miniMapaDetalle', {
+              center: [latValida, lngValida],
+              zoom: 16,
+              zoomControl: false,
+              attributionControl: false,
+              dragging: false,
+              touchZoom: false,
+              doubleClickZoom: false,
+              scrollWheelZoom: false,
+              boxZoom: false,
+              keyboard: false
+            });
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMapaAdminInstance);
+            L.marker([latValida, lngValida]).addTo(miniMapaAdminInstance);
+            miniMapaAdminInstance.invalidateSize();
+          } catch (miniMapError) {
+            console.error("Error creando el mini-mapa independiente:", miniMapError);
+          }
+        }, 50);
+      } else {
+        const minMapDiv = document.getElementById("miniMapaDetalle");
+        if (minMapDiv) minMapDiv.innerHTML = `<p style="color:#71717a; font-size:11px; text-align:center; padding-top:55px; margin:0;">Falta geolocalización</p>`;
+      }
+
+      // 2. OPERACIONES DE ENFOQUE EN EL MAPA GENERAL DE CONSULTA (SI ESTÁ DISPONIBLE)
       if (miMapaReal) {
         try { miMapaReal.invalidateSize({ animate: false }); } catch(e){}
 
-        const latValida = parseFloat(b.latitude);
-        const lngValida = parseFloat(b.longitude);
-        const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
-
-        // 📍 SI TIENE COORDENADAS: Renderizamos el mapa estático cuadrado
         if (tieneCoordenadas) {
-          console.log(`📍 Inicializando mini-mapa estático para: ${latValida}, ${lngValida}`);
           try { miMapaReal.setView([latValida, lngValida], 16); } catch(e){}
-
-          if (typeof miniMapaAdminInstance !== 'undefined' && miniMapaAdminInstance !== null) {
-            try {
-              miniMapaAdminInstance.remove();
-            } catch (e) { console.warn("Error limpiando mapa anterior:", e); }
-            miniMapaAdminInstance = null;
-          }
-
-          setTimeout(() => {
-            try {
-              miniMapaAdminInstance = L.map('miniMapaDetalle', {
-                center: [latValida, lngValida],
-                zoom: 16,
-                zoomControl: false,
-                attributionControl: false,
-                dragging: false,
-                touchZoom: false,
-                doubleClickZoom: false,
-                scrollWheelZoom: false,
-                boxZoom: false,
-                keyboard: false
-              });
-
-              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMapaAdminInstance);
-              L.marker([latValida, lngValida]).addTo(miniMapaAdminInstance);
-              miniMapaAdminInstance.invalidateSize();
-              console.log("🟢 Mini-mapa estático cuadrado renderizado con éxito.");
-            } catch (miniMapError) {
-              console.error("Error creando el mini-mapa independiente:", miniMapError);
-            }
-          }, 50);
-
-        // 🗺️ SI NO TIENE COORDENADAS PERO SÍ TERRITORIO: Encuadra en el polígono
         } else if ((b.territory || b.territorio) && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
           try {
             const numTerritorio = b.territory || b.territorio;
@@ -1893,23 +1900,12 @@ async function verDetalleEdificioAdmin(buildingId) {
             });
 
             if (capaGeoJSONAdmin.getLayers().length > 0) {
-              console.log(`🗺️ Encuadrando mapa general en el Territorio ${numTerritorio}`);
               miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { padding: [25, 25], maxZoom: 16 });
             }
           } catch (geoError) {
-            console.warn("Fallo al encuadrar territorio:", geoError);
+            console.warn("Fallo al encuadrar territorio en el mapa principal:", geoError);
           }
-          
-          const minMapDiv = document.getElementById("miniMapaDetalle");
-          if (minMapDiv) minMapDiv.innerHTML = `<p style="color:#71717a; font-size:11px; text-align:center; padding-top:55px; margin:0;">Falta geolocalización</p>`;
-
-        } else {
-          // Coordenadas fallback por defecto de Posadas
-          try { miMapaReal.setView([-27.36708, -55.89608], 15); } catch(e){}
         }
-          
-      } else {
-        console.warn("⚠️ No se encontró la instancia activa del mapa general.");
       }
     }, 100);
 
@@ -1919,28 +1915,45 @@ async function verDetalleEdificioAdmin(buildingId) {
   }
 }
 // =========================================================================
-// 🗺️ SECCIÓN 7: MOTOR CARTOGRÁFICO MAESTRO CENTRAL (ADMIN APP)
+// 🗺️ SECCIÓN 7: MOTOR CARTOGRÁFICO MAESTRO CENTRAL (ADMIN APP - FULLSCREEN)
 // =========================================================================
-
-/** * 7.1 INICIALIZACIÓN DE LA ARQUITECTURA DEL MAPA MAESTRO GENERAL
- * Levanta la instancia principal enfocada en Posadas usando el set global directo
- * de polígonos e inicializa el detector de zooms profundos para las capas visuales. */
-
+/** * 7.1 INICIALIZACIÓN DE LA ARQUITECTURA DEL MAPA MAESTRO GENERAL FULLSCREEN
+ * Levanta el mapa en pantalla completa, inyecta polígonos vectoriales y renderiza
+ * automáticamente marcadores (pins) con detalles para los edificios geolocalizados.
+ */
 function inicializarMapaGeneralAdministrador() {
-  const mapaDiv = document.getElementById("mapaGeneralAdmin") || document.getElementById("map");
-  if (!mapaDiv || mapaGeneral) return;
+  // Apuntamos al nuevo div fullscreen dedicado exclusivamente al mapa maestro
+  const mapaDiv = document.getElementById("mapaMaestroFullscreen");
+  if (!mapaDiv) return;
+
+  // Si ya existe la instancia, limpiamos capas viejas para redibujar de cero con datos frescos
+  if (mapaGeneral) {
+    try {
+      mapaGeneral.eachLayer(layer => {
+        if (layer instanceof L.GeoJSON || layer instanceof L.Marker || layer instanceof L.MarkerCluster) {
+          mapaGeneral.removeLayer(layer);
+        }
+      });
+    } catch(e) { console.warn("Aviso al limpiar capas anteriores:", e); }
+  } else {
+    // Si no existe, creamos la instancia enfocada en Posadas, Misiones
+    try {
+      mapaGeneral = L.map(mapaDiv.id, {
+        zoomControl: true,
+        attributionControl: false
+      }).setView([-27.36708, -55.89608], 13);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19
+      }).addTo(mapaGeneral);
+    } catch (err) {
+      console.error("❌ Fallo crítico al instanciar Leaflet:", err);
+      return;
+    }
+  }
 
   try {
-    mapaGeneral = L.map(mapaDiv.id, {
-      zoomControl: true,
-      attributionControl: false
-    }).setView([-27.36708, -55.89608], 13);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19
-    }).addTo(mapaGeneral);
-
-    // Renderizado inmediato y directo de los polígonos estables de territorios.js
+    // 1. INYECTAR POLÍGONOS DE TERRITORIOS
     if (typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
       L.geoJSON(misTerritoriosGeoJSON, {
         style: function(feature) {
@@ -1951,9 +1964,9 @@ function inicializarMapaGeneralAdministrador() {
           return {
             fillColor: colorAsignado,
             weight: 2,
-            opacity: 0.9,
+            opacity: 0.8,
             color: "#52525b",
-            fillOpacity: 0.35
+            fillOpacity: 0.25
           };
         },
         onEachFeature: function(feature, layer) {
@@ -1965,26 +1978,45 @@ function inicializarMapaGeneralAdministrador() {
             className: 'texto-territorio-elegante'
           });
 
-          layer.on('mouseover', function () { this.setStyle({ fillOpacity: 0.60 }); });
-          layer.on('mouseout', function () { this.setStyle({ fillOpacity: 0.35 }); });
-
-          layer.on('click', function(e) {
-            const comboFiltro = document.getElementById("busquedaTerritorio");
-            if (comboFiltro) {
-              comboFiltro.value = nombreZona;
-              paginaActual = 1;
-              if (typeof ejecutarFiltrosAdmin === 'function') {
-                ejecutarFiltrosAdmin();
-              } else {
-                cargarEdificios();
-              }
-            }
-          });
+          layer.on('mouseover', function () { this.setStyle({ fillOpacity: 0.45 }); });
+          layer.on('mouseout', function () { this.setStyle({ fillOpacity: 0.25 }); });
         }
       }).addTo(mapaGeneral);
       
-      console.log("🗺️ Capa vectorial de polígonos inyectada con éxito en Mapa Maestro.");
+      console.log("🗺️ Capa vectorial de polígonos inyectada en Mapa Maestro Fullscreen.");
     }
+
+    // 2. INYECTAR MARCADORES (PINS) DE EDIFICIOS REGISTRADOS CON COORDENADAS
+    const todosLosEdificios = window.baseDatosEdificiosMemoria || [];
+    let pinsContados = 0;
+
+    todosLosEdificios.forEach(e => {
+      const lat = parseFloat(e.latitude);
+      const lng = parseFloat(e.longitude);
+      
+      if (!isNaN(lat) && !isNaN(lng) && isFinite(lat) && lat !== 0) {
+        pinsContados++;
+        
+        // Creamos un popup descriptivo estilizado para cuando toquen el pin
+        const contenidoPopup = `
+          <div style="color: #ffffff; background: #1f1f23; font-family: sans-serif; padding: 4px; border-radius: 4px;">
+            <b style="font-size: 14px; color: #3b82f6; display:block; margin-bottom:2px;">🏢 ${e.address || 'Sin Dirección'}</b>
+            ${e.name ? `<span style="font-size:12px; color:#a1a1aa; display:block; margin-bottom:4px;">${e.name}</span>` : ''}
+            <div style="font-size: 11px; border-top: 1px solid #333; padding-top: 4px; margin-top: 4px; display:grid; gap:2px;">
+              <div>🗺️ <b>Territorio:</b> ${e.territory || e.territorio || '-'}</div>
+              <div>🔢 <b>Pisos:</b> ${e.floors || 0} | 🚪 <b>U:</b> ${e.unitsPerFloor || 0}</div>
+              <div>📋 <b>Estado:</b> ${(e.status || e.estado || 'Pendiente').toUpperCase()}</div>
+            </div>
+          </div>
+        `;
+
+        L.marker([lat, lng])
+          .bindPopup(contenidoPopup, { maxWidth: 220 })
+          .addTo(mapaGeneral);
+      }
+    });
+
+    console.log(`📍 Se renderizaron con éxito ${pinsContados} edificios en el Mapa Maestro.`);
 
     // Detector dinámico para optimizar las etiquetas de texto según profundidad de zoom
     mapaGeneral.on('zoomend', function() {
@@ -2003,9 +2035,10 @@ function inicializarMapaGeneralAdministrador() {
     });
 
   } catch (err) {
-    console.error("❌ Fallo crítico al levantar la arquitectura Leaflet principal:", err);
+    console.error("❌ Fallo crítico al poblar datos vectoriales en el mapa general:", err);
   }
 }
+
 /**
  * 7.2 INTERCONEXIÓN DE FILTROS ADMINISTRATIVOS
  * Procesa en tiempo real las búsquedas por dirección o territorio cruzando los
