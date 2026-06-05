@@ -793,6 +793,7 @@
   </style>
 </head>
 <body>
+
 <div id="navbarGlobal" class="admin-nav-bar" style="display: none; width: 100%; box-sizing: border-box; justify-content: space-between; align-items: center; padding: 12px 24px; background: #18181b; border-bottom: 1px solid #27272a; position: sticky; top: 0; z-index: 1000;">
   <div class="nav-left" style="display: flex; align-items: center; gap: 10px;">
     <button id="btnVolverNavbar" class="btn-atras-sutil" onclick="abrirVista('dashboardView')" style="display: none; background: transparent; border: none; color: #a1a1aa; font-size: 24px; cursor: pointer; margin-right: 8px; font-weight: bold;">←</button>
@@ -848,6 +849,13 @@
 </div>
 
 <div id="territorioView" class="view">
+  
+  <div style="margin-top: 15px; display: flex; justify-content: flex-end;">
+    <button class="buscar" onclick="abrirVista('mapaView')" style="margin: 0; width: auto; padding: 12px 24px; font-size: 14px; font-weight: 700; background: #3b82f6; color: white; display: flex; align-items: center; gap: 8px; border-radius: 10px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25); cursor: pointer;">
+      🗺️ Abrir Mapa Maestro de Edificios
+    </button>
+  </div>
+
   <div class="mini-stats-grid" style="margin-top: 15px;">
     <div class="mini-stat-card"><div class="stat-icon b-blue">🏢</div><div class="stat-data"><h3 id="totalEdificios">-</h3><p>Edificios Totales</p></div></div>
     <div class="mini-stat-card"><div class="stat-icon b-green">✅</div><div class="stat-data"><h3 id="visitados">-</h3><p>Visitados Hoy</p></div></div>
@@ -857,8 +865,10 @@
     <div class="mini-stat-card"><div class="stat-icon" style="background: rgba(59, 130, 246, 0.2); color: #3b82f6;">✨</div><div class="stat-data"><h3 id="edificiosNuevos">-</h3><p>Nuevos (Últimos 30 días)</p></div></div>
   </div>
 
-  <div class="workspace-grid">
+  <div class="workspace-grid" style="margin-top: 20px;">
+    
     <div class="workspace-col col-lista">
+      
       <div class="component-card">
         <div class="tabs-filtros">
           <button id="btnTabDireccion" class="tab-btn active" onclick="cambiarTabFiltro('direccion')">📍 Dirección</button>
@@ -889,45 +899,56 @@
         </div>
       </div>
 
-      <div class="component-card list-container-card">
+      <div class="component-card list-container-card" style="margin-top: 15px;">
         <div class="card-header-sm"><h3>📋 Edificios Registrados</h3></div>
         <div class="lista-scroll-limpia" style="overflow-x: auto;">
           <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
             <thead>
               <tr style="border-bottom: 1px solid #27272a; color: #a1a1aa;">
                 <th style="padding: 10px 7px;">Dirección</th>
-                
               </tr>
             </thead>
             <tbody id="tablaEdificiosCuerpo">
               <tr>
-                <td colspan="2" style="text-align: center; color: #71717a; padding: 20px;">
+                <td style="text-align: center; color: #71717a; padding: 20px;">
                   🔍 Introduzca un término en el buscador superior para desplegar resultados.
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+        
         <div class="paginador-sutil" id="paginadorAdmin" style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; padding: 0 5px;">
           <button id="btnFiltroAnterior" class="btn-pag" onclick="cambiarPaginaAdmin(-1)">← Ant</button>
           <span id="infoPaginacion" style="color: #a1a1aa; font-size: 13px;">Página 1 de 1</span>
           <button id="btnFiltroSiguiente" class="btn-pag" onclick="cambiarPaginaAdmin(1)">Sig →</button>
         </div>
       </div>
-    </div>
-    
-    <div class="workspace-col col-mapa">
-      <div class="component-card mapa-card-wrapper">
-        <div id="mapaGeneralAdmin" class="mapa-principal-moderno" style="height: 500px; border-radius: 12px;"></div>
-      </div>
+
     </div>
     
     <div class="workspace-col col-detalle">
       <div id="panelDetalleEdificio" class="detalle-edificio-premium" style="display: none; background: #1c1c1e; padding: 20px; border-radius: 12px; border: 1px solid #27272a;">
         <div id="contenidoDetalleAdmin"></div>
-        <button class="secondary" onclick="document.getElementById('panelDetalleEdificio').style.display='none'" style="width:100%; margin-top:15px;">Cerrar Vista</button>
+        <button class="secondary" onclick="document.getElementById('panelDetalleEdificio').style.display='none'" style="width:100%; margin-top:15px; cursor: pointer;">Cerrar Vista</button>
       </div>
     </div>
+
+  </div>
+</div>
+
+<div id="mapaView" class="view" style="display: none; padding: 15px; position: relative;">
+  <div class="component-card" style="padding: 15px; background: #1c1c1e; border: 1px solid #27272a; border-radius: 14px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <div>
+        <h2 style="color: #ffffff; margin: 0; font-size: 20px;">🗺️ Mapa Maestro de Coordenadas</h2>
+        <p style="margin: 2px 0 0 0; font-size: 13px; color: #a1a1aa;">Visualización global de territorios y edificios geolocalizados</p>
+      </div>
+      <button class="secondary" onclick="abrirVista('territorioView')" style="margin: 0; width: auto; padding: 8px 16px; font-size: 13px; font-weight: 600; background: #27272a; border-color: #3f3f46; color: white; cursor: pointer;">
+        ⬅️ Volver a Gestión
+      </button>
+    </div>
+    <div id="mapaMaestroFullscreen" style="height: calc(100vh - 190px); min-height: 500px; border-radius: 12px; border: 1px solid #27272a; background: #18181b;"></div>
   </div>
 </div>
 
@@ -1006,8 +1027,8 @@
     <textarea id="descProblema" rows="4" placeholder="Escribe aquí los detalles..." style="width:100%; margin-bottom:15px; background:#2c2c2e; border:1px solid #3a3a3c; color:white; padding:10px; border-radius:8px; resize:none;"></textarea>
     
     <div style="display:flex; gap:10px; margin-top:5px;">
-      <button class="secondary" onclick="cerrarReporte()" style="flex:1; margin:0;">Cancelar</button>
-      <button class="buscar" onclick="enviarReporte()" style="flex:1; margin:0; background:#ef4444; color:white;">Enviar Reporte</button>
+      <button class="secondary" onclick="cerrarReporte()" style="flex:1; margin:0; cursor: pointer;">Cancelar</button>
+      <button class="buscar" onclick="enviarReporte()" style="flex:1; margin:0; background:#ef4444; color:white; cursor: pointer;">Enviar Reporte</button>
     </div>
   </div>
 </div>
