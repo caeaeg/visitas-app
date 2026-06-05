@@ -1820,8 +1820,8 @@ async function verDetalleEdificioAdmin(buildingId) {
           <div>🌱 <b>PB:</b> ${b.hasGroundFloor ? "Sí" : "No"} | 🛎️ <b>Portero:</b> ${b.hasDoorman ? "Sí" : "No"}</div>
         </div>
 
-        <div id="contenedorMapaAdminSquare" style="width: 140px; height: 140px; flex-shrink: 0; position: relative;">
-          <div id="miniMapaDetalle" style="width: 140px; height: 140px; border-radius: 12px; border: 1px solid #3f3f46; background:#181818;"></div>
+        <div id="contenedorMapaAdminSquare" style="width: 140px; height: 140px; flex-shrink: 0; position: relative; overflow: hidden; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+          <div id="miniMapaDetalle" style="width: 140px; height: 140px; border-radius: 12px; background:#181818; border: none;"></div>
         </div>
 
       </div>
