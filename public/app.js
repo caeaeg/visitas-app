@@ -1374,7 +1374,7 @@ function limpiarVista() {
 
 /**
  * 6.1 RENDERIZADO DE LA GRILLA OPERATIVA DEL ADMINISTRADOR
- * Simplificado para mostrar solo Dirección y Acciones, controlado para NO cargar todo de entrada.
+ * Optimizado: Fila completa cliqueable para ver detalles, eliminando botones redundantes.
  */
 async function cargarEdificios() {
   const tablaCuerpo = document.getElementById("tablaEdificiosCuerpo");
@@ -1388,7 +1388,7 @@ async function cargarEdificios() {
   if (TXT_DIR === "" && TXT_TERR === "") {
     tablaCuerpo.innerHTML = `
       <tr>
-        <td colspan="2" style="text-align: center; color: #71717a; padding: 20px;">
+        <td style="text-align: center; color: #71717a; padding: 20px;">
           🔍 Introduzca un término en el buscador superior para desplegar resultados.
         </td>
       </tr>
@@ -1409,7 +1409,7 @@ async function cargarEdificios() {
   const datosAIterar = window.todosLosEdificiosDB || [];
 
   if (datosAIterar.length === 0) {
-    tablaCuerpo.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#a1a1aa; padding:20px;">📭 No hay edificios registrados en el sistema.</td></tr>`;
+    tablaCuerpo.innerHTML = `<tr><td style="text-align:center; color:#a1a1aa; padding:20px;">📭 No hay edificios registrados en el sistema.</td></tr>`;
     actualizarControlesPaginacion(0);
     return;
   }
@@ -1423,15 +1423,20 @@ async function cargarEdificios() {
     const fila = document.createElement("tr");
     const idEdificio = e.id || e._id;
 
-    // Inyección limpia: Solo Dirección y Acciones (Pasando el ID como string seguro)
+    // Configuración de la fila como un botón interactivo completo
+    fila.style.cursor = "pointer";
+    fila.style.transition = "background-color 0.2s ease";
+    fila.setAttribute("onclick", `verDetalleEdificioAdmin('${idEdificio}')`);
+    
+    // Efecto visual hover sencillo (puedes complementarlo en tu CSS si querés)
+    fila.onmouseover = () => fila.style.backgroundColor = "#27272a";
+    fila.onmouseout = () => fila.style.backgroundColor = "transparent";
+
+    // Inyección limpia: Solo la Dirección. Al hacer click en cualquier lado de la fila abre el detalle.
     fila.innerHTML = `
-      <td style="font-weight: 600; color: #ffffff; padding: 12px 8px;">
+      <td style="font-weight: 600; color: #ffffff; padding: 14px 12px; border-bottom: 1px solid #27272a;">
         ${e.address || "Sin Dirección"}
-        ${e.name ? `<br><small style="color:#a1a1aa; font-weight:normal;">${e.name}</small>` : ''}
-      </td>
-      <td style="text-align: center; width: 100px; padding: 12px 8px;">
-        <button class="btn-action-view" onclick="verDetalleEdificioAdmin('${idEdificio}')" title="Ver Detalles" style="background:none; border:none; cursor:pointer; font-size:1.2rem; margin-right:8px;">👁️</button>
-        <button class="btn-action-edit" onclick="abrirEditorEdificio('${idEdificio}')" title="Editar" style="background:none; border:none; cursor:pointer; font-size:1.2rem;">✏️</button>
+        ${e.name ? `<br><small style="color:#a1a1aa; font-weight:normal; display:inline-block; margin-top:2px;">${e.name}</small>` : ''}
       </td>
     `;
     tablaCuerpo.appendChild(fila);
