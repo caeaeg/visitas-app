@@ -158,7 +158,8 @@ async function login() {
   const pass = passField?.value.trim();
 
   if (!user || !pass) {
-    alert("⚠️ Por favor complete todos los campos obligatorios.");
+    // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+    mostrarAviso("Por favor complete todos los campos obligatorios.", "warning");
     if (msgLabel) msgLabel.innerText = "Campos incompletos.";
     return;
   }
@@ -206,7 +207,8 @@ async function login() {
         ? "❌ Sin conexión con el servidor." 
         : `❌ ${error.message}`;
     } else {
-      alert(`❌ Error: ${error.message}`);
+      // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+      mostrarAviso(`Error: ${error.message}`, "error");
     }
   } finally {
     mostrarLoading(false);
@@ -516,7 +518,8 @@ async function buscar() {
 
     if (edificioEncontrado) {
       if (edificioEncontrado.isBlocked) {
-        alert("🚫 ACCESO DENEGADO:\nEste edificio está bloqueado por el Administrador y no puede ser visitado en este momento.");
+        // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+        mostrarAviso("ACCESO DENEGADO: Este edificio está bloqueado por el Administrador.", "error");
         if (resLabel) resLabel.innerText = ""; 
         return;
       }
@@ -550,7 +553,8 @@ async function buscar() {
     }
     
     if (building.error === "EDIFICIO_BLOQUEADO" || building.isBlocked) {
-      alert("🚫 ACCESO DENEGADO:\nEste edificio está bloqueado por el Administrador y no puede ser visitado en este momento.");
+      // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+      mostrarAviso("ACCESO DENEGADO: Este edificio está bloqueado por el Administrador.", "error");
       if (resLabel) resLabel.innerText = ""; 
       if (document.getElementById("departamentoVisitar")) {
         document.getElementById("departamentoVisitar").innerText = "--";
@@ -592,7 +596,8 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
     const edificioLocal = window.baseDatosEdificiosMemoria?.find(b => b._id === buildingId) || window.edificioActivo;
     
     if (!edificioLocal || !edificioLocal.departments || edificioLocal.departments.length === 0) {
-      alert("🔄 Este edificio no contiene departamentos configurados en la memoria local.");
+      // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+      mostrarAviso("Este edificio no contiene departamentos configurados en la memoria local.", "warning");
       return;
     }
 
@@ -603,7 +608,6 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
       .map(v => v.departmentId);
 
     // Filtrar departamentos que no hayan sido completados o visitados recientemente en los datos cacheados
-    // Nota: El backend maneja su propia marca de tiempo, localmente filtramos los que no se tocaron en esta sesión offline
     const deptosDisponibles = edificioLocal.departments.filter(d => {
       // Excluir si ya fue votado en la tanda offline actual
       if (deptosVisitadosOfflineIds.includes(d._id)) return false;
@@ -611,14 +615,15 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
       if (d.lastVisit) {
         const mesesExclusion = 4;
         const limiteFecha = new Date();
-        limpiteFecha.setMonth(limiteFecha.getMonth() - mesesExclusion);
+        limiteFecha.setMonth(limiteFecha.getMonth() - mesesExclusion); // 🔧 Corregido tipeo original 'limpiteFecha'
         if (new Date(d.lastVisit) > limiteFecha) return false;
       }
       return true;
     });
 
     if (deptosDisponibles.length === 0) {
-      alert("🔄 Todos los departamentos de este edificio fueron visitados en la tanda offline o no tienen unidades hábiles.");
+      // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+      mostrarAviso("Todos los departamentos ya fueron visitados en esta tanda offline.", "warning");
       window.departamentoEnFoco = null;
       const resultadoH2 = document.getElementById("resultado");
       if (resultadoH2) resultadoH2.innerText = "Fin";
@@ -645,7 +650,8 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
     const data = res.json ? await res.json() : res;
     
     if (data.message === "NO_AVAILABLE" || data.message === "COMPLETED") {
-      alert("🔄 Todos los departamentos de este edificio fueron visitados en los últimos 4 meses o no hay unidades configuradas.");
+      // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+      mostrarAviso("Todos los departamentos fueron visitados en los últimos 4 meses.", "warning");
       window.departamentoEnFoco = null;
       const resultadoH2 = document.getElementById("resultado");
       if (resultadoH2) resultadoH2.innerText = "Fin";
@@ -653,7 +659,8 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
     }
     
     if (data.message === "EDIFICIO_BLOQUEADO") {
-      alert("🚫 Este edificio está bloqueado de forma administrativa.");
+      // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+      mostrarAviso("Este edificio está bloqueado de forma administrativa.", "error");
       tratarEdificioNoEncontrado();
       return;
     }
@@ -863,7 +870,8 @@ function marcar(estado) {
     return;
   }
   if (!window.departamentoEnFoco || !window.departamentoEnFoco._id) {
-    alert("⚠️ No hay un departamento en foco para asignarle este estado.");
+    // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+    mostrarAviso("No hay un departamento en foco para asignarle este estado.", "warning");
     return;
   }
   
@@ -894,15 +902,18 @@ function marcar(estado) {
 async function ejecutarAvanzarDepartamento() {
   console.log("🎯 Avanzando departamento...");
   if (!window.currentBuildingId) {
-    alert("⚠️ Error: No hay un edificio activo seleccionado.");
+    // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+    mostrarAviso("Error: No hay un edificio activo seleccionado.", "error");
     return;
   }
   if (!window.departamentoEnFoco || !window.departamentoEnFoco._id) {
-    alert("⚠️ Error: No hay un departamento activo en foco.");
+    // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+    mostrarAviso("Error: No hay un departamento activo en foco.", "error");
     return;
   }
   if (!window.votoTemporal) {
-    alert("⚠️ Por favor, selecciona primero si atendió o no está en casa antes de avanzar.");
+    // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+    mostrarAviso("Por favor, selecciona primero si atendió o no está en casa antes de avanzar.", "warning");
     return;
   }
   
@@ -1029,7 +1040,8 @@ window.addEventListener('online', async () => {
 
   // Alerta ligera al usuario y recarga de las bases de datos
   if (!erroresCarga) {
-    alert("🔄 ¡Datos sincronizados! Las visitas, reportes y edificios tomados sin internet ya se subieron al servidor con éxito.");
+    // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+    mostrarAviso("🔄 ¡Datos sincronizados! Las visitas, reportes y edificios offline se subieron con éxito.");
     if (typeof preCargarBaseDatosEnMemoria === "function") await preCargarBaseDatosEnMemoria();
     if (typeof cargarEdificios === "function") cargarEdificios();
   } else {
@@ -1232,7 +1244,8 @@ async function guardarCambiosEditor() {
   const description = document.getElementById("edit_description")?.value.trim();
   
   if (!address) {
-    alert("⚠️ El campo de dirección física es mandatorio.");
+    // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+    mostrarAviso("El campo de dirección física es mandatorio.", "warning");
     return;
   }
   
@@ -1250,7 +1263,7 @@ async function guardarCambiosEditor() {
     description
   };
 
- // 🛡️ CASO OFFLINE DIRECTO: Guardado preventivo en la billetera local
+  // 🛡️ CASO OFFLINE DIRECTO: Guardado preventivo en la billetera local
   if (!navigator.onLine) {
     console.warn("📡 [MODO OFFLINE] Guardando cambios o alta de edificio de forma local...");
     const localPayload = { ...payload, _id: id || `local_${Date.now()}`, esModificacionLocal: !!id };
@@ -1291,7 +1304,8 @@ async function guardarCambiosEditor() {
       window.baseDatosEdificiosMemoria.push(localPayload);
     }
 
-    alert("💾 Guardado localmente en tu celu. Se re-estructuraron los departamentos en memoria para la visita.");
+    // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+    mostrarAviso("Guardado localmente en tu celu. Departamentos re-estructurados.", "warning");
     
     const userRole = localStorage.getItem("role") || "predi";
     if (userRole === "admin") {
@@ -1302,6 +1316,7 @@ async function guardarCambiosEditor() {
     }
     return;
   }
+  
   // 🌐 MODO ONLINE STANDARD
   const metodo = id ? "PUT" : "POST";
   const urlEndpoint = id ? `/building/${id}` : "/building";
@@ -1313,7 +1328,8 @@ async function guardarCambiosEditor() {
       body: JSON.stringify(payload)
     });
     if (res.ok) {
-      alert("Edificio guardado exitosamente");
+      // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+      mostrarAviso("Edificio guardado exitosamente", "success");
       if (typeof preCargarBaseDatosEnMemoria === "function") await preCargarBaseDatosEnMemoria();
       
       const userRole = localStorage.getItem("role") || "predi";
@@ -1325,12 +1341,14 @@ async function guardarCambiosEditor() {
       }
     } else {
       const data = await res.json().catch(() => ({}));
-      alert("Error: " + (data.message || "Error desconocido en el servidor"));
+      // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+      mostrarAviso("Error: " + (data.message || "Error desconocido en el servidor"), "error");
     }
   } catch (err) {
     console.error("Error crítico al guardar, respaldando en local por seguridad:", err);
     guardarEnMochilaLocal("edificios_pendientes", { ...payload, _id: id, esModificacionLocal: !!id });
-    alert("⏳ Problema de red. El edificio quedó resguardado en el almacenamiento local de forma segura.");
+    // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+    mostrarAviso("Problema de red. Resguardado en el almacenamiento local.", "warning");
     cancelarEdificioMovil();
   }
 }
@@ -1342,7 +1360,8 @@ async function guardarCambiosEditor() {
 /** * 1. ENRUTADOR DE ACCESO GLOBAL */
 function abrirReporte() { 
   if (!window.currentBuildingId) {
-    alert("⚠️ Error: Debe seleccionar o buscar un edificio antes de reportar un problema.");
+    // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+    mostrarAviso("Debe seleccionar o buscar un edificio antes de reportar un problema.", "warning");
     return;
   }
   console.log("📋 Abriendo pasarela de incidencias críticas...");
@@ -1375,11 +1394,13 @@ async function enviarReporte() {
   const tipo = selectorTipo ? selectorTipo.value : "Otro";
   
   if (!nombreReporta) {
-    alert("Por favor, introduce tu nombre para saber quién reporta el problema.");
+    // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+    mostrarAviso("Por favor, introduce tu nombre para saber quién reporta el problema.", "warning");
     return;
   }
   if (!descripcion) {
-    alert("Por favor, escribe los detalles del problema antes de enviar.");
+    // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+    mostrarAviso("Por favor, escribe los detalles del problema antes de enviar.", "warning");
     return;
   }
   
@@ -1388,7 +1409,8 @@ async function enviarReporte() {
     idEdificioLimpia = window.currentBuildingId._id || window.currentBuildingId.id;
   }
   if (!idEdificioLimpia || idEdificioLimpia === "[object Object]") {
-    alert("Error local: No se pudo identificar el edificio actual. Intenta recargar la página.");
+    // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+    mostrarAviso("Error local: No se pudo identificar el edificio actual. Intenta recargar la página.", "error");
     return;
   }
   
@@ -1413,7 +1435,8 @@ async function enviarReporte() {
     cerrarReporte();
     if (txtArea) txtArea.value = "";
     if (inputNombre) inputNombre.value = ""; 
-    alert("⚠️ Guardado localmente (Sin Internet). El reporte se enviará solo cuando recuperes señal.");
+    // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+    mostrarAviso("Guardado localmente (Sin Internet). Se enviará al recuperar señal.", "warning");
     return;
   }
   
@@ -1432,7 +1455,7 @@ async function enviarReporte() {
       guardarEnMochilaLocal("reportes_pendientes", datosReporte);
     }
   }).catch(error => {
-    console.error("Error en transmisión de reporte de fondo, resguardando:", error);
+    console.error("Error en transmission de reporte de fondo, resguardando:", error);
     guardarEnMochilaLocal("reportes_pendientes", datosReporte);
   });
 
@@ -1440,7 +1463,8 @@ async function enviarReporte() {
   cerrarReporte();
   if (txtArea) txtArea.value = "";
   if (inputNombre) inputNombre.value = ""; 
-  alert("Reporte procesado con éxito.");
+  // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+  mostrarAviso("Reporte procesado con éxito.", "success");
 }
 
 /** * 4. REINICIO COMPORTAMENTAL DE INTERFAZ MÓVIL */
@@ -1608,7 +1632,8 @@ async function abrirHistorialEdificio(idEdificioOpcional = null) {
   const modal = document.getElementById("modalHistorial");
   
   if (!idEdificio) {
-    alert("Primero selecciona un edificio de la lista.");
+    // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+    mostrarAviso("Primero selecciona un edificio de la lista.", "warning");
     return;
   }
   
@@ -1715,27 +1740,36 @@ function verificarAccesoSuperAdmin() {
 
   if (claveInput === "2414") {
     window.superAdminAutenticado = true;
-    alert("🔓 Acceso de SuperAdmin Autorizado. Abriendo panel avanzado...");
+    
+    // 🌟 CAMBIO: Aviso estético no bloqueante en verde
+    mostrarAviso("Acceso de SuperAdmin Autorizado. Abriendo panel avanzado...", "success");
+    
     if (document.getElementById("superAdminKey")) document.getElementById("superAdminKey").value = "";
     abrirVista("superAdminView");
     window.superAdminPaginaActual = 1;
     ejecutarFiltroSuperAdmin();
   } else {
-    alert("❌ Clave maestra incorrecta. Intento denegado.");
+    // 🌟 CAMBIO: Aviso estético en rojo
+    mostrarAviso("Clave maestra incorrecta. Intento denegado.", "error");
   }
 }
 
 function abrirAccesoSuperAdmin() {
+  // Mantenemos el prompt temporalmente para capturar el texto sin romper tu flujo actual
   const clave = prompt("🔑 Ingrese la clave maestra de SuperAdmin:");
   if (clave) {
     if (clave === "2414") {
       window.superAdminAutenticado = true;
-      alert("🔓 Acceso de SuperAdmin Autorizado. Abriendo panel avanzado...");
+      
+      // 🌟 CAMBIO: Aviso moderno en verde
+      mostrarAviso("Acceso de SuperAdmin Autorizado. Abriendo panel avanzado...", "success");
+      
       abrirVista("superAdminView");
       window.superAdminPaginaActual = 1;
       ejecutarFiltroSuperAdmin();
     } else {
-      alert("❌ Clave maestra incorrecta. Intento denegado.");
+      // 🌟 CAMBIO: Aviso moderno en rojo
+      mostrarAviso("Clave maestra incorrecta. Intento denegado.", "error");
     }
   }
 }
@@ -1824,22 +1858,26 @@ function cambiarPaginaSuper(dir) {
  * Ejecuta la eliminación física irreversible en el backend y parsea las trazas de auditoría profunda.
  */
 async function eliminarEdificioDestructivo(id) {
+  // Se mantiene el confirm nativo como freno de mano de seguridad extrema antes de borrar
   const confirmacion = confirm("⚠️ ADVERTENCIA CRÍTICA ⚠️\n\n¿Está absolutamente seguro de eliminar permanentemente este edificio? Esta acción borrará de forma irreversible el historial de visitas, coordenadas y reportes asociados.");
   if (!confirmacion) return;
 
   try {
     const res = await apiFetch(`/admin/buildings/${id}`, { method: "DELETE" });
     if (res.ok) {
-      alert("🗑️ El registro ha sido eliminado físicamente de la base de datos.");
+      // 🌟 CAMBIO: Aviso estético en rojo/borrado con icono de tacho
+      mostrarAviso("El registro ha sido eliminado físicamente de la base de datos.", "error");
       if (typeof preCargarBaseDatosEnMemoria === 'function') await preCargarBaseDatosEnMemoria();
       ejecutarFiltroSuperAdmin();
       if (typeof cargarEdificios === "function") cargarEdificios();
     } else {
-      alert("❌ Error: El servidor denegó la solicitud de borrado.");
+      // 🌟 CAMBIO: Aviso estético de error
+      mostrarAviso("Error: El servidor denegó la solicitud de borrado.", "error");
     }
   } catch (err) {
     console.error("Error crítico en cascada de borrado:", err);
-    alert("⚠️ Falló la comunicación destructiva con el backend.");
+    // 🌟 CAMBIO: Aviso estético de error
+    mostrarAviso("Falló la comunicación destructiva con el backend.", "error");
   }
 }
 
@@ -1852,13 +1890,18 @@ async function verHistorialLogs(id) {
         ? logs.map(l => `• [${l.fecha || 'Fecha ausente'}] - ${l.usuario || 'Sistema'}: ${l.accion || 'Modificación'}`).join("\n")
         : "• No se registran logs históricos previos para este elemento.";
       
-      alert(`📜 TRACE DE AUDITORÍA (ID: ${id}):\n\n${formatLogs}`);
+      // 🌟 CAMBIO: Aviso moderno tipo toast. 
+      // TIP: Como es una lista de texto, si querés que dure más tiempo en pantalla para leerla bien,
+      // podés pasarle un tiempo personalizado o dejar que use el sistema estándar.
+      mostrarAviso(`📜 AUDITORÍA (ID: ${id}):\n${formatLogs}`, "success");
     } else {
-      alert("❌ No se pudo recuperar el historial de auditoría.");
+      // 🌟 CAMBIO: Aviso estético de error
+      mostrarAviso("No se pudo recuperar el historial de auditoría.", "error");
     }
   } catch (err) {
     console.error("Falla en petición de logs:", err);
-    alert("⚠️ Error de red al solicitar los logs.");
+    // 🌟 CAMBIO: Aviso estético de error
+    mostrarAviso("Error de red al solicitar los logs.", "error");
   }
 }
 
@@ -2231,5 +2274,67 @@ function cambiarTabFiltro(tabTipo) {
     console.log("🔍 Modo de búsqueda establecido en: Territorio");
   }
 }
+/**
+ * 🌟 SISTEMA DE NOTIFICACIONES VISUALES (TOAST)
+ * Reemplaza los alerts nativos por carteles flotantes elegantes y no bloqueantes.
+ * @param {string} mensaje - El texto a mostrar.
+ * @param {string} tipo - 'success', 'warning', 'error' (por defecto 'success')
+ */
+function mostrarAviso(mensaje, tipo = "success") {
+  const container = document.getElementById("toast-container");
+  if (!container) {
+    // Salvavidas por si no agregaste el contenedor HTML todavía
+    alert(mensaje);
+    return;
+  }
 
+  // Configuración de colores según el tipo de aviso
+  let bg = "#10b981"; // Verde success
+  let icon = "✅";
+  if (tipo === "warning") {
+    bg = "#f59e0b"; // Amarillo/Naranja warning
+    icon = "⚠️";
+  } else if (tipo === "error") {
+    bg = "#ef4444"; // Rojo error
+    icon = "❌";
+  }
+
+  // Crear el elemento del aviso
+  const toast = document.createElement("div");
+  toast.style.background = bg;
+  toast.style.color = "#ffffff";
+  toast.style.padding = "12px 16px";
+  toast.style.borderRadius = "8px";
+  toast.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+  toast.style.fontSize = "14px";
+  toast.style.fontWeight = "bold";
+  toast.style.textAlign = "center";
+  toast.style.opacity = "0";
+  toast.style.transition = "all 0.4s ease";
+  toast.style.pointerEvents = "auto";
+  toast.style.display = "flex";
+  toast.style.alignItems = "center";
+  toast.style.justifyContent = "center";
+  toast.style.gap = "8px";
+
+  toast.innerHTML = `<span>${icon}</span> <span>${mensaje}</span>`;
+
+  // Insertar en el contenedor
+  container.appendChild(toast);
+
+  // Efecto de entrada (Fade in + leve subida)
+  setTimeout(() => {
+    toast.style.opacity = "1";
+    toast.style.transform = "translateY(0)";
+  }, 50);
+
+  // Desvanecer y remover automáticamente a los 3.5 segundos
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(10px)";
+    setTimeout(() => {
+      toast.remove();
+    }, 400);
+  }, 3500);
+}
 
