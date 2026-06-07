@@ -216,6 +216,7 @@ async function login() {
 /**
  * 5. ORQUESTADOR DE ENTORNO SEGÚN PERMISOS Y ROLES DE TRABAJO
  * Modula la UI adaptándola de forma exacta al Publicador, Conductor o Admin.
+ * MODIFICADO: Ahora el usuario 'predi' descarga o recupera de memoria local los datos de campo.
  */
 async function iniciarAppConPermisos() {
   const elLogin = document.getElementById("loginScreen");
@@ -233,8 +234,10 @@ async function iniciarAppConPermisos() {
     if (badge) badge.innerText = "Publicador (Predi)";
     if (btnSuperAdmin) btnSuperAdmin.style.display = "none";
     
-    window.baseDatosEdificiosMemoria = [];
-    console.log("⚡ Entorno PUBLICADOR (Puerta a puerta) configurado. Visor móvil activo.");
+    console.log("⚡ Entorno PUBLICADOR (Puerta a puerta) configurado. Cargando Base Local Offline...");
+    
+    // Cambiado: Ejecuta la descarga masiva para tener los edificios disponibles sin internet
+    await descargarBaseAdministrativa();
     
     if (typeof limpiarVista === "function") limpiarVista();
     abrirVista("appContainer");
@@ -260,34 +263,56 @@ async function iniciarAppConPermisos() {
 }
 
 /**
- * 6. RECOLECTOR MASIVO DE DATOS ADMINISTRATIVOS
+ * 6. RECOLECTOR MASIVO DE DATOS (CON PERSISTENCIA LOCAL EN LOCALSTORAGE)
+ * MODIFICADO: Si hay internet actualiza el LocalStorage, si está offline lee del LocalStorage.
  */
 async function descargarBaseAdministrativa() {
   try {
-    console.log("⏳ Sincronizando datos administrativos con el servidor...");
+    console.log("⏳ Sincronizando datos con el servidor...");
+    
+    // Intentamos descargar los datos frescos del servidor
     const respuesta = await apiFetch('/admin/buildings?all=true', { method: "GET" });
     if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`);
 
     const resultado = await respuesta.json();
-    window.baseDatosEdificiosMemoria = resultado.data || [];
-    window.todosLosEdificiosDB = window.baseDatosEdificiosMemoria;
-    console.log(`✅ Sincronización exitosa. ${window.baseDatosEdificiosMemoria.length} edificios cargados.`);
+    const edificios = resultado.data || [];
+    
+    // Guardamos en memoria volátil de la aplicación
+    window.baseDatosEdificiosMemoria = edificios;
+    window.todosLosEdificiosDB = edificios;
+    
+    // 🔥 ¡CLAVE OFFLINE!: Respaldamos la base de datos completa en la memoria física del celular
+    localStorage.setItem('cache_edificios_offline', JSON.stringify(edificios));
+    
+    console.log(`✅ Sincronización exitosa y caché actualizada. ${edificios.length} edificios guardados en LocalStorage.`);
   } catch (error) {
-    console.warn("⚠️ Error en precarga masiva:", error.message);
-    window.baseDatosEdificiosMemoria = []; 
+    console.warn("⚠️ Error en descarga (Posiblemente estás OFFLINE):", error.message);
+    
+    // 🛡️ ESTRATEGIA DE RESCATE: Intentamos leer el respaldo del teléfono
+    const cacheLocal = localStorage.getItem('cache_edificios_offline');
+    if (cacheLocal) {
+      const edificiosCacheados = JSON.parse(cacheLocal);
+      window.baseDatosEdificiosMemoria = edificiosCacheados;
+      window.todosLosEdificiosDB = edificiosCacheados;
+      console.log(`🚨 Modo Offline Activo: Se restauraron con éxito ${edificiosCacheados.length} edificios desde el almacenamiento interno.`);
+    } else {
+      console.error("❌ Error Crítico: No hay internet ni tampoco copias de seguridad locales en el teléfono.");
+      window.baseDatosEdificiosMemoria = [];
+      window.todosLosEdificiosDB = [];
+    }
   }
 }
 
 /** * 7. ENRUTADOR DINÁMICO DE PANTALLAS (PROTECCIÓN ESTRICTA POR ROL) 
- * Actualizado: Incorpora 'mapaView' para el aislamiento cartográfico a pantalla completa.
+ * MODIFICADO: Agregada protección estricta para evitar que el 'predi' acceda a 'mapaView' de admin.
  */
 function abrirVista(vistaId) {
+  // Aseguramos que el predi no pueda saltar de polizón a vistas de gestión o mapas maestros
   if (currentRole === "predi" && vistaId !== "editarView" && vistaId !== "appContainer") {
     abrirVista("appContainer");
     return;
   }
 
-  // Agregamos 'mapaView' al listado de pantallas controladas por el enrutador
   const vistas = ["loginScreen", "dashboardView", "territorioView", "problemasView", "appContainer", "editarView", "superAdminView", "mapaView"];
   
   vistas.forEach(id => {
@@ -325,7 +350,6 @@ function abrirVista(vistaId) {
     }, 100);
   }
 
-  // Si entra a la nueva vista del mapa fullscreen, gatillamos la inicialización y el ajuste de tamaño
   if (vistaId === "mapaView") {
     setTimeout(() => {
       if (typeof inicializarMapaGeneralAdministrador === "function") {
@@ -404,7 +428,7 @@ window.addEventListener("load", async () => {
       const navbar = document.getElementById("navbarGlobal");
       if (navbar) navbar.style.display = "none";
 
-      ["dashboardView", "territorioView", "problemasView", "appContainer", "editarView", "superAdminView"].forEach(id => {
+      ["dashboardView", "territorioView", "problemasView", "appContainer", "editarView", "superAdminView", "mapaView"].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           el.style.display = "none";
@@ -452,8 +476,7 @@ window.addEventListener("load", async () => {
 // 📱 SECTOR: MOTOR DE BÚSQUEDA, FLUIDO DE VISITA Y CONTROL ANTI-ERROR (PREDI)
 // =========================================================================
 
-/** * 1. MOTOR DE BÚSQUEDA * Busca un edificio por dirección o código en el backend. */
-
+/** * 1. MOTOR DE BÚSQUEDA * Busca un edificio por dirección o código de forma híbrida (Servidor / Caché Local). */
 async function buscar() {
   if (typeof limpiarVista === "function") {
     limpiarVista();
@@ -461,26 +484,56 @@ async function buscar() {
     const res = document.getElementById("resultado");
     if (res) res.innerHTML = "";
   }
-
+  
   const inputCampo = document.getElementById("buildingId") || (typeof buildingId !== 'undefined' ? buildingId : null);
   if (!inputCampo) {
     console.error("❌ Error: No se encontró el elemento input 'buildingId'.");
     return;
   }
-
-  const input = typeof normalizarDireccion === "function" ? normalizarDireccion(inputCampo.value) : inputCampo.value.trim();
+  
+  const textoOriginal = inputCampo.value.trim();
+  const input = typeof normalizarDireccion === "function" ? normalizarDireccion(inputCampo.value) : textoOriginal.toLowerCase();
   if (!input) return;
-
-  console.log(`🔍 Buscando edificio en backend: '${input}'`);
+  
+  console.log(`🔍 Buscando edificio de forma híbrida para: '${input}'`);
   if (document.getElementById("mensajeInicial")) {
     document.getElementById("mensajeInicial").style.display = "none";
   }
-
+  
   const resLabel = document.getElementById("resultado");
-  if (resLabel) resLabel.innerText = "Buscando en servidor...";
+  if (resLabel) resLabel.innerText = "Buscando edificio...";
 
+  // 🛡️ INTERCEPTOR MODO OFFLINE PREVENTIVO
+  if (!navigator.onLine) {
+    console.log("📡 [MODO OFFLINE] Buscando edificio en la base de datos local cacheada...");
+    const edificiosLocales = window.baseDatosEdificiosMemoria || [];
+    
+    // Buscamos coincidencia por ID exacto, por dirección exacta o por inclusión de texto
+    const edificioEncontrado = edificiosLocales.find(b => 
+      b._id === textoOriginal || 
+      (b.address && (b.address.toLowerCase() === input || b.address.toLowerCase().includes(input)))
+    );
+
+    if (edificioEncontrado) {
+      if (edificioEncontrado.isBlocked) {
+        alert("🚫 ACCESO DENEGADO:\nEste edificio está bloqueado por el Administrador y no puede ser visitado en este momento.");
+        if (resLabel) resLabel.innerText = ""; 
+        return;
+      }
+      window.currentBuildingId = edificioEncontrado._id;
+      window.edificioActivo = edificioEncontrado;
+      console.log(`✅ [LOCAL] Edificio detectado fuera de línea: ${edificioEncontrado.address}.`);
+      await sortearSiguienteDepartamento(false);
+      return;
+    } else {
+      console.warn("⚠️ Edificio no hallado en la base de datos interna local.");
+      tratarEdificioNoEncontrado();
+      return;
+    }
+  }
+
+  // 🌐 MODO ONLINE STANDARD: Intenta resolver contra la API en la nube
   try {
-    // Buscamos el edificio por su dirección
     const b = await apiFetch(`/building/${encodeURIComponent(input)}`);
     if (!b.ok) {
       if (b.status === 404) {
@@ -489,16 +542,13 @@ async function buscar() {
       }
       throw new Error(`Error en servidor: ${b.status}`);
     }
-    
     const building = await b.json();
-
-    // Control de respuesta vacía o error devuelto en JSON
+    
     if (building.error === "NOT_FOUND" || !building || !building._id) {
       tratarEdificioNoEncontrado();
       return;
     }
-
-    // 🛡️ Control de Bloqueo Administrativo integrado
+    
     if (building.error === "EDIFICIO_BLOQUEADO" || building.isBlocked) {
       alert("🚫 ACCESO DENEGADO:\nEste edificio está bloqueado por el Administrador y no puede ser visitado en este momento.");
       if (resLabel) resLabel.innerText = ""; 
@@ -507,24 +557,28 @@ async function buscar() {
       }
       return; 
     }
-
-    // Seteo único de variables globales del edificio seleccionado
+    
     window.currentBuildingId = building._id;
     window.edificioActivo = building;
-
-    console.log(`✅ Edificio detectado: ${building.address}. Solicitando primer depto...`);
-    
-    // Solicitamos el primer departamento disponible sin mostrar alerta inicial
+    console.log(`✅ Edificio detectado en red: ${building.address}. Solicitando primer depto...`);
     await sortearSiguienteDepartamento(false);
-
   } catch (error) {
-    console.error("❌ Detalle del error en buscar:", error);
-    tratarEdificioNoEncontrado();
+    console.error("❌ Falló búsqueda en red, reingresando por contingencia local:", error);
+    
+    // Fallback de rescate si el fetch falló por microcorte físico de red justo en la consulta
+    const edificiosLocales = window.baseDatosEdificiosMemoria || [];
+    const edificioEncontrado = edificiosLocales.find(b => b.address && b.address.toLowerCase().includes(input));
+    if (edificioEncontrado) {
+      window.currentBuildingId = edificioEncontrado._id;
+      window.edificioActivo = edificioEncontrado;
+      await sortearSiguienteDepartamento(false);
+    } else {
+      tratarEdificioNoEncontrado();
+    }
   }
 }
 
-/** * 2. ALGORITMO DE EXCLUSIÓN Y SORTEO * Consulta la ruta /next del backend para obtener un departamento aleatorio no visitado recientemente. */
-
+/** * 2. ALGORITMO DE EXCLUSIÓN Y SORTEO * Sortea un departamento aleatorio no visitado recientemente de forma híbrida (API / Simulación Local). */
 async function sortearSiguienteDepartamento(mostrarAlerta = true) {
   const buildingId = window.currentBuildingId;
   if (!buildingId) {
@@ -532,14 +586,64 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
     return;
   }
 
+  // 🛡️ INTERCEPTOR ALGORÍTMICO OFFLINE / FALLBACK LOCAL
+  if (!navigator.onLine) {
+    console.log("🎲 [MODO OFFLINE] Ejecutando algoritmo de exclusión y sorteo local...");
+    const edificioLocal = window.baseDatosEdificiosMemoria?.find(b => b._id === buildingId) || window.edificioActivo;
+    
+    if (!edificioLocal || !edificioLocal.departments || edificioLocal.departments.length === 0) {
+      alert("🔄 Este edificio no contiene departamentos configurados en la memoria local.");
+      return;
+    }
+
+    // Buscamos las visitas offline guardadas en el dispositivo para este edificio para cruzarlas
+    const visitasPendientes = JSON.parse(localStorage.getItem("visitas_pendientes")) || [];
+    const deptosVisitadosOfflineIds = visitasPendientes
+      .filter(v => v.buildingId === buildingId)
+      .map(v => v.departmentId);
+
+    // Filtrar departamentos que no hayan sido completados o visitados recientemente en los datos cacheados
+    // Nota: El backend maneja su propia marca de tiempo, localmente filtramos los que no se tocaron en esta sesión offline
+    const deptosDisponibles = edificioLocal.departments.filter(d => {
+      // Excluir si ya fue votado en la tanda offline actual
+      if (deptosVisitadosOfflineIds.includes(d._id)) return false;
+      // Excluir si tiene un bloqueo específico o marca de exclusión histórica en la caché
+      if (d.lastVisit) {
+        const mesesExclusion = 4;
+        const limiteFecha = new Date();
+        limpiteFecha.setMonth(limiteFecha.getMonth() - mesesExclusion);
+        if (new Date(d.lastVisit) > limiteFecha) return false;
+      }
+      return true;
+    });
+
+    if (deptosDisponibles.length === 0) {
+      alert("🔄 Todos los departamentos de este edificio fueron visitados en la tanda offline o no tienen unidades hábiles.");
+      window.departamentoEnFoco = null;
+      const resultadoH2 = document.getElementById("resultado");
+      if (resultadoH2) resultadoH2.innerText = "Fin";
+      return;
+    }
+
+    // Algoritmo de asignación aleatoria pura sobre el universo de unidades disponibles
+    const deptoElegido = deptosDisponibles[Math.floor(Math.random() * deptosDisponibles.length)];
+    window.departamentoEnFoco = deptoElegido;
+    
+    console.log(`🎯 Sorteo local offline exitoso. Unidad asignada: ${deptoElegido.number}`);
+    await mostrarEstructuraFlujoVisita();
+    if (mostrarAlerta && typeof notify === "function") {
+      notify("Nuevo departamento asignado (Modo Local)");
+    }
+    return;
+  }
+
+  // 🌐 MODO ONLINE STANDARD: Petición regular a la API del backend
   try {
     console.log(`🎲 Solicitando depto aleatorio al backend para edificio: ${buildingId}...`);
     const res = await apiFetch(`/next/${buildingId}`);
     if (!res) throw new Error("No se obtuvo respuesta del servidor.");
-
     const data = res.json ? await res.json() : res;
-
-    // Si no hay departamentos disponibles en este bloque
+    
     if (data.message === "NO_AVAILABLE" || data.message === "COMPLETED") {
       alert("🔄 Todos los departamentos de este edificio fueron visitados en los últimos 4 meses o no hay unidades configuradas.");
       window.departamentoEnFoco = null;
@@ -547,73 +651,62 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
       if (resultadoH2) resultadoH2.innerText = "Fin";
       return;
     }
-
-    // Si saltó un bloqueo administrativo en el endpoint /next
+    
     if (data.message === "EDIFICIO_BLOQUEADO") {
       alert("🚫 Este edificio está bloqueado de forma administrativa.");
       tratarEdificioNoEncontrado();
       return;
     }
 
-    // 🎯 ÉXITO: Seteamos el departamento en foco
     if (data && data.dept) {
       window.departamentoEnFoco = data.dept;
-      console.log(`🎯 Sorteo exitoso. Próximo depto: ${data.dept.number}`);
-      
-      // Renderizamos el flujo adaptado y ocultamos el botón Siguiente
-      mostrarEstructuraFlujoVisita();
-
+      console.log(`🎯 Sorteo exitoso de red. Próximo depto: ${data.dept.number}`);
+      await mostrarEstructuraFlujoVisita();
       if (mostrarAlerta && typeof notify === "function") {
         notify("Nuevo departamento asignado");
       }
     }
   } catch (err) {
-    console.error("❌ Error en sorteo de departamento:", err);
-    alert("⚠️ No se pudo obtener el siguiente departamento del servidor.");
+    console.error("❌ Error en sorteo de red, intentando conmutar a algoritmo local de emergencia:", err);
+    // Fallback reactivo inmediato si el servidor tira un error inesperado (ej: 502 Bad Gateway)
+    navigator.onLine = false; // Forzamos bandera interna momentánea
+    await sortearSiguienteDepartamento(mostrarAlerta);
+    navigator.onLine = true;
   }
 }
 
-/** * 3. CONTROLADOR INTERFAZ FLUJO MÓVIL  * Sincroniza la visibilidad y limpia los paneles de index.html para iniciar la votación.  */
-
+/** * 3. CONTROLADOR INTERFAZ FLUJO MÓVIL * Sincroniza la visibilidad y limpia los paneles de index.html para iniciar la votación. */
 async function mostrarEstructuraFlujoVisita() {
   const d = window.departamentoEnFoco;
-
-  // Renderizar el número de departamento en h2#resultado
   const resultadoH2 = document.getElementById("resultado");
   if (resultadoH2) {
     resultadoH2.innerText = d && d.number ? d.number : "--";
   }
-
-  // 🛑 BLINDAJE ANTI-ERROR: Ocultamos por completo el botón "Siguiente depto". Solo aparecerá al marcar.
+  
   const btnSiguiente = document.getElementById("btnSiguiente");
   if (btnSiguiente) {
     btnSiguiente.style.visibility = "hidden";
     btnSiguiente.style.display = "none";
     btnSiguiente.setAttribute("onclick", "ejecutarAvanzarDepartamento()");
   }
-
-  // 🎨 APAGADO PREVENTIVO GHOST: Apaga los botones individuales para el nuevo departamento entrante
+  
   document.getElementById("btnOk")?.classList.remove("seleccionado");
   document.getElementById("btnNo")?.classList.remove("seleccionado");
-
-  // 🔥 NUEVO: Encendemos el contenedor general de la botonera envoltura
+  
   const botonera = document.getElementById("botoneraVotacion");
   if (botonera) botonera.style.display = "flex";
-
-  // Ajustes de visibilidad de controles nativos
+  
   if (document.getElementById("mensajeInicial")) document.getElementById("mensajeInicial").style.display = "none";
   if (document.getElementById("nota")) document.getElementById("nota").style.display = "block";
   if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "block";
   if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "block";
   if (document.getElementById("btnNuevoEdificio")) document.getElementById("btnNuevoEdificio").style.display = "none";
-
-  // Lanzamos la carga de la ficha técnica estática e info abajo
+  
   console.log("🔄 Cargando info estática del edificio...");
   await mostrarInfoEdificio();
 }
 
-/** * 4. FICHADO TÉCNICO Y MAPA ESTÁTICO * Rellena la tarjeta informativa inferior y el mini mapa Leaflet desde el backend. */
-
+/** * 4. FICHADO TÉCNICO Y MAPA ESTÁTICO INTERCEPTABLE * Rellena la tarjeta informativa inferior y el mini mapa (Apagado automático si está offline). */
 async function mostrarInfoEdificio() {
   const currentBuildingId = window.currentBuildingId;
   if (!currentBuildingId) {
@@ -621,80 +714,106 @@ async function mostrarInfoEdificio() {
     return;
   }
 
-  try {
-    const res = await apiFetch(`/building-info/${currentBuildingId}`);
-    if (!res) throw new Error("No se recibió respuesta para info-building.");
-    
-    const data = res.json ? await res.json() : res;
-    const b = data.building;
-    if (!b) return;
+  let edificioData = null;
+  let ultimaVisitaTexto = "Nunca";
+  let issueHtml = "";
 
-    // ✨ Cálculo de Edificio Nuevo (Lapso de 30 días)
-    let cartelNuevoHtml = "";
-    if (b.createdAt || b.fechaCreacion) { 
-      const fechaCreacion = new Date(b.createdAt || b.fechaCreacion);
-      const hoy = new Date();
-      const diferenciaDias = Math.floor((hoy - fechaCreacion) / (1000 * 60 * 60 * 24));
-      if (diferenciaDias <= 30) {
-        const fechaFormateada = fechaCreacion.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        cartelNuevoHtml = `Edificio creado el ${fechaFormateada}`;
-      }
+  // 🛡️ RECOLECCIÓN DE DATOS INTELIGENTE (RED VS CACHÉ LOCAL)
+  if (!navigator.onLine) {
+    console.log("📋 [MODO OFFLINE] Renderizando ficha técnica desde datos locales...");
+    const edificioLocal = window.baseDatosEdificiosMemoria?.find(b => b._id === currentBuildingId) || window.edificioActivo;
+    if (edificioLocal) {
+      edificioData = edificioLocal;
+      ultimaVisitaTexto = "Offline (Sin datos)";
     }
-
-    if (typeof reportBtn !== 'undefined' && reportBtn) {
-      reportBtn.style.display = "none"; 
-    }
-
-    const infoEdificio = document.getElementById("infoEdificio");
-    if (!infoEdificio) return;
-    infoEdificio.style.display = "block";
-
-    const fechaUltimaVisita = data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca";
-
-    infoEdificio.innerHTML = `
-      <div class="sectionCard" style="background: #121214; border: 1px solid #27272a; padding: 16px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 14px;">
-          <div>
-            <div style="font-size:24px; font-weight:800; color:#ffffff; line-height:1.2; letter-spacing: -0.5px;">${b.address}</div>
-            <div style="color:#d4d4d8; font-size:14px; margin-top:4px; font-weight: 500;">${b.address2 || "Sin datos adicionales"}</div>
-          </div>
-          <div style="background:#27272a; padding:6px 10px; border-radius:8px; font-size:13px; font-weight:700; white-space:nowrap; color:#ffffff; border: 1px solid #3f3f46;">🏢 ${b.name || "Edificio"}</div>
-        </div>
-        <div style="display: flex; gap: 14px; align-items: center; justify-content: space-between;">
-          <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; font-size: 14px; color:#ffffff;">
-            <div>🗺️ <b>Territorio:</b> <span style="background: #27272a; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${b.territory || "-"}</span></div>
-            <div>🔢 <b>Pisos:</b> <span style="font-weight: 600; color: #3b82f6;">${b.floors || 0}</span></div>
-            <div style="color:#e4e4e7; font-size: 13px; line-height: 1.3;">📋 <b>Notas:</b> <span style="font-style: italic; color: #d4d4d8;">${b.description || "Sin anotaciones."}</span></div>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 6px; align-items: center; flex-shrink: 0;">
-            <div id="miniMapaPredi" style="width: 115px; height: 95px; border-radius: 10px; border: 1px solid #4b5563; background:#1f1f22; pointer-events: none;"></div>
-            <div style="background: #27272a; border: 1px solid #3f3f46; border-radius: 6px; padding: 4px 6px; display: flex; align-items: center; gap: 4px; font-size: 11px; color: #e4e4e7; width: 115px; justify-content: center; box-sizing: border-box;">
-              <span>🗓️</span> <span>${fechaUltimaVisita}</span>
+  } else {
+    try {
+      const res = await apiFetch(`/building-info/${currentBuildingId}`);
+      if (res) {
+        const data = res.json ? await res.json() : res;
+        edificioData = data.building;
+        ultimaVisitaTexto = data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca";
+        if (data.issue) {
+          issueHtml = `
+            <div style="background:#7f1d1d; color:#fef2f2; border:1px solid #dc2626; padding:10px; border-radius:10px; margin-top:12px; font-size:13px; font-weight:600; line-height:1.4;">
+              ⚠ <b>Alerta (${data.issue.type}):</b> ${data.issue.description || "Sin detalles"}
             </div>
-          </div>
-        </div>
-        <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #27272a; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-          <div style="flex: 1; font-size: 12px; color:#a1a1aa; font-weight: 500; text-align: left;">
-            ${cartelNuevoHtml ? `🏢 ${cartelNuevoHtml}` : ""}
-          </div>
-          <div style="flex: 1; display: flex; justify-content: flex-end;">
-            <button onclick="abrirReporte()" style="background:#451a1a; color:#f87171; border:1px solid #ef4444; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; white-space: nowrap; width: auto; margin: 0;">
-              ⚠️ Informar problema
-            </button>
-          </div>
-        </div>
-        ${data.issue ? `
-          <div style="background:#7f1d1d; color:#fef2f2; border:1px solid #dc2626; padding:10px; border-radius:10px; margin-top:12px; font-size:13px; font-weight:600; line-height:1.4;">
-            ⚠ <b>Alerta (${data.issue.type}):</b> ${data.issue.description || "Sin detalles"}
-          </div>
-        ` : ""}
-      </div>
-    `;
+          `;
+        }
+      }
+    } catch (err) {
+      console.warn("Error buscando info extendida en red, usando datos básicos locales:", err);
+      edificioData = window.edificioActivo;
+    }
+  }
 
-    // Renderización limpia del Mapa
+  const b = edificioData;
+  if (!b) return;
+
+  // ✨ Cálculo de Edificio Nuevo (Lapso de 30 días)
+  let cartelNuevoHtml = "";
+  if (b.createdAt || b.fechaCreacion) { 
+    const fechaCreacion = new Date(b.createdAt || b.fechaCreacion);
+    const hoy = new Date();
+    const diferenciaDias = Math.floor((hoy - fechaCreacion) / (1000 * 60 * 60 * 24));
+    if (diferenciaDias <= 30 && !isNaN(diferenciaDias)) {
+      const fechaFormateada = fechaCreacion.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      cartelNuevoHtml = `Edificio creado el ${fechaFormateada}`;
+    }
+  }
+  
+  if (typeof reportBtn !== 'undefined' && reportBtn) {
+    reportBtn.style.display = "none"; 
+  }
+  
+  const infoEdificio = document.getElementById("infoEdificio");
+  if (!infoEdificio) return;
+  infoEdificio.style.display = "block";
+
+  // 🔥 CONDICIONAL DE MAPA: Si no hay internet, ocultamos por completo el bloque del mapa para optimizar espacio
+  const mostrarMapaVisual = navigator.onLine ? "flex" : "none";
+
+  infoEdificio.innerHTML = `
+    <div class="sectionCard" style="background: #121214; border: 1px solid #27272a; padding: 16px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 14px;">
+        <div>
+          <div style="font-size:24px; font-weight:800; color:#ffffff; line-height:1.2; letter-spacing: -0.5px;">${b.address}</div>
+          <div style="color:#d4d4d8; font-size:14px; margin-top:4px; font-weight: 500;">${b.address2 || "Sin datos adicionales"}</div>
+        </div>
+        <div style="background:#27272a; padding:6px 10px; border-radius:8px; font-size:13px; font-weight:700; white-space:nowrap; color:#ffffff; border: 1px solid #3f3f46;">🏢 ${b.name || "Edificio"}</div>
+      </div>
+      <div style="display: flex; gap: 14px; align-items: center; justify-content: space-between;">
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; font-size: 14px; color:#ffffff;">
+          <div>🗺️ <b>Territorio:</b> <span style="background: #27272a; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${b.territory || "-"}</span></div>
+          <div>🔢 <b>Pisos:</b> <span style="font-weight: 600; color: #3b82f6;">${b.floors || 0}</span></div>
+          <div style="color:#e4e4e7; font-size: 13px; line-height: 1.3;">📋 <b>Notas:</b> <span style="font-style: italic; color: #d4d4d8;">${b.description || "Sin anotaciones."}</span></div>
+        </div>
+        <div id="wrapperMapaYFecha" style="display: ${mostrarMapaVisual}; flex-direction: column; gap: 6px; align-items: center; flex-shrink: 0;">
+          <div id="miniMapaPredi" style="width: 115px; height: 95px; border-radius: 10px; border: 1px solid #4b5563; background:#1f1f22; pointer-events: none;"></div>
+          <div style="background: #27272a; border: 1px solid #3f3f46; border-radius: 6px; padding: 4px 6px; display: flex; align-items: center; gap: 4px; font-size: 11px; color: #e4e4e7; width: 115px; justify-content: center; box-sizing: border-box;">
+            <span>🗓️</span> <span>${ultimaVisitaTexto}</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #27272a; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+        <div style="flex: 1; font-size: 12px; color:#a1a1aa; font-weight: 500; text-align: left;">
+          ${cartelNuevoHtml ? `🏢 ${cartelNuevoHtml}` : ""}
+        </div>
+        <div style="flex: 1; display: flex; justify-content: flex-end;">
+          <button onclick="abrirReporte()" style="background:#451a1a; color:#f87171; border:1px solid #ef4444; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; white-space: nowrap; width: auto; margin: 0;">
+            ⚠️ Informar problema
+          </button>
+        </div>
+      </div>
+      ${issueHtml}
+    </div>
+  `;
+
+  // Renderización condicionada del mapa Leaflet (Solo si hay red operativa)
+  if (navigator.onLine) {
     const miniMapaDiv = document.getElementById("miniMapaPredi");
     if (miniMapaDiv) {
-      if (prediMiniMap) {
+      if (typeof prediMiniMap !== 'undefined' && prediMiniMap) {
         try { prediMiniMap.remove(); } catch(e){}
         prediMiniMap = null;
       }
@@ -702,10 +821,8 @@ async function mostrarInfoEdificio() {
         zoomControl: false, dragging: false, touchZoom: false,
         scrollWheelZoom: false, doubleClickZoom: false
       });
-     // 🗺️ CAPA LEAFLET ESTÁNDAR: Máxima claridad con nombres de calles 100% legibles
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
-  maxZoom: 19 
-}).addTo(prediMiniMap);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(prediMiniMap);
+      
       let centradoExitoso = false;
       if (b.latitude && b.longitude) {
         const lat = parseFloat(b.latitude);
@@ -731,70 +848,51 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       }
       setTimeout(() => { if (prediMiniMap) prediMiniMap.invalidateSize(); }, 220);
     }
-  } catch (error) {
-    console.error("❌ Error en mostrarInfoEdificio:", error);
   }
 }
 
 // =========================================================================
 // 🔀 CONTROL DE VISITAS EN MEMORIA VOLÁTIL Y TRANSMISIÓN AL AVANZAR (ACUMULADO)
 // =========================================================================
-
-// Variable global interna para retener el estado elegido en pantalla antes de confirmar el avance
 window.votoTemporal = null;
 
-/**
- * 5. SELECCIÓN DE ESTADO EN PANTALLA (FASE DE PREPARACIÓN)
- * Captura el clic de los botones, pinta visualmente la interfaz y habilita el avance.
- * Aplica encendido dinámico sólido sobre estilos Ghost en Modo Oscuro.
- */
+/** * 5. SELECCIÓN DE ESTADO EN PANTALLA */
 function marcar(estado) {
-  // 🔒 Validación estricta de nivel 2: Filtramos valores espurios antes de retener
   if (estado !== "ATENDIO" && estado !== "NO_EN_CASA") {
     console.error(`❌ Error crítico: Se intentó seleccionar un estado inválido: "${estado}"`);
     return;
   }
-
   if (!window.departamentoEnFoco || !window.departamentoEnFoco._id) {
     alert("⚠️ No hay un departamento en foco para asignarle este estado.");
     return;
   }
-
-  // 🎨 CONTROL VISUAL GHOST: Captura de botones y encendido inteligente
+  
   const btnOk = document.getElementById("btnOk");
   const btnNo = document.getElementById("btnNo");
-
   if (btnOk) btnOk.classList.remove("seleccionado");
   if (btnNo) btnNo.classList.remove("seleccionado");
-
+  
   if (estado === "ATENDIO" && btnOk) {
     btnOk.classList.add("seleccionado");
-    console.log("🟢 Interfaz: Botón 'ATENDIÓ' encendido en verde sólido.");
+    console.log("🟢 Interfaz: Botón 'ATENDIÓ' encendido.");
   } else if (estado === "NO_EN_CASA" && btnNo) {
     btnNo.classList.add("seleccionado");
-    console.log("🔴 Interfaz: Botón 'NO EN CASA' encendido en rojo sólido.");
+    console.log("🔴 Interfaz: Botón 'NO EN CASA' encendido.");
   }
-
-  // Retenemos la elección de forma interna en memoria (No viaja al servidor todavía)
+  
   window.votoTemporal = estado;
-  console.log(`📌 Estado seleccionado temporalmente en memoria: "${window.votoTemporal}" para depto ${window.departamentoEnFoco.number}`);
-
-  // 🔓 REVELACIÓN DE CONTROL: Mostramos el botón para avanzar y confirmar el envío
+  console.log(`📌 Estado seleccionado en memoria: "${window.votoTemporal}"`);
+  
   const btnSiguiente = document.getElementById("btnSiguiente");
   if (btnSiguiente) {
-    console.log("🔓 Habilitando botón 'Siguiente depto' para autorizar el envío definitivo.");
     btnSiguiente.style.visibility = "visible";
     btnSiguiente.style.display = "inline-block";
   }
 }
 
-/**
- * 6. ACCIÓN DE CONFIRMACIÓN Y TRANSMISIÓN AL backend
- * Se dispara al presionar "Siguiente depto". Empaqueta la nota actual, transmite a la nube/offline y rota el depto.
- */
+/** * 6. CONFIRMACIÓN Y AVANCE DE UNIDAD * Transmite de forma asíncrona o inyecta en LocalStorage en milisegundos sin bloquear la interfaz. */
 async function ejecutarAvanzarDepartamento() {
-  console.log("🎯 El usuario presionó 'Siguiente depto'. Iniciando proceso de empaquetado y envío...");
-
+  console.log("🎯 Avanzando departamento...");
   if (!window.currentBuildingId) {
     alert("⚠️ Error: No hay un edificio activo seleccionado.");
     return;
@@ -803,18 +901,15 @@ async function ejecutarAvanzarDepartamento() {
     alert("⚠️ Error: No hay un departamento activo en foco.");
     return;
   }
-
-  // 🛑 CONTROL DE SEGURIDAD: Validamos que realmente haya seleccionado una opción antes de avanzar
   if (!window.votoTemporal) {
     alert("⚠️ Por favor, selecciona primero si atendió o no está en casa antes de avanzar.");
     return;
   }
-
+  
   const deptoNumero = window.departamentoEnFoco.number;
   const notaInput = document.getElementById("nota") || document.getElementById("observacionRapida");
   const comentario = notaInput ? notaInput.value.trim() : "";
-
-  // Construimos el Payload definitivo combinando el botón presionado y la nota final de la caja de texto
+  
   const cuerpoPayload = {
     departmentId: window.departamentoEnFoco._id,
     buildingId: window.currentBuildingId,
@@ -822,62 +917,48 @@ async function ejecutarAvanzarDepartamento() {
     note: comentario ? comentario : `Visita realizada al depto ${deptoNumero}`
   };
 
-  // --- FASE DE TRANSMISIÓN (Estrategia Red Primero + Mochila de Auxilio) ---
-  try {
-    console.log(`🚀 Transmitiendo definitivo al servidor -> Depto: ${deptoNumero}, Estado: ${window.votoTemporal}`);
-    const res = await apiFetch("/visit", {
+  // 🔥 ENFOQUE OPTIMIZADO: Si está offline, guarda directo. Si está online, dispara el fetch de fondo pero avanza la UI inmediatamente
+  if (!navigator.onLine) {
+    console.warn(`📡 [MODO OFFLINE] Guardando depto ${deptoNumero} directamente en memoria local...`);
+    guardarEnMochilaLocal("visitas_pendientes", cuerpoPayload);
+  } else {
+    console.log(`🚀 Despachando visita del depto ${deptoNumero} a la cola asíncrona de red...`);
+    // Corremos el fetch sin el 'await' de bloqueo para que la pantalla del celular rote al instante
+    apiFetch("/visit", {
       method: "POST",
       body: JSON.stringify(cuerpoPayload)
+    }).catch(err => {
+      console.warn("⚠️ Falló envío asincrónico en movimiento, resguardando en caché local:", err);
+      guardarEnMochilaLocal("visitas_pendientes", cuerpoPayload);
     });
-
-    if (!res || (!res.ok && res.error)) {
-      throw new Error("Falla de respuesta controlada en el endpoint.");
-    }
-
-    console.log(`✅ Registro guardado con éxito en la nube para el depto ${deptoNumero}.`);
-
-  } catch (err) {
-    // 💾 CAPA DE RESCATE OFFLINE: Si no hay datos en la calle, directo a la mochila local sin trabar al predi
-    console.warn(`📡 [MODO OFFLINE] Sin señal en la calle para enviar depto ${deptoNumero}. Guardando en memoria local...`);
-    guardarEnMochilaLocal("visitas_pendientes", cuerpoPayload);
   }
 
-  // --- FASE DE RESETEO Y ROTACIÓN DE INTERFAZ ---
-  // 🧼 Limpiamos la caja de notas y el voto temporal para el depto que viene
-  if (notaInput) {
-    notaInput.value = "";
-    console.log("🧼 Caja de comentarios vaciada para la próxima unidad.");
-  }
+  // --- FASE DE RESETEO INMEDIATO (FLUIDEZ ABSOLUTA) ---
+  if (notaInput) notaInput.value = "";
   window.votoTemporal = null; 
-
-  // Traemos de forma automática el siguiente departamento sorteado
+  
+  // Sorteamos la próxima unidad inmediatamente sin esperar respuestas del servidor
   await sortearSiguienteDepartamento(false);
 }
 
-/**
- * 💾 SOPORTE LOCALSTORAGE
- * Función genérica para retener elementos en el almacenamiento local del teléfono.
- */
+/** * 💾 SOPORTE LOCALSTORAGE */
 function guardarEnMochilaLocal(clave, datos) {
   let listado = JSON.parse(localStorage.getItem(clave)) || [];
   datos.guardadoEnLocalEl = new Date().toISOString(); 
   listado.push(datos);
   localStorage.setItem(clave, JSON.stringify(listado));
-  console.log(`📦 Elemento retenido con éxito en la clave "${clave}". Total acumulado offline: ${listado.length}`);
+  console.log(`📦 Elemento guardado en local (${clave}). Total acumulado offline: ${listado.length}`);
 }
 
-/**
- * 📡 EL VIGILANTE DE INTERNET
- * Sincroniza en segundo plano los datos acumulados apenas el dispositivo recupera señal móvil estable.
- */
+/** * 📡 EL VIGILANTE DE INTERNET * Sincroniza en segundo plano los datos acumulados apenas el dispositivo recupera señal móvil estable. */
 window.addEventListener('online', async () => {
   const visitasPendientes = JSON.parse(localStorage.getItem("visitas_pendientes")) || [];
   const reportesPendientes = JSON.parse(localStorage.getItem("reportes_pendientes")) || [];
-
-  if (visitasPendientes.length === 0 && reportesPendientes.length === 0) return;
-
-  console.log(`📡 Conexión recuperada. Sincronizando: ${visitasPendientes.length} visitas y ${reportesPendientes.length} reportes...`);
-
+  const edificiosPendientes = JSON.parse(localStorage.getItem("edificios_pendientes")) || [];
+  
+  if (visitasPendientes.length === 0 && reportesPendientes.length === 0 && edificiosPendientes.length === 0) return;
+  
+  console.log(`📡 Conexión recuperada. Sincronizando: ${visitasPendientes.length} visitas, ${reportesPendientes.length} reportes y ${edificiosPendientes.length} edificios...`);
   let erroresCarga = false;
 
   // 1. Despachamos las visitas retenidas
@@ -918,25 +999,48 @@ window.addEventListener('online', async () => {
     }
   }
 
-  // Alerta ligera al usuario
+  // 🔥 3. NUEVO: Despachamos los edificios nuevos/editados retenidos offline
+  if (edificiosPendientes.length > 0) {
+    const edificiosNoEnviados = [];
+    for (let edif of edificiosPendientes) {
+      try {
+        const url = edif.esModificacionLocal ? `/building/${edif._id}` : "/building";
+        const metodo = edif.esModificacionLocal ? "PUT" : "POST";
+        
+        // Limpieza estética de flags temporales antes de enviar al backend
+        delete edif.esModificacionLocal; 
+        if (String(edif._id).startsWith("local_")) {
+          delete edif._id;
+        }
+
+        const res = await apiFetch(url, { method: metodo, body: JSON.stringify(edif) });
+        if (!res || !res.ok) throw new Error();
+      } catch (err) {
+        edificiosNoEnviados.push(edif);
+        erroresCarga = true;
+      }
+    }
+    if (edificiosNoEnviados.length > 0) {
+      localStorage.setItem("edificios_pendientes", JSON.stringify(edificiosNoEnviados));
+    } else {
+      localStorage.removeItem("edificios_pendientes");
+    }
+  }
+
+  // Alerta ligera al usuario y recarga de las bases de datos
   if (!erroresCarga) {
-    alert("🔄 ¡Datos sincronizados! Las visitas y reportes tomados sin internet ya se subieron al servidor con éxito.");
+    alert("🔄 ¡Datos sincronizados! Las visitas, reportes y edificios tomados sin internet ya se subieron al servidor con éxito.");
+    if (typeof preCargarBaseDatosEnMemoria === "function") await preCargarBaseDatosEnMemoria();
     if (typeof cargarEdificios === "function") cargarEdificios();
   } else {
     console.warn("⚠️ Sincronización parcial: Quedan elementos pendientes en zonas de baja cobertura.");
   }
 });
-
-
-
 // =========================================================================
 // 🛠️ MÓDULO ADICIONAL: EDITOR EXPANDIDO DINÁMICO (CREACIÓN / EDICIÓN)
 // =========================================================================
 
-/**
- * 1. INTERRUPTOR VISUAL DE EXCEPCIONES
- * Oculta paneles y despliega opciones de rescate en caso de direcciones inexistentes.
- */
+/** * 1. INTERRUPTOR VISUAL DE EXCEPCIONES * Oculta paneles y despliega opciones de rescate en caso de direcciones inexistentes. */
 function tratarEdificioNoEncontrado() {
   const resLabel = document.getElementById("resultado");
   const btnNuevo = document.getElementById("btnNuevoEdificio");
@@ -963,36 +1067,33 @@ function tratarEdificioNoEncontrado() {
   if (document.getElementById("infoEdificio")) document.getElementById("infoEdificio").style.display = "none";
 }
 
-/**
- * 2. APERTURA Y RENDERIZADO DEL EDITOR
- * Prepara e inyecta la pantalla de edición ocultando de raíz la interfaz del predi y sin botones flotantes sobrantes.
- */
+/** * 2. APERTURA Y RENDERIZADO DEL EDITOR * Prepara e inyecta la pantalla de edición ocultando la interfaz del predi. (Desactiva el mapa automáticamente si está offline). */
 function abrirEditorEdificio(objetoEdificio = null) {
-  // CONFIGURACIÓN EXTRA: Si lo que nos pasaron es un texto (el ID) en lugar de un objeto, lo buscamos en la base de datos de memoria
   if (typeof objetoEdificio === "string") {
     const idBuscado = objetoEdificio;
-    objetoEdificio = (window.todosLosEdificiosDB || []).find(e => (e.id === idBuscado || e._id === idBuscado)) || null;
+    objetoEdificio = (window.todosLosEdificiosDB || window.baseDatosEdificiosMemoria || []).find(e => (e.id === idBuscado || e._id === idBuscado)) || null;
   }
-  // Apagamos los contenedores principales para evitar superposiciones
+  
   const appContainer = document.getElementById("appContainer");
   const dashboardView = document.getElementById("dashboardView");
   
   if (appContainer) appContainer.style.setProperty("display", "none", "important");
   if (dashboardView) dashboardView.style.setProperty("display", "none", "important");
-
-  // Activamos la vista del editor
+  
   abrirVista("editarView");
   
   const userRole = localStorage.getItem("role") || "predi";
   const funcionCancelar = (userRole === "predi") ? "cancelarEdificioMovil()" : "abrirVista('dashboardView')";
   const esNuevo = !objetoEdificio || !(objetoEdificio.id || objetoEdificio._id);
   const direccionSugerida = esNuevo ? (document.getElementById('buildingId')?.value || '') : '';
+  
+  // 🔥 DETECCIÓN OPERATIVA DE RED: Ocultamos el bloque del mapa si el teléfono está offline para no romper la estética
+  const mostrarMapaVisual = navigator.onLine ? "block" : "none";
 
-  // Inyectamos el HTML con el diseño limpio y los campos recuperados
   let htmlContenido = `
     <div class="card-container" style="padding: 20px; max-width: 500px; margin: 0 auto; text-align: left;">
       <h3 style="margin-top:0; color:#fff; font-size: 20px; letter-spacing: -0.5px;">
-        ${esNuevo ? "➕ Nuevo edificio" : "✏️ Editar edificio"}
+        ${esNuevo ? "➕ Nuevo edificio" : "✏️ Editar edificio"} ${!navigator.onLine ? " <span style='font-size:12px; color:#f59e0b;'>(Modo Offline)</span>" : ""}
       </h3>
       
       <input type="hidden" id="edit_building_id" value="${objetoEdificio?.id || objetoEdificio?._id || ''}">
@@ -1020,7 +1121,7 @@ function abrirEditorEdificio(objetoEdificio = null) {
           <input id="edit_units" type="number" placeholder="Cant." value="${objetoEdificio?.unitsPerFloor || ''}" style="width:100%; padding:10px; border-radius:8px;">
         </div>
       </div>
-
+      
       <div style="display:flex; gap:20px; margin: 12px 0; background:#1c1c1e; padding:10px; border-radius:8px;">
         <label style="color:#fff; font-size:14px; cursor:pointer;">
           <input type="checkbox" id="edit_pb" ${objetoEdificio?.hasGroundFloor ? 'checked' : ''}> Planta Baja
@@ -1035,71 +1136,69 @@ function abrirEditorEdificio(objetoEdificio = null) {
       
       <input type="hidden" id="edit_lat" value="${objetoEdificio?.latitude || ''}">
       <input type="hidden" id="edit_lng" value="${objetoEdificio?.longitude || ''}">
-
-      <p style="font-size:13px; margin: 5px 0; color:#a1a1aa;">📍 Arrastrá el marcador para fijar la ubicación exacta:</p>
-      <div id="mapaEditor" class="mapaBox" style="height:200px; border-radius:12px; margin-bottom:15px; border:1px solid #3f3f46;"></div>
+      
+      <div id="contenedorMapaEditor" style="display: ${mostrarMapaVisual};">
+        <p style="font-size:13px; margin: 5px 0; color:#a1a1aa;">📍 Arrastrá el marcador para fijar la ubicación exacta:</p>
+        <div id="mapaEditor" class="mapaBox" style="height:200px; border-radius:12px; margin-bottom:15px; border:1px solid #3f3f46;"></div>
+      </div>
       
       <button class="ok" onclick="guardarCambiosEditor()" style="width:100%; margin-bottom:10px; font-weight:bold; padding:12px;">💾 Guardar Edificio</button>
       <button class="secondary" onclick="${funcionCancelar}" style="width:100%; margin:0; padding:10px;">❌ Cancelar</button>
     </div>
   `;
-
-  // 🟢 CORRECCIÓN: Se remueve la flecha flotante superior para evitar duplicación estética
+  
   document.getElementById("editarView").innerHTML = htmlContenido;
-
-  // Despliegue de mapa Leaflet coordinado
-  setTimeout(() => {
-    const mapaContenedor = document.getElementById("mapaEditor");
-    if (!mapaContenedor) return;
-
-    const latBase = parseFloat(objetoEdificio?.latitude || -27.36708);
-    const lngBase = parseFloat(objetoEdificio?.longitude || -55.89608);
-
-    document.getElementById('edit_lat').value = latBase;
-    document.getElementById('edit_lng').value = lngBase;
-
-    if (leafletMap) {
-      try {
-        leafletMap.off();
-        leafletMap.remove();
-      } catch (e) { console.warn(e); }
-      leafletMap = null;
-    }
-
-    leafletMap = L.map('mapaEditor', { zoomControl: true }).setView([latBase, lngBase], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(leafletMap);
-    leafletMarker = L.marker([latBase, lngBase], { draggable: true }).addTo(leafletMap);
-
-    leafletMarker.on('dragend', function() {
-      const pos = leafletMarker.getLatLng();
-      document.getElementById('edit_lat').value = pos.lat;
-      document.getElementById('edit_lng').value = pos.lng;
-    });
-
-    leafletMap.on('click', function(e) {
-      if (leafletMarker) {
-        leafletMarker.setLatLng(e.latlng);
-        document.getElementById('edit_lat').value = e.latlng.lat;
-        document.getElementById('edit_lng').value = e.latlng.lng;
+  
+  // Renderizado coordinado del mapa (Solo si estamos online)
+  if (navigator.onLine) {
+    setTimeout(() => {
+      const mapaContenedor = document.getElementById("mapaEditor");
+      if (!mapaContenedor) return;
+      const latBase = parseFloat(objetoEdificio?.latitude || -27.36708);
+      const lngBase = parseFloat(objetoEdificio?.longitude || -55.89608);
+      document.getElementById('edit_lat').value = latBase;
+      document.getElementById('edit_lng').value = lngBase;
+      
+      if (typeof leafletMap !== 'undefined' && leafletMap) {
+        try {
+          leafletMap.off();
+          leafletMap.remove();
+        } catch (e) { console.warn(e); }
+        leafletMap = null;
       }
-    });
-
-    setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 150);
-  }, 250);
+      
+      leafletMap = L.map('mapaEditor', { zoomControl: true }).setView([latBase, lngBase], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(leafletMap);
+      leafletMarker = L.marker([latBase, lngBase], { draggable: true }).addTo(leafletMap);
+      
+      leafletMarker.on('dragend', function() {
+        const pos = leafletMarker.getLatLng();
+        document.getElementById('edit_lat').value = pos.lat;
+        document.getElementById('edit_lng').value = pos.lng;
+      });
+      
+      leafletMap.on('click', function(e) {
+        if (leafletMarker) {
+          leafletMarker.setLatLng(e.latlng);
+          document.getElementById('edit_lat').value = e.latlng.lat;
+          document.getElementById('edit_lng').value = e.latlng.lng;
+        }
+      });
+      setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 150);
+    }, 250);
+  }
 }
 
 /** * 3. RETORNO DE INTERFAZ MÓVIL * Función de escape definitiva: Desactiva el editor de raíz y acopla el display del predi. */
-
 function cancelarEdificioMovil() {
   console.log("🚪 Ejecutando salida limpia del editor...");
-
   const editarView = document.getElementById("editarView");
   if (editarView) {
     editarView.innerHTML = ""; 
     editarView.classList.remove("active");
     editarView.style.setProperty("display", "none", "important");
   }
-
+  
   const appContainer = document.getElementById("appContainer");
   if (appContainer) {
     appContainer.style.setProperty("display", "block", "important");
@@ -1109,16 +1208,15 @@ function cancelarEdificioMovil() {
     limpiarVista();
   }
   
-  // 🌟 AGREGAMOS ESTO: Forzamos la limpieza para que no queden bloqueos residuales
-  forzarReinicioBuscador();
+  if (typeof forzarReinicioBuscador === "function") {
+    forzarReinicioBuscador();
+  }
   
   const msgInicial = document.getElementById("mensajeInicial");
   if (msgInicial) msgInicial.style.setProperty("display", "block", "important");
 }
 
-/** * 4. PERSISTENCIA EN SERVIDOR CENTRAL
- * Procesa y emite los datos del formulario extendido al servidor central. 
- */
+/** * 4. PERSISTENCIA EN SERVIDOR CENTRAL (CON RESPALDO OFFLINE) * Procesa y emite los datos del formulario extendido de forma híbrida. */
 async function guardarCambiosEditor() {
   const id = document.getElementById("edit_building_id")?.value;
   const address = document.getElementById("edit_address")?.value.trim();
@@ -1132,13 +1230,12 @@ async function guardarCambiosEditor() {
   const hasGroundFloor = document.getElementById("edit_pb")?.checked || false;
   const hasDoorman = document.getElementById("edit_portero")?.checked || false;
   const description = document.getElementById("edit_description")?.value.trim();
-
+  
   if (!address) {
     alert("⚠️ El campo de dirección física es mandatorio.");
     return;
   }
-
-  // Empaquetamos la estructura exacta del backend para edificios
+  
   const payload = {
     address,
     address2,
@@ -1153,17 +1250,56 @@ async function guardarCambiosEditor() {
     description
   };
 
+  // 🛡️ CASO OFFLINE DIRECTO: Guardado preventivo en la billetera local
+  if (!navigator.onLine) {
+    console.warn("📡 [MODO OFFLINE] Guardando cambios o alta de edificio de forma local...");
+    const localPayload = { ...payload, _id: id || `local_${Date.now()}`, esModificacionLocal: !!id };
+    
+    // Lo guardamos en una cola específica para sincronizar edificios
+    guardarEnMochilaLocal("edificios_pendientes", localPayload);
+    
+    // Inyección en caliente en la base de datos de memoria para poder usarlo e indexarlo de inmediato offline
+    if (!window.baseDatosEdificiosMemoria) window.baseDatosEdificiosMemoria = [];
+    if (id) {
+      const idx = window.baseDatosEdificiosMemoria.findIndex(e => e._id === id);
+      if (idx !== -1) window.baseDatosEdificiosMemoria[idx] = { ...window.baseDatosEdificiosMemoria[idx], ...payload };
+    } else {
+      // Si es nuevo, simulamos la estructura básica de sus departamentos locales para que el sorteador no falle
+      localPayload.departments = [];
+      for (let f = 1; f <= floors; f++) {
+        for (let u = 1; u <= unitsPerFloor; u++) {
+          localPayload.departments.push({
+            _id: `depto_local_${localPayload._id}_${f}_${u}`,
+            number: `${f}°${String.fromCharCode(64 + u)}`, // Ej: 1°A, 1°B
+            floor: f
+          });
+        }
+      }
+      window.baseDatosEdificiosMemoria.push(localPayload);
+    }
+
+    alert("💾 Guardado localmente en tu celu. Se subirá al servidor central cuando recuperes internet.");
+    
+    const userRole = localStorage.getItem("role") || "predi";
+    if (userRole === "admin") {
+      abrirVista("dashboardView");
+      if (typeof cargarEdificios === "function") cargarEdificios();
+    } else {
+      cancelarEdificioMovil();
+    }
+    return;
+  }
+
+  // 🌐 MODO ONLINE STANDARD
   const metodo = id ? "PUT" : "POST";
   const urlEndpoint = id ? `/building/${id}` : "/building";
-
   console.log("📦 ENVIANDO ALTA DE EDIFICIO:", payload);
-
+  
   try {
     const res = await apiFetch(urlEndpoint, {
       method: metodo,
       body: JSON.stringify(payload)
     });
-
     if (res.ok) {
       alert("Edificio guardado exitosamente");
       if (typeof preCargarBaseDatosEnMemoria === "function") await preCargarBaseDatosEnMemoria();
@@ -1180,67 +1316,52 @@ async function guardarCambiosEditor() {
       alert("Error: " + (data.message || "Error desconocido en el servidor"));
     }
   } catch (err) {
-    console.error("Error crítico al guardar el edificio:", err);
-    alert("Error crítico en comunicación con servidor.");
+    console.error("Error crítico al guardar, respaldando en local por seguridad:", err);
+    guardarEnMochilaLocal("edificios_pendientes", { ...payload, _id: id, esModificacionLocal: !!id });
+    alert("⏳ Problema de red. El edificio quedó resguardado en el almacenamiento local de forma segura.");
+    cancelarEdificioMovil();
   }
 }
 
 // =========================================================================
-// 🪟 CONTROLADORES DE MODALES: REPORTES DE PROBLEMAS / INCIDENCIAS (CON RETORNO OFFLINE)
+// 🪟 CONTROLADORES DE MODALES: REPORTES DE PROBLEMAS / INCIDENCIAS
 // =========================================================================
 
-/** * 1. ENRUTADOR DE ACCESO GLOBAL * Mapea el evento inline onclick="abrirReporte()" del HTML apuntando * directamente al contenedor con ID real de tu interfaz. */
-
+/** * 1. ENRUTADOR DE ACCESO GLOBAL */
 function abrirReporte() { 
   if (!window.currentBuildingId) {
     alert("⚠️ Error: Debe seleccionar o buscar un edificio antes de reportar un problema.");
     return;
   }
-
   console.log("📋 Abriendo pasarela de incidencias críticas...");
   
-  if (typeof modalReporte !== 'undefined' && modalReporte) {
-    modalReporte.style.setProperty("display", "flex", "important"); 
-  } else {
-    const modal = document.getElementById("modalReporte");
-    if (modal) modal.style.setProperty("display", "flex", "important");
-  }
-
-  // Auto-foco en la caja de descripción si existe
-  if (typeof descProblema !== 'undefined' && descProblema) {
-    descProblema.value = "";
-    descProblema.focus();
+  const modal = document.getElementById("modalReporte");
+  if (modal) modal.style.setProperty("display", "flex", "important");
+  
+  const descProblemaInput = document.getElementById("descProblema");
+  if (descProblemaInput) {
+    descProblemaInput.value = "";
+    descProblemaInput.focus();
   }
 }
 
-/**
- * 2. RECEPTOR DE CIERRE DE INTERFAZ
- * Oculta el modal de reportes restableciendo el flujo operativo visual.
- */
+/** * 2. RECEPTOR DE CIERRE DE INTERFAZ */
 function cerrarReporte() { 
-  if (typeof modalReporte !== 'undefined' && modalReporte) {
-    modalReporte.style.display = "none"; 
-  } else {
-    const modal = document.getElementById("modalReporte");
-    if (modal) modal.style.display = "none";
-  }
+  const modal = document.getElementById("modalReporte");
+  if (modal) modal.style.display = "none";
 }
 
-/** * 3. DESPACHADOR CENTRAL DE REPORTES (BLINDADO SIN INTERNET) * Recoge los selectores reales del HTML, valida campos mandatorios, evalúa la * conectividad del dispositivo y resguarda datos localmente si falla la señal. */
-
+/** * 3. DESPACHADOR CENTRAL DE REPORTES (FLUIDO Y ASÍNCRONO) */
 async function enviarReporte() {
-  // Captura dinámica de descripción resguardando variables globales del DOM
-  const txtArea = typeof descProblema !== 'undefined' ? descProblema : document.getElementById("descProblema");
+  const txtArea = document.getElementById("descProblema");
   const descripcion = txtArea ? txtArea.value.trim() : "";
   
-  // Captura de los selectores añadidos en el index.html
   const inputNombre = document.getElementById("edit_nombre_reporta");
   const nombreReporta = inputNombre ? inputNombre.value.trim() : "";
   
   const selectorTipo = document.getElementById("tipoProblema");
   const tipo = selectorTipo ? selectorTipo.value : "Otro";
-
-  // 1. Validaciones preventivas de datos obligatorios
+  
   if (!nombreReporta) {
     alert("Por favor, introduce tu nombre para saber quién reporta el problema.");
     return;
@@ -1249,24 +1370,19 @@ async function enviarReporte() {
     alert("Por favor, escribe los detalles del problema antes de enviar.");
     return;
   }
-
-  // 2. Extracción y normalización segura del ID del edificio en foco
+  
   let idEdificioLimpia = window.currentBuildingId;
   if (window.currentBuildingId && typeof window.currentBuildingId === 'object') {
     idEdificioLimpia = window.currentBuildingId._id || window.currentBuildingId.id;
   }
-
   if (!idEdificioLimpia || idEdificioLimpia === "[object Object]") {
-    alert("Error local: No se pudo identificar el edificio actual. Intenta recargar la página del edificio.");
+    alert("Error local: No se pudo identificar el edificio actual. Intenta recargar la página.");
     return;
   }
-
-  // 3. Mapeo relacional del departamento en foco operativo
   
   const deptoId = window.departamentoEnFoco ? window.departamentoEnFoco._id : (typeof currentDept !== 'undefined' ? currentDept?._id : null);
   const deptoNum = window.departamentoEnFoco ? window.departamentoEnFoco.number : (typeof currentDept !== 'undefined' ? currentDept?.number : null);
-
-  // Armamos el paquete de datos estructurado idéntico a tu esquema backend
+  
   const datosReporte = {
     buildingId: idEdificioLimpia, 
     departmentId: deptoId,
@@ -1276,88 +1392,77 @@ async function enviarReporte() {
     reportedBy: nombreReporta, 
     status: "PENDIENTE" 
   };
-
+  
   console.log("🚀 Procesando reporte con ID de edificio:", idEdificioLimpia);
-
-  // 🛰️ CASO A: El teléfono está sin conexión a internet de antemano
+  
+  // 🛰️ CASO A: El teléfono está sin conexión a internet
   if (!navigator.onLine) {
-    if (typeof guardarEnMochilaLocal === "function") {
-      guardarEnMochilaLocal("reportes_pendientes", datosReporte);
-    } else {
-      console.warn("⚠️ No se encontró la función 'guardarEnMochilaLocal' para el respaldo offline.");
-    }
-    
+    guardarEnMochilaLocal("reportes_pendientes", datosReporte);
     cerrarReporte();
     if (txtArea) txtArea.value = "";
     if (inputNombre) inputNombre.value = ""; 
-    alert("⚠️ Guardado localmente (Sin Internet). El reporte de problemas se enviará solo cuando recuperes señal.");
+    alert("⚠️ Guardado localmente (Sin Internet). El reporte se enviará solo cuando recuperes señal.");
     return;
   }
-
-  // 💻 CASO B: Transmisión directa por red usando apiFetch unificado
-  try {
-    const res = await apiFetch("/issues", {
-      method: "POST",
-      body: JSON.stringify(datosReporte)
-    });
-
-    if (res.ok) {
-      cerrarReporte();
-      if (txtArea) txtArea.value = "";
-      if (inputNombre) inputNombre.value = ""; 
-      alert("Reporte enviado con éxito al panel de control.");
-      
-      if (typeof mostrarInfoEdificio === "function") {
-        await mostrarInfoEdificio();
-      } else if (typeof mostrarEdificioActual === "function") {
-        mostrarEdificioActual();
-      }
+  
+  // 💻 CASO B: Transmisión asíncrona optimizada para salida instantánea
+  console.log("🚀 Despachando reporte a la red de forma fluida...");
+  
+  apiFetch("/issues", {
+    method: "POST",
+    body: JSON.stringify(datosReporte)
+  }).then(async (res) => {
+    if (res && res.ok) {
+      console.log("✅ Reporte de incidencia impactado en el servidor.");
+      if (typeof mostrarInfoEdificio === "function") await mostrarInfoEdificio();
     } else {
-      const errorData = await res.json().catch(() => ({}));
-      alert("No se pudo enviar el reporte: " + (errorData.error || "Error en el servidor"));
-    }
-  } catch (error) {
-    console.error("Error crítico al enviar reporte, respaldando en almacenamiento secundario...", error);
-    
-    // Rescate de emergencia por micro-cortes de red en plena subida
-    if (typeof guardarEnMochilaLocal === "function") {
+      console.warn("⚠️ El servidor rechazó el reporte, moviendo a mochila local.");
       guardarEnMochilaLocal("reportes_pendientes", datosReporte);
     }
-    
-    cerrarReporte();
-    if (txtArea) txtArea.value = "";
-    if (inputNombre) inputNombre.value = ""; 
-    alert("⏳ Problema temporal de red. El reporte quedó guardado de forma segura en tu celu y se reenviará automáticamente.");
-  }
+  }).catch(error => {
+    console.error("Error en transmisión de reporte de fondo, resguardando:", error);
+    guardarEnMochilaLocal("reportes_pendientes", datosReporte);
+  });
+
+  // Salida relámpago de la UI (No espera la respuesta de red)
+  cerrarReporte();
+  if (txtArea) txtArea.value = "";
+  if (inputNombre) inputNombre.value = ""; 
+  alert("Reporte procesado con éxito.");
 }
 
-/** * 4. REINICIO COMPORTAMENTAL DE INTERFAZ MÓVIL * Vacía y oculta los paneles del visor usando el objeto seguro UI. */
+/** * 4. REINICIO COMPORTAMENTAL DE INTERFAZ MÓVIL */
 function limpiarVista() {
-  // 🚫 REMOVEMOS el borrado de buildingId de acá para que no interfiera al buscar 🚫
-
-  if (UI.resultado) UI.resultado.innerHTML = "";
-  if (UI.infoEdificio) UI.infoEdificio.style.display = "none";
-  if (UI.reportBtn) UI.reportBtn.style.display = "none";
-  if (UI.btnNuevoEdificio) UI.btnNuevoEdificio.style.display = "none";
+  if (typeof UI !== 'undefined') {
+    if (UI.resultado) UI.resultado.innerHTML = "";
+    if (UI.infoEdificio) UI.infoEdificio.style.display = "none";
+    if (UI.reportBtn) UI.reportBtn.style.display = "none";
+    if (UI.btnNuevoEdificio) UI.btnNuevoEdificio.style.display = "none";
+  } else {
+    const res = document.getElementById("resultado");
+    const info = document.getElementById("infoEdificio");
+    const btnN = document.getElementById("btnNuevoEdificio");
+    if (res) res.innerHTML = "";
+    if (info) info.style.display = "none";
+    if (btnN) btnN.style.display = "none";
+  }
   
-  // 🎨 COMPLEMENTO GHOST: Apagamos y ocultamos los controles de votación y notas
   const botonera = document.getElementById("botoneraVotacion");
   if (botonera) botonera.style.display = "none";
-
+  
   const nota = document.getElementById("nota");
   if (nota) nota.style.display = "none";
-
+  
   const btnSiguiente = document.getElementById("btnSiguiente");
   if (btnSiguiente) {
     btnSiguiente.style.visibility = "hidden";
     btnSiguiente.style.display = "none";
   }
-
-  // Reseteamos las clases de selección por seguridad
+  
   document.getElementById("btnOk")?.classList.remove("seleccionado");
   document.getElementById("btnNo")?.classList.remove("seleccionado");
-
-  if (prediMiniMap) {
+  
+  if (typeof prediMiniMap !== 'undefined' && prediMiniMap) {
     try {
       prediMiniMap.off();
       prediMiniMap.remove();
@@ -1366,6 +1471,7 @@ function limpiarVista() {
     }
     prediMiniMap = null;
   }
+  
   window.currentBuildingId = null;
   console.log("🧼 Interfaz del visor móvil restablecida de forma segura (Limpieza completa).");
 }
