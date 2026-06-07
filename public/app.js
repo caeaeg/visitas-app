@@ -1250,7 +1250,7 @@ async function guardarCambiosEditor() {
     description
   };
 
-  // 🛡️ CASO OFFLINE DIRECTO: Guardado preventivo en la billetera local
+ // 🛡️ CASO OFFLINE DIRECTO: Guardado preventivo en la billetera local
   if (!navigator.onLine) {
     console.warn("📡 [MODO OFFLINE] Guardando cambios o alta de edificio de forma local...");
     const localPayload = { ...payload, _id: id || `local_${Date.now()}`, esModificacionLocal: !!id };
@@ -1258,27 +1258,40 @@ async function guardarCambiosEditor() {
     // Lo guardamos en una cola específica para sincronizar edificios
     guardarEnMochilaLocal("edificios_pendientes", localPayload);
     
-    // Inyección en caliente en la base de datos de memoria para poder usarlo e indexarlo de inmediato offline
+    // Inyección en caliente en la base de datos de memoria
     if (!window.baseDatosEdificiosMemoria) window.baseDatosEdificiosMemoria = [];
-    if (id) {
-      const idx = window.baseDatosEdificiosMemoria.findIndex(e => e._id === id);
-      if (idx !== -1) window.baseDatosEdificiosMemoria[idx] = { ...window.baseDatosEdificiosMemoria[idx], ...payload };
-    } else {
-      // Si es nuevo, simulamos la estructura básica de sus departamentos locales para que el sorteador no falle
-      localPayload.departments = [];
-      for (let f = 1; f <= floors; f++) {
-        for (let u = 1; u <= unitsPerFloor; u++) {
-          localPayload.departments.push({
-            _id: `depto_local_${localPayload._id}_${f}_${u}`,
-            number: `${f}°${String.fromCharCode(64 + u)}`, // Ej: 1°A, 1°B
-            floor: f
-          });
-        }
+    
+    // 🔥 REGENERACIÓN EN CALIENTE DE DEPARTAMENTOS PARA EVITAR "FANTASMAS" (Como el PB B)
+    localPayload.departments = [];
+    
+    // Si el usuario MARCÓ que tiene Planta Baja, arrancamos los departamentos desde el piso 0
+    const pisoInicial = hasGroundFloor ? 0 : 1; 
+    
+    for (let f = pisoInicial; f <= floors; f++) {
+      for (let u = 1; u <= unitsPerFloor; u++) {
+        // Si f es 0, el formato va a ser "PB A", "PB B". Si es mayor, "1°A", "2°B", etc.
+        const etiquetaPiso = (f === 0) ? "PB" : `${f}°`;
+        const letraDepto = String.fromCharCode(64 + u); // 1->A, 2->B, 3->C
+        
+        localPayload.departments.push({
+          _id: `depto_local_${localPayload._id}_${f}_${u}`,
+          number: `${etiquetaPiso} ${letraDepto}`, 
+          floor: f
+        });
       }
+    }
+
+    if (id) {
+      const idx = window.baseDatosEdificiosMemoria.findIndex(e => (e.id === id || e._id === id));
+      if (idx !== -1) {
+        // Reemplazamos por completo el edificio viejo con el nuevo payload y sus deptos limpios
+        window.baseDatosEdificiosMemoria[idx] = localPayload;
+      }
+    } else {
       window.baseDatosEdificiosMemoria.push(localPayload);
     }
 
-    alert("💾 Guardado localmente en tu celu. Se subirá al servidor central cuando recuperes internet.");
+    alert("💾 Guardado localmente en tu celu. Se re-estructuraron los departamentos en memoria para la visita.");
     
     const userRole = localStorage.getItem("role") || "predi";
     if (userRole === "admin") {
@@ -1289,7 +1302,6 @@ async function guardarCambiosEditor() {
     }
     return;
   }
-
   // 🌐 MODO ONLINE STANDARD
   const metodo = id ? "PUT" : "POST";
   const urlEndpoint = id ? `/building/${id}` : "/building";
