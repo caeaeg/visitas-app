@@ -126,7 +126,7 @@ app.get("/admin/buildings", requireLogin, requireRole(["admin", "conductor", "pr
 
 // 🔹 ELIMINAR EDIFICIO DEFINITIVAMENTE DESDE EL SUPERADMIN
 app.delete(
-  "/admin/building/:id",
+  "/admin/buildings/:id", // 🌟 CAMBIO: Se agregó la "s" para que coincida con el frontend
   requireLogin,
   requireRole(["admin"]),
   async (req, res) => {
@@ -146,7 +146,7 @@ app.delete(
 
       res.send("Edificio y dependencias eliminados con éxito.");
     } catch (err) {
-      console.error("❌ Error en DELETE /admin/building:", err.message);
+      console.error("❌ Error en DELETE /admin/buildings:", err.message);
       res.status(500).send("Error eliminando edificio: " + err.message);
     }
   }
@@ -412,16 +412,29 @@ app.get(
 );
 
 
-// 🔹 RUTA UNIFICADA PARA REPORTAR PROBLEMAS (Actualizada y Protegida)
+// 🔹 RUTA UNIFICADA PARA REPORTAR PROBLEMAS (Actualizada y Protegida contra cruce de datos)
 app.post("/issues", requireLogin, async (req, res) => {
   try {
     // Recibimos los campos nuevos que viajan desde el formulario del Frontend
     const { buildingId, departmentId, type, description, reportedBy, status } = req.body;
 
-    // Validación estricta en el Backend: si el id no viene o viene corrupto, respondemos con sutileza
+    // 1. Validación estricta en el Backend: si el id no viene o viene corrupto
     if (!buildingId || buildingId === "[object Object]") {
       return res.status(400).json({ error: "El ID del edificio enviado no es válido o está vacío." });
     }
+
+    // 2. 🛡️ CONTROL DE SEGURIDAD EXTRAS: Evita reportes cruzados o corruptos en la Base de Datos
+    if (departmentId) {
+      const deptoExistente = await Department.findById(departmentId);
+      if (!deptoExistente) {
+        return res.status(400).json({ error: "El departamento especificado no existe." });
+      }
+      // Verificamos si el departamento de verdad pertenece a ese edificio
+      if (deptoExistente.buildingId.toString() !== buildingId.toString()) {
+        return res.status(400).json({ error: "Conflicto de integridad: El departamento no corresponde a este edificio." });
+      }
+    }
+
     const nuevoIssue = new Issue({
       buildingId,
       departmentId,
