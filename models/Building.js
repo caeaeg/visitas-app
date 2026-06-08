@@ -1,8 +1,15 @@
 const mongoose = require("mongoose");
 
 const BuildingSchema = new mongoose.Schema({
-  code: String,
-  address: String,
+  // 🚀 OPTIMIZACIÓN CON ÍNDICES: Acelera las búsquedas en la calle cuando haya muchos datos
+  code: { 
+    type: String, 
+    index: true 
+  },
+  address: { 
+    type: String, 
+    index: true 
+  },
   address2: String,
   floors: Number,
   unitsPerFloor: Number,
@@ -10,11 +17,14 @@ const BuildingSchema = new mongoose.Schema({
   hasDoorman: Boolean,
   
   // 🔽 Campos actualizados y nuevos
-  territory: Number, // Lo cambiamos a Number para que el filtro por número funcione bien
+  territory: { 
+    type: Number, 
+    index: true // También indexado porque se usa mucho para filtrar en el mapa y listas
+  }, 
   name: String,
   description: String,
 
-  // 📍 Coordenadas para el mapa (¡Esto es lo que faltaba!)
+  // 📍 Coordenadas para el mapa
   latitude: {
     type: Number,
     default: null
