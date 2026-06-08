@@ -79,7 +79,7 @@ app.get(
 );
 
 // 🔹 ADMIN BUILDINGS (Actualizado con bypass de paginación para el SuperAdmin)
-app.get("/admin/buildings", requireLogin, requireRole(["admin", "conductor"]), async (req, res) => {
+app.get("/admin/buildings", requireLogin, requireRole(["admin", "conductor", "predi"]), async (req, res) => {
   try {
     const { territory, sort, search, all } = req.query;
 
