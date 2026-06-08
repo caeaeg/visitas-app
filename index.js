@@ -152,7 +152,7 @@ app.delete(
   }
 );
 
-// 🔹 BUSCAR BUILDING
+// 🔹 BUSCAR BUILDING (Modificado: Ahora exige la dirección completa y exacta para evitar errores)
 app.get(
   "/building/:query",
   requireLogin,
@@ -160,12 +160,20 @@ app.get(
   async (req, res) => {
     try {
       const query = req.params.query.trim().toLowerCase();
+      
+      // 🛡️ Buscamos coincidencia EXACTA en la base de datos
       const building = await Building.findOne({
         $or: [
-          { code: new RegExp("^" + query + "$", "i") },
-          { address: new RegExp(query, "i") }
+          { code: query },      // Coincidencia exacta con el código
+          { address: query }    // Coincidencia exacta con la dirección cargada
         ]
       });
+
+      // 🛡️ Verificamos si el edificio existe y si está bloqueado para los predi
+      if (building && building.isBlocked && req.user?.role === "predi") {
+        return res.json({ error: "BLOCKED" }); // Bloqueo también en el buscador global
+      }
+
       if (!building) return res.json({ error: "NOT_FOUND" });
       res.json(building);
     } catch (err) {
@@ -174,8 +182,7 @@ app.get(
   }
 );
 
-// 🔹 CREAR BUILDING (Arreglado el bug de pisos y preparado para Leaflet con lat/lng)
-// 🔹 CREAR BUILDING (Arreglado: Ahora guarda address2, name y description sin perder datos)
+// 🔹 CREAR BUILDING 
 app.post(
   "/building",
   requireLogin,
