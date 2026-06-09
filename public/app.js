@@ -218,16 +218,21 @@ async function login() {
 /**
  * 5. ORQUESTADOR DE ENTORNO SEGÚN PERMISOS Y ROLES DE TRABAJO
  * Modula la UI adaptándola de forma exacta al Publicador, Conductor o Admin.
- * MODIFICADO: Ahora el usuario 'predi' descarga o recupera de memoria local los datos de campo.
+ * MODIFICADO: Ahora oculta el navbar global para el rol 'predi' y muestra su botón de salir inferior.
  */
 async function iniciarAppConPermisos() {
   const elLogin = document.getElementById("loginScreen");
   const navbar = document.getElementById("navbarGlobal");
   const badge = document.getElementById("badge-rol-usuario");
   const btnSuperAdmin = document.getElementById("btnSuperAdminMenu");
+  
+  // Capturamos el botón de salir inferior exclusivo para el predi
+  const btnSalirPredi = document.getElementById("btnSalirPredi");
 
   if (elLogin) elLogin.style.display = "none";
-  if (navbar) navbar.style.display = "flex";
+  
+  // Quitamos la línea fija que ponía el navbar en flex para todos,
+  // ahora cada rol va a decidir qué hacer con su barra de navegación.
   
   if (typeof aplicarPermisos === "function") aplicarPermisos();
 
@@ -235,6 +240,10 @@ async function iniciarAppConPermisos() {
     // 🚪 USUARIO PREDI (PUBLICADOR): Va directo puerta a puerta, visor móvil directo en tiempo real.
     if (badge) badge.innerText = "Publicador (Predi)";
     if (btnSuperAdmin) btnSuperAdmin.style.display = "none";
+    
+    // 👓 MEJORA VISUAL: Ocultamos la barra superior inútil y activamos su botón de cerrar sesión abajo
+    if (navbar) navbar.style.setProperty('display', 'none', 'important');
+    if (btnSalirPredi) btnSalirPredi.style.display = "block";
     
     console.log("⚡ Entorno PUBLICADOR (Puerta a puerta) configurado. Cargando Base Local Offline...");
     
@@ -249,6 +258,10 @@ async function iniciarAppConPermisos() {
     if (badge) badge.innerText = "Conductor de Grupo";
     if (btnSuperAdmin) btnSuperAdmin.style.display = "none";
     
+    // Los otros roles sí necesitan ver la barra de navegación superior
+    if (navbar) navbar.style.display = "flex";
+    if (btnSalirPredi) btnSalirPredi.style.display = "none";
+    
     console.log("🗺️ Entorno CONDUCTOR (Líder de Grupo) configurado. Cargando panel operativo.");
     await descargarBaseAdministrativa();
     abrirVista("dashboardView");
@@ -257,6 +270,10 @@ async function iniciarAppConPermisos() {
     // 👑 USUARIO ADMIN: Administrador total del sistema.
     if (badge) badge.innerText = "Administrador";
     if (btnSuperAdmin) btnSuperAdmin.style.display = "flex";
+    
+    // Los otros roles sí necesitan ver la barra de navegación superior
+    if (navbar) navbar.style.display = "flex";
+    if (btnSalirPredi) btnSalirPredi.style.display = "none";
     
     console.log("👑 Entorno ADMINISTRADOR TOTAL activo.");
     await descargarBaseAdministrativa();
