@@ -20,6 +20,10 @@
     }
   </script>
  <style>
+   /* Si el rol detectado es 'predi', la barra superior se oculta por completo por encima de cualquier script */
+[data-user-role="predi"] #navbarGlobal {
+    display: none !important;
+}
     /* --- CSS: CONFIGURACIÓN BASE Y REINICIO (Optimizado para Alta Accesibilidad Visual) --- */
     * {
       box-sizing: border-box;
