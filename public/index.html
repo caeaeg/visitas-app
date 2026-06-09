@@ -4,13 +4,10 @@
   <meta charset="UTF-8">
   <title>Visitas</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
   <script src="territorios.js"></script>
   <script src="app.js" defer></script>
-  
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#121214">
   <script>
@@ -22,7 +19,6 @@
       });
     }
   </script>
-
  <style>
     /* --- CSS: CONFIGURACIÓN BASE Y REINICIO (Optimizado para Alta Accesibilidad Visual) --- */
     * {
@@ -30,7 +26,6 @@
       margin: 0;
       padding: 0;
     }
-    
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       font-size: 20px; /* 👓 ANTES 17px - Aumentado para que todo el texto base sea muy legible */
@@ -40,7 +35,6 @@
       background: #09090b;
       color: #f4f4f7;
     }
-
     /* --- CSS: COMPONENTES GLOBALES DE FORMULARIOS --- */
     input, button, select, textarea {
       box-sizing: border-box;
@@ -55,17 +49,14 @@
       border: 1px solid #52525b; /* 👓 Mayor contraste en el contorno */
       transition: background 0.2s ease, border 0.2s ease, transform 0.1s ease;
     }
-
     input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: #3b82f6;
       background: #27272a;
     }
-
     input::placeholder, textarea::placeholder {
       color: #a1a1aa;
     }
-
     /* --- CSS: BOTONES Y ACCIONES --- */
     button {
       cursor: pointer;
@@ -77,21 +68,17 @@
       gap: 10px;
       font-size: 20px; /* 👓 ANTES 17px */
     }
-
     button:active {
       transform: scale(0.98);
     }
-
     .buscar { background: #2563eb; color: #ffffff; }
     .buscar:hover { background: #1d4ed8; }
-
     .secondary {
       background: #27272a;
       color: #ffffff;
       border: 1px solid #71717a; /* 👓 Más definición */
     }
     .secondary:hover { background: #3f3f46; }
-
     /* 🎨 Botones Principales de Visita (Atendió / No en casa) - Área de contacto aumentada */
     .ok {
       background: rgba(22, 163, 74, 0.05);
@@ -130,13 +117,11 @@
       border-color: #dc2626 !important;
       box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
     }
-
     /* --- CSS: SECCIONES GENERALES Y VISTAS --- */
     .appShell {
       max-width: 1200px;
       margin: auto;
     }
-
     .view {
       display: none;
       animation: fade 0.2s ease-out;
@@ -145,26 +130,22 @@
     .view.active {
       display: block;
     }
-
     h2 {
       font-size: 30px; /* 👓 ANTES 26px */
       font-weight: 700;
       margin-bottom: 18px;
       color: #ffffff;
     }
-
     @keyframes fade {
       from { opacity: 0; transform: translateY(4px); }
       to { opacity: 1; transform: none; }
     }
-
     /* --- CSS: CONTENEDORES MÓVILES (VISTA CLIENTE) --- */
     .container {
       max-width: 520px; /* 👓 ANTES 480px - Un poquito más ancho para albergar fuentes grandes cómodamente */
       margin: auto;
       padding: 8px;
     }
-
     .card-container {
       background: #111113;
       border: 1px solid #27272a;
@@ -172,20 +153,18 @@
       padding: 18px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     }
-
     /* 🛡️ CONTENEDOR DE INFORMACIÓN GENERAL DEL EDIFICIO ACTIVO */
     #infoEdificio {
       background: #18181b;
-      padding: 16px;
+      padding: 18px; /* Más aire interno */
       border-radius: 14px;
       margin-top: 14px;
       display: none;
-      font-size: 18px; /* 👓 ANTES 15px - Texto general de la tarjeta aumentado */
+      font-size: 21px; /* 👓 ANTES 20px - Aumentado un poco más para lectura en movimiento */
       border: 1px solid #3f3f46;
       flex-direction: column;
-      gap: 12px;
+      gap: 16px;
     }
-
     .edificio-header {
       display: flex;
       justify-content: space-between;
@@ -194,63 +173,61 @@
       padding-bottom: 10px;
       margin-bottom: 4px;
     }
-
     .edificio-title-wrapper {
       display: flex;
       flex-direction: column;
       gap: 4px;
     }
-
     .edificio-title-wrapper h2 {
-      font-size: 26px; /* 👓 ANTES 20px - Nombre del edificio en foco */
+      font-size: 28px; /* 👓 ANTES 26px - Nombre del edificio un poco más imponente */
       margin: 0;
       line-height: 1.2;
     }
-
     .edificio-title-wrapper span {
       font-size: 16px; /* 👓 ANTES 13px - Fecha de creación */
       color: #a1a1aa;
     }
-
     .edificio-badge {
       background: #27272a;
       padding: 6px 12px;
       border-radius: 8px;
-      font-size: 15px; /* 👓 ANTES 12px - El botón que indica el día / fecha */
+      font-size: 16px; /* 👓 ANTES 15px - Mayor claridad en el día de asignación */
       font-weight: 700;
       border: 1px solid #4b5563;
       white-space: nowrap;
     }
-
     .edificio-body {
       display: grid;
       grid-template-columns: 1fr 120px; /* Ajuste para el mapa con la nueva fuente */
       gap: 14px;
       align-items: start;
     }
-
     .edificio-info-list {
       display: flex;
       flex-direction: column;
-      gap: 8px; /* 👓 ANTES 4px - Más aire entre renglones para evitar que se junten las líneas */
+      gap: 10px; /* 👓 ANTES 8px - Más espacio vertical entre Territorio y Pisos */
     }
-
+    /* Estilos para los ítems: Territorio, Pisos, Notas */
     .edificio-info-item {
       display: flex;
       align-items: center;
-      gap: 8px;
-      color: #e4e4e7;
-      font-size: 18px; /* Asegura el tamaño de los datos de pisos y territorio */
+      gap: 10px;
+      color: #ffffff; /* 👓 Forzado a blanco absoluto para contraste premium */
+      font-size: 22px; /* 👓 ANTES 21px - Datos numéricos clave bien claros */
+      font-weight: 700;
     }
-
+    /* Las notas aclaratorias del Admin (Ej: "Notas: probando") */
     .edificio-notas {
       font-style: italic;
-      color: #e4e4e7; /* 👓 ANTES #a1a1aa - Mayor brillo para que las notas de los administradores se lean bien */
-      margin-top: 4px;
-      font-size: 16px; /* 👓 ANTES 13px */
-      line-height: 1.4;
+      color: #ffffff; /* 👓 Máximo brillo para que se lea bajo el sol */
+      margin-top: 8px;
+      font-size: 20px; /* 👓 ANTES 19px - Lectura holgada de descripciones largas */
+      line-height: 1.5;
+      background: rgba(255, 255, 255, 0.04); /* Fondo sutilmente más visible */
+      padding: 10px 14px;
+      border-radius: 8px;
+      border-left: 4px solid #3b82f6; /* Línea azul más gruesa que destaca la nota */
     }
-
     /* Adaptación del mini-mapa Leaflet */
     #infoEdificio .leaflet-container {
       width: 120px !important; /* Ajustado levemente */
@@ -258,7 +235,6 @@
       border-radius: 8px;
       border: 1px solid #4b5563;
     }
-
     .edificio-footer {
       display: flex;
       justify-content: space-between;
@@ -266,14 +242,13 @@
       margin-top: 4px;
       padding-top: 10px;
       border-top: 1px solid #27272a;
-      font-size: 15px; /* 👓 ANTES 12px */
+      font-size: 16px; /* 👓 ANTES 15px */
       color: #a1a1aa;
     }
-
     /* Botón Informar Problema */
     .btn-reportar-sutil {
-      padding: 10px 14px; /* 👓 ANTES 6px - Botón más robusto para presionar */
-      font-size: 14px; /* 👓 ANTES 11px */
+      padding: 12px 16px; /* 👓 Un poco más alto para mejor click */
+      font-size: 15px; /* 👓 Un punto más grande */
       background: rgba(239, 68, 68, 0.1);
       border: 1px solid #ef4444;
       color: #f87171;
@@ -289,16 +264,59 @@
       background: #ef4444;
       color: #ffffff;
     }
-
-    /* 👓 CAJA DEL NÚMERO DE DEPARTAMENTO GRANDE (Ej: "5A", "2C") */
-    /* Buscá el contenedor de tu HTML que tenga el número grande. Este cambio asegura legibilidad total */
+    /* 👓 CAJA DEL DEPARTAMENTO REDISEÑADA AUTOMÁTICAMENTE EN 3 COLUMNAS */
+    /* Modificamos esta regla para reestructurar la fila entera sin tocar el HTML */
     .card-container div[style*="font-size: 48px"], 
     .card-container div[style*="font-size: 36px"],
     .card-container span[style*="font-size"] {
-      font-size: 64px !important; /* 👓 Obligamos a que el departamento en juego se vea gigante */
-      font-weight: 800 !important;
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 12px !important;
+      padding: 6px 0 !important;
+      width: 100% !important;
+      font-size: inherit !important; /* Resetea el heredado para manejar tamaños individuales por columna */
     }
-
+    /* Columna 1: El texto "DEPARTAMENTO A VISITAR:" */
+    .card-container div[style*="font-size: 48px"] > div:first-child,
+    .card-container div[style*="font-size: 36px"] > div:first-child {
+      font-size: 15px !important;
+      font-weight: 800 !important;
+      color: #a1a1aa !important;
+      text-transform: uppercase !important;
+      line-height: 1.2 !important;
+      max-width: 130px !important;
+      text-align: left !important;
+    }
+    /* Columna 2: El número gigante (Ej: 2C, 5A, 1A) */
+    /* Forzamos a que el texto del depto intermedio mantenga el tamaño gigante */
+    .card-container div[style*="font-size: 48px"] > div:nth-child(2),
+    .card-container div[style*="font-size: 36px"] > div:nth-child(2),
+    #deptoAsignado {
+      font-size: 58px !important; 
+      font-weight: 900 !important;
+      color: #ffffff !important;
+      line-height: 1 !important;
+      flex: 1 !important;
+      text-align: center !important;
+    }
+    /* Columna 3: El botón "Siguiente depto." oculto/visible al costado */
+    /* Lo achicamos de manera elegante para que encaje perfecto en la esquina derecha */
+    .card-container div[style*="font-size: 48px"] button,
+    .card-container div[style*="font-size: 36px"] button,
+    #btnSiguienteDepto {
+      width: auto !important;
+      margin: 0 !important;
+      padding: 10px 12px !important;
+      font-size: 14px !important; /* Más sutil y compacto */
+      font-weight: 700 !important;
+      background: #27272a !important;
+      color: #ffffff !important;
+      border: 1px solid #4b5563 !important;
+      border-radius: 8px !important;
+      white-space: nowrap !important;
+    }
     #listaTerritorio button {
       text-align: left;
       background: #18181b;
@@ -306,7 +324,6 @@
       padding: 16px;
       font-size: 19px; /* 👓 ANTES 16px */
     }
-
     .link {
       color: #60a5fa;
       cursor: pointer;
@@ -317,7 +334,6 @@
       font-weight: 600;
     }
     .link:hover { text-decoration: underline; }
-
     /* --- CSS: ACCESOS RÁPIDOS Y BOTÓN FLOTANTE --- */
     #adminBtn {
       position: fixed;
@@ -333,7 +349,6 @@
       border: 1px solid #52525b;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
-
     #reportBtn {
       position: fixed;
       bottom: 20px;
@@ -353,10 +368,15 @@
       z-index: 1000;
       border: 2px solid #ffffff;
     }
-
-    .alerta { background: #ef4444 !important; }
-    
-    #loginScreen {
+    /* Ajuste de Alertas Críticas de problemas en porteros */
+    .alerta { 
+      background: #ef4444 !important; 
+      font-size: 19px !important; /* 👓 Mensajes de error más grandes */
+      font-weight: 700 !important;
+      border-radius: 10px !important;
+      padding: 12px 16px !important;
+    }
+     #loginScreen {
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
@@ -365,7 +385,6 @@
       min-height: 100vh;
       box-sizing: border-box;
     }
-
     .loginCard {
       width: 90%;
       max-width: 400px; /* 👓 ANTES 360px */
@@ -376,7 +395,6 @@
       border-radius: 16px;
       box-shadow: 0 20px 40px rgba(0,0,0,0.6);
     }
-    
     #loginMsg {
       text-align: center;
       margin-top: 10px;
@@ -384,7 +402,6 @@
       font-size: 17px; /* 👓 ANTES 15px */
       min-height: 20px;
     }
-
     /* --- CSS: VENTANAS EMERGENTES (MODALES PREMIUM) --- */
     .modal {
       display: none;
@@ -398,7 +415,6 @@
       padding: 16px;
       animation: fadeInModal 0.2s ease-out;
     }
-    
     .modal-content {
       width: 100%;
       max-width: 480px; /* 👓 ANTES 440px */
@@ -408,10 +424,8 @@
       transform: scale(0.96);
       animation: scaleUpModal 0.2s forwards ease-out;
     }
-
     @keyframes fadeInModal { from { opacity: 0; } to { opacity: 1; } }
     @keyframes scaleUpModal { to { transform: scale(1); } }
-
     /* --- CSS: REGLAS ESPECÍFICAS DE LEAFLET --- */
     .leaflet-container {
       text-align: left;
@@ -429,7 +443,6 @@
       box-shadow: 0 4px 6px rgba(0,0,0,0.5) !important;
       white-space: nowrap !important;
     }
-
     /* --- CSS: ESQUELETOS DE CARGA (SKELETONS) --- */
     .skeleton { position: relative; overflow: hidden; background: #27272a; border-radius: 8px; }
     .skeleton::after {
@@ -439,7 +452,6 @@
     }
     @keyframes skeleton { 100% { transform: translateX(100%); } }
     .skeletonLine { height: 22px; margin-bottom: 10px; }
-
     /* --- CSS: PANEL DE ADMINISTRACIÓN - ENCABEZADOS Y NAV --- */
     .admin-nav-bar {
       display: flex;
@@ -464,8 +476,7 @@
     .btn-atras-sutil:hover { background: #3f3f46; }
     .nav-title { font-size: 20px; font-weight: 700; color: #ffffff; display: block; }
     .nav-subtitle { font-size: 15px; color: #a1a1aa; display: block; }
-    
-    .btn-salir-sutil {
+     .btn-salir-sutil {
       background: #451a03;
       color: #fcd34d;
       padding: 10px 16px;
@@ -475,7 +486,6 @@
       width: auto; margin: 0;
     }
     .btn-salir-sutil:hover { background: #78350f; }
-
     /* --- CSS: PANEL DE ADMINISTRACIÓN - CUADRÍCULA DE ESTADÍSTICAS --- */
     .mini-stats-grid {
       display: grid;
@@ -515,14 +525,12 @@
       grid-template-columns: 1fr;
       gap: 16px;
     }
-
     @media (min-width: 1024px) {
       .workspace-grid {
         grid-template-columns: 300px 1fr 350px;
         align-items: start;
       }
     }
-
     /* --- CSS: PANEL DE ADMINISTRACIÓN - COMPONENTES Y FILTROS --- */
     .component-card {
       background: #111113;
@@ -532,7 +540,6 @@
       margin-bottom: 12px;
     }
     .card-header-sm h3 { margin: 0 0 10px 0; font-size: 14px; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.5px; }
-
     .filtros-compactos { display: flex; flex-direction: column; gap: 6px; }
     .filtros-compactos input, .filtros-compactos select {
       background: #09090b;
@@ -541,7 +548,6 @@
       margin: 4px 0;
     }
     .filtro-doble-fila { display: flex; gap: 6px; }
-
     /* --- CSS: PANEL DE ADMINISTRACIÓN - LISTADO SCROLL DE EDIFICIOS --- */
     .lista-scroll-limpia {
       max-height: 380px;
@@ -550,7 +556,6 @@
     }
     .lista-scroll-limpia::-webkit-scrollbar { width: 5px; }
     .lista-scroll-limpia::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
-
     .paginador-sutil { display: flex; gap: 6px; margin-top: 10px; }
     .btn-pag {
       flex: 1;
@@ -561,32 +566,27 @@
       margin: 0;
     }
     .btn-pag:hover { background: #27272a; }
-
     /* --- CSS: PANEL DE ADMINISTRACIÓN - MAPA PRINCIPAL --- */
     .mapa-card-wrapper { padding: 0; overflow: hidden; border-radius: 12px; border: 1px solid #27272a; }
     .mapa-principal-moderno { height: 520px; width: 100%; background: #09090b; }
-
     .detalle-edificio-premium {
       background: #111113;
       border: 1px solid #27272a;
       border-radius: 12px;
       padding: 16px;
     }
-    
-    /* --- CSS: MENÚ DE CONTROL PRINCIPAL (DASHBOARD) --- */
+      /* --- CSS: MENÚ DE CONTROL PRINCIPAL (DASHBOARD) --- */
     #dashboardView {
       max-width: 540px; /* 👓 ANTES 500px */
       margin: 20px auto;
       padding: 0 8px;
     }
-
     .dashboardGrid {
       display: flex;
       flex-direction: column;
       gap: 14px;
       margin-top: 18px;
     }
-
     .dashboardCard {
       background: #111113;
       border: 1px solid #27272a;
@@ -606,11 +606,9 @@
       border-color: #3b82f6;
       box-shadow: 0 6px 20px rgba(59, 130, 246, 0.08);
     }
-
     .dashboardCard:active {
       transform: scale(0.98);
     }
-
     .dashboardCard .icon {
       font-size: 36px; /* 👓 ANTES 32px */
       width: 60px; /* 👓 ANTES 54px */
@@ -623,27 +621,23 @@
       flex-shrink: 0;
       border: 1px solid #3f3f46;
     }
-
     .dashboardCard-content {
       display: flex;
       flex-direction: column;
       gap: 6px;
       flex: 1;
     }
-
     .dashboardCard h3 {
       color: #ffffff;
       margin: 0;
       font-size: 21px; /* 👓 ANTES 18px - Menú principal mucho más visible */
       font-weight: 700;
     }
-
     .dashboardCard p {
       color: #a1a1aa;
       font-size: 16px; /* 👓 ANTES 14px */
       margin: 0;
     }
-
     /* --- CSS: FILAS DINÁMICAS DE LA LISTA DE EDIFICIOS --- */
     .edificio-item-lista {
       background: #18181b;
@@ -682,7 +676,6 @@
     .edificio-item-lista:hover .btn-ver-flecha {
       color: #3b82f6;
     }
-
     /* --- CSS: AGRUPADORES DE MAPA (MARKER CLUSTER) --- */
     .custom-dark-cluster {
       background: transparent !important;
@@ -695,13 +688,11 @@
     .custom-dark-cluster div {
       transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
     }
-    
-    .custom-dark-cluster :hover {
+     .custom-dark-cluster :hover {
       transform: scale(1.08);
       border-color: #3b82f6 !important;
       background: rgba(24, 24, 27, 0.95) !important;
     }
-
     /* --- CSS: PESTAÑAS CONMUTABLES DE FILTROS --- */
     .tabs-filtros {
       display: flex;
@@ -740,7 +731,6 @@
     .tab-content.active {
       display: block;
     }
-
     /* Estilos para el Panel Maestro SuperAdmin */
     .vista-pantalla-completa {
       position: fixed;
@@ -754,24 +744,20 @@
       display: none;
       font-family: system-ui, -apple-system, sans-serif;
     }
-
     .vista-pantalla-completa table th {
       font-weight: 600;
       font-size: 15px; /* 👓 ANTES 13px */
       letter-spacing: 0.5px;
       text-transform: uppercase;
     }
-
     .vista-pantalla-completa table tbody tr:hover {
       background-color: #27272a !important;
       transition: background 0.2s ease;
     }
-
     .vista-pantalla-completa .danger:hover {
       background-color: #dc2626 !important;
       box-shadow: 0 0 8px rgba(220, 38, 38, 0.4);
     }
-
     /* Números fijos de Territorio en el mapa */
     .texto-territorio-elegante {
         background: transparent !important;
@@ -783,7 +769,6 @@
         transition: all 0.2s ease-in-out;
         pointer-events: none;
     }
-
     .texto-territorio-elegante.vista-cerca {
         color: #ffffff !important;
         background: #1f2937 !important;
@@ -793,7 +778,6 @@
         box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
         font-size: 14px; /* 👓 ANTES 12px */
     }
-
     .texto-territorio-elegante.zoom-alejado {
         opacity: 0 !important;
         visibility: hidden;
@@ -987,37 +971,42 @@
   <div class="card-container" style="max-width: 480px; margin: 20px auto; padding: 15px;">
     <button id="reportBtn" onclick="abrirReporte()">🚨</button>
     
-    <div style="display: flex; gap: 8px; align-items: center; margin-top: 15px; margin-bottom: 14px;">
-      <input id="buildingId" placeholder="Código o dirección" onkeypress="if(event.key==='Enter') buscar()" autocomplete="off" style="margin: 0; flex: 1; padding: 12px 14px; font-size: 16px;">
-      <button class="buscar" onclick="buscar()" style="width: 50px; height: 47px; margin: 0; padding: 0; border-radius: 8px; flex-shrink: 0; font-size: 18px;">🔍</button>
+    <div style="display: flex; gap: 10px; align-items: center; margin-top: 15px; margin-bottom: 14px;">
+  <input id="buildingId" placeholder="Código o dirección" onkeypress="if(event.key==='Enter') buscar()" autocomplete="off" style="margin: 0; flex: 1; padding: 14px 16px; font-size: 20px; height: 58px;">
+  <button class="buscar" onclick="buscar()" style="width: 58px; height: 58px; margin: 0; padding: 0; border-radius: 10px; flex-shrink: 0; font-size: 22px;">🔍</button>
+</div>
+
+<p id="mensajeInicial" style="text-align:center; font-size: 17px; color: #a1a1aa; margin-top: 4px; margin-bottom: 14px; font-weight: 600;">Ingresá una dirección para comenzar</p>
+
+<div id="contenedorDepartamento" style="margin-top: 10px; margin-bottom: 15px; background: #121214; border: 1px solid #27272a; padding: 14px 12px; border-radius: 16px;">
+  <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; width: 100%;">
+    
+    <div style="width: 100px; text-align: left; flex-shrink: 0;">
+      <p style="margin: 0; font-size: 13px; color: #a1a1aa; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.2;">Departamento</p>
+      <p style="margin: 2px 0 0 0; font-size: 14px; color: #ffffff; font-weight: 800; line-height: 1.2;">A VISITAR:</p>
     </div>
     
-    <p id="mensajeInicial" style="text-align:center; font-size: 15px; color: #a1a1aa; margin-bottom: 10px;">Ingresá una dirección para comenzar</p>
-    
-    <div id="contenedorDepartamento" style="margin-top: 10px; margin-bottom: 15px; background: #121214; border: 1px solid #27272a; padding: 16px; border-radius: 16px;">
-      <div style="display: flex; gap: 16px; align-items: center; justify-content: space-between;">
-        <div style="flex: 1; text-align: left;">
-          <p style="margin: 0; font-size: 13px; color: #a1a1aa; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">Departamento</p>
-          <p style="margin: 4px 0 0 0; font-size: 14px; color: #ffffff; font-weight: 700;">A VISITAR:</p>
-        </div>
-        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; border-left: 1px solid #27272a; padding-left: 16px;">
-          <h2 id="resultado" style="font-size: 25px; font-weight: 700; color: #ffffff; margin: 0; line-height: 1; letter-spacing: 0.5px;">--</h2>
-          <button id="btnSiguiente" class="secondary" onclick="siguiente()" style="visibility: hidden; margin: 0; width: 100%; max-width: 140px; padding: 6px 10px; font-size: 12px; font-weight: 700; border-radius: 8px; white-space: nowrap;">➡ Siguiente depto.</button>
-        </div>
-      </div>
+    <div style="flex: 1; text-align: center; border-left: 1px solid #27272a; border-right: 1px solid #27272a; padding: 0 10px;">
+      <h2 id="resultado" style="font-size: 54px; font-weight: 900; color: #ffffff; margin: 0; line-height: 1;">--</h2>
     </div>
     
-    <textarea id="nota" placeholder="Nota de la visita..." style="display:none; height: 100px; font-size: 18px; margin-bottom: 12px;"></textarea>
-    
-    <div id="botoneraVotacion" style="display: none; gap: 10px; margin-top: 8px; margin-bottom: 15px; width: 100%;">
-      <button id="btnOk" class="ok" onclick="marcar('ATENDIO')" style="display:none; flex: 1; margin: 0;">✔ ATENDIÓ</button>
-      <button id="btnNo" class="no" onclick="marcar('NO_EN_CASA')" style="display:none; flex: 1; margin: 0;">✕ NO EN CASA</button>
+    <div style="width: auto; flex-shrink: 0; display: flex; justify-content: center;">
+      <button id="btnSiguiente" class="secondary" onclick="siguiente()" style="visibility: hidden; margin: 0; width: auto; padding: 10px 12px; font-size: 14px; font-weight: 700; border-radius: 8px; white-space: nowrap;">➡ Siguiente</button>
     </div>
 
-    <div id="infoEdificio"></div>
-    <button id="btnNuevoEdificio" class="secondary" style="display:none; margin-top: 12px;">➕ Agregar edificio</button>
   </div>
 </div>
+
+<textarea id="nota" placeholder="Nota de la visita..." style="display:none; height: 100px; font-size: 19px; margin-bottom: 12px; padding: 12px;"></textarea>
+
+<div id="botoneraVotacion" style="display: none; gap: 10px; margin-top: 8px; margin-bottom: 15px; width: 100%;">
+  <button id="btnOk" class="ok" onclick="marcar('ATENDIO')" style="display:none; flex: 1; margin: 0;">✔ ATENDIÓ</button>
+  <button id="btnNo" class="no" onclick="marcar('NO_EN_CASA')" style="display:none; flex: 1; margin: 0;">✕ NO EN CASA</button>
+</div>
+
+<div id="infoEdificio"></div>
+
+<button id="btnNuevoEdificio" class="secondary" style="display:none; margin-top: 14px; padding: 14px 18px; font-size: 20px;">➕ Agregar edificio</button>
 
 <div id="modalReporte" class="modal">
   <div class="modal-content" style="background:#1c1c1e; color:white; padding:20px; border-radius:16px;">
