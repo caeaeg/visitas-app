@@ -23,8 +23,8 @@
     }
   </script>
 
-  <style>
-    /* --- CSS: CONFIGURACIÓN BASE Y REINICIO (Optimizado para Accesibilidad Visual) --- */
+ <style>
+    /* --- CSS: CONFIGURACIÓN BASE Y REINICIO (Optimizado para Alta Accesibilidad Visual) --- */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -33,12 +33,12 @@
     
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      font-size: 17px; /* 👓 Aumentado para mejorar lectura en calle */
-      line-height: 1.6; /* 👓 Mayor separación entre líneas */
+      font-size: 20px; /* 👓 ANTES 17px - Aumentado para que todo el texto base sea muy legible */
+      line-height: 1.6;
       letter-spacing: 0.2px;
       padding: 16px;
       background: #09090b;
-      color: #f4f4f7; /* 👓 Mayor contraste de blancos */
+      color: #f4f4f7;
     }
 
     /* --- CSS: COMPONENTES GLOBALES DE FORMULARIOS --- */
@@ -46,13 +46,13 @@
       box-sizing: border-box;
       font-family: inherit;
       width: 100%;
-      padding: 14px 16px; /* 👓 Más amplio para tocar con comodidad */
-      margin: 8px 0;
-      font-size: 17px; /* 👓 Letras notablemente más grandes en toda la interfaz */
-      border-radius: 8px;
+      padding: 16px 18px; /* 👓 Un poco más amplio para facilitar el toque */
+      margin: 10px 0;
+      font-size: 20px; /* 👓 ANTES 17px - Letra grande en inputs y selectores para evitar forzar la vista */
+      border-radius: 10px;
       background: #18181b;
       color: #ffffff;
-      border: 1px solid #3f3f46; /* 👓 Bordes con mejor contraste visual */
+      border: 1px solid #52525b; /* 👓 Mayor contraste en el contorno */
       transition: background 0.2s ease, border 0.2s ease, transform 0.1s ease;
     }
 
@@ -63,19 +63,19 @@
     }
 
     input::placeholder, textarea::placeholder {
-      color: #a1a1aa; /* 👓 Gris más claro para que sea legible */
+      color: #a1a1aa;
     }
 
     /* --- CSS: BOTONES Y ACCIONES --- */
     button {
       cursor: pointer;
-      font-weight: 700; /* 👓 Mayor grosor tipográfico */
+      font-weight: 700;
       border: none;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      font-size: 17px;
+      gap: 10px;
+      font-size: 20px; /* 👓 ANTES 17px */
     }
 
     button:active {
@@ -88,46 +88,44 @@
     .secondary {
       background: #27272a;
       color: #ffffff;
-      border: 1px solid #52525b; /* 👓 Mayor definición de borde secundario */
+      border: 1px solid #71717a; /* 👓 Más definición */
     }
     .secondary:hover { background: #3f3f46; }
 
-    /* 🎨 Estilo Avanzado Ghost / Border-Only para Fila Única (Modo Oscuro) */
+    /* 🎨 Botones Principales de Visita (Atendió / No en casa) - Área de contacto aumentada */
     .ok {
-      background: rgba(22, 163, 74, 0.05); /* Fondo casi invisible de base */
-      color: #4ade80; /* Texto verde brillante pastel (legible en oscuro) */
-      height: 54px;
-      font-size: 17px;
-      border-radius: 6px;
-      border: 1px solid #16a34a; /* Borde verde sólido */
+      background: rgba(22, 163, 74, 0.05);
+      color: #4ade80;
+      height: 64px; /* 👓 ANTES 54px - Botón más alto, más fácil de presionar caminando */
+      font-size: 22px; /* 👓 ANTES 17px - Texto de acción más imponente */
+      border-radius: 8px;
+      border: 2px solid #16a34a; /* 👓 Borde más grueso */
       box-shadow: none;
     }
     .ok:hover {
-      background: rgba(22, 163, 74, 0.15); /* Feedback sutil al pasar el dedo/mouse */
+      background: rgba(22, 163, 74, 0.15);
     }
-    /* 🔥 Estado encendido cuando se selecciona ATENDIÓ */
     .ok.seleccionado {
-      background: #16a34a !important; /* Se enciende a verde pleno */
+      background: #16a34a !important;
       color: #ffffff !important;
       border-color: #16a34a !important;
       box-shadow: 0 4px 15px rgba(22, 163, 74, 0.4);
     }
 
     .no {
-      background: rgba(220, 38, 38, 0.05); /* Fondo casi invisible de base */
-      color: #f87171; /* Texto rojo brillante pastel */
-      height: 54px;
-      font-size: 17px;
-      border-radius: 6px;
-      border: 1px solid #dc2626; /* Borde rojo sólido */
+      background: rgba(220, 38, 38, 0.05);
+      color: #f87171;
+      height: 64px; /* 👓 ANTES 54px */
+      font-size: 22px; /* 👓 ANTES 17px */
+      border-radius: 8px;
+      border: 2px solid #dc2626; /* 👓 Borde más grueso */
       box-shadow: none;
     }
     .no:hover {
-      background: rgba(220, 38, 38, 0.15); /* Feedback sutil al pasar el dedo/mouse */
+      background: rgba(220, 38, 38, 0.15);
     }
-    /* 🔥 Estado encendido cuando se selecciona NO EN CASA */
     .no.seleccionado {
-      background: #dc2626 !important; /* Se enciende a rojo pleno */
+      background: #dc2626 !important;
       color: #ffffff !important;
       border-color: #dc2626 !important;
       box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
@@ -149,9 +147,9 @@
     }
 
     h2 {
-      font-size: 26px; /* 👓 Letra más imponente */
+      font-size: 30px; /* 👓 ANTES 26px */
       font-weight: 700;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
       color: #ffffff;
     }
 
@@ -162,7 +160,7 @@
 
     /* --- CSS: CONTENEDORES MÓVILES (VISTA CLIENTE) --- */
     .container {
-      max-width: 480px;
+      max-width: 520px; /* 👓 ANTES 480px - Un poquito más ancho para albergar fuentes grandes cómodamente */
       margin: auto;
       padding: 8px;
     }
@@ -171,115 +169,116 @@
       background: #111113;
       border: 1px solid #27272a;
       border-radius: 16px;
-      padding: 16px;
+      padding: 18px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     }
 
-    /* 🛠️ OPTIMIZACIÓN COMPACTA PARA EL CONTENEDOR DE INFORMACIÓN DEL EDIFICIO */
+    /* 🛡️ CONTENEDOR DE INFORMACIÓN GENERAL DEL EDIFICIO ACTIVO */
     #infoEdificio {
       background: #18181b;
-      padding: 12px 14px; /* Ajuste interno balanceado */
-      border-radius: 12px;
-      margin-top: 12px;
+      padding: 16px;
+      border-radius: 14px;
+      margin-top: 14px;
       display: none;
-      font-size: 15px;
+      font-size: 18px; /* 👓 ANTES 15px - Texto general de la tarjeta aumentado */
       border: 1px solid #3f3f46;
       flex-direction: column;
-      gap: 8px; /* Espaciado corto y uniforme entre bloques */
+      gap: 12px;
     }
 
     .edificio-header {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
+      align-items: center;
       border-bottom: 1px solid #27272a;
-      padding-bottom: 6px;
-      margin-bottom: 2px;
+      padding-bottom: 10px;
+      margin-bottom: 4px;
     }
 
     .edificio-title-wrapper {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 4px;
     }
 
     .edificio-title-wrapper h2 {
-      font-size: 20px;
+      font-size: 26px; /* 👓 ANTES 20px - Nombre del edificio en foco */
       margin: 0;
       line-height: 1.2;
     }
 
     .edificio-title-wrapper span {
-      font-size: 13px;
+      font-size: 16px; /* 👓 ANTES 13px - Fecha de creación */
       color: #a1a1aa;
     }
 
     .edificio-badge {
       background: #27272a;
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      border: 1px solid #3f3f46;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 15px; /* 👓 ANTES 12px - El botón que indica el día / fecha */
+      font-weight: 700;
+      border: 1px solid #4b5563;
       white-space: nowrap;
     }
 
     .edificio-body {
       display: grid;
-      grid-template-columns: 1fr 110px; /* Alínea texto e introduce mapa al costado */
-      gap: 12px;
+      grid-template-columns: 1fr 120px; /* Ajuste para el mapa con la nueva fuente */
+      gap: 14px;
       align-items: start;
     }
 
     .edificio-info-list {
       display: flex;
       flex-direction: column;
-      gap: 4px; /* Junta los datos técnicos sin desperdicio vertical */
+      gap: 8px; /* 👓 ANTES 4px - Más aire entre renglones para evitar que se junten las líneas */
     }
 
     .edificio-info-item {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       color: #e4e4e7;
+      font-size: 18px; /* Asegura el tamaño de los datos de pisos y territorio */
     }
 
     .edificio-notas {
       font-style: italic;
-      color: #a1a1aa;
-      margin-top: 2px;
-      font-size: 13px;
-      line-height: 1.3;
+      color: #e4e4e7; /* 👓 ANTES #a1a1aa - Mayor brillo para que las notas de los administradores se lean bien */
+      margin-top: 4px;
+      font-size: 16px; /* 👓 ANTES 13px */
+      line-height: 1.4;
     }
 
-    /* Adaptación del mini-mapa Leaflet al layout */
+    /* Adaptación del mini-mapa Leaflet */
     #infoEdificio .leaflet-container {
-      width: 110px !important;
-      height: 90px !important; /* Lo achicamos un poquito para darle espacio al cuadradito de abajo */
+      width: 120px !important; /* Ajustado levemente */
+      height: 100px !important;
       border-radius: 8px;
-      border: 1px solid #3f3f46;
+      border: 1px solid #4b5563;
     }
 
     .edificio-footer {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 2px;
-      padding-top: 6px;
+      margin-top: 4px;
+      padding-top: 10px;
       border-top: 1px solid #27272a;
-      font-size: 12px;
-      color: #71717a;
+      font-size: 15px; /* 👓 ANTES 12px */
+      color: #a1a1aa;
     }
 
-    /* Botón Informar Problema integrado y ajustado */
+    /* Botón Informar Problema */
     .btn-reportar-sutil {
-      padding: 6px 8px;
-      font-size: 11px;
+      padding: 10px 14px; /* 👓 ANTES 6px - Botón más robusto para presionar */
+      font-size: 14px; /* 👓 ANTES 11px */
       background: rgba(239, 68, 68, 0.1);
       border: 1px solid #ef4444;
-      color: #ef4444;
-      border-radius: 6px;
-      font-weight: 600;
+      color: #f87171;
+      border-radius: 8px;
+      font-weight: 700;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -291,21 +290,30 @@
       color: #ffffff;
     }
 
+    /* 👓 CAJA DEL NÚMERO DE DEPARTAMENTO GRANDE (Ej: "5A", "2C") */
+    /* Buscá el contenedor de tu HTML que tenga el número grande. Este cambio asegura legibilidad total */
+    .card-container div[style*="font-size: 48px"], 
+    .card-container div[style*="font-size: 36px"],
+    .card-container span[style*="font-size"] {
+      font-size: 64px !important; /* 👓 Obligamos a que el departamento en juego se vea gigante */
+      font-weight: 800 !important;
+    }
+
     #listaTerritorio button {
       text-align: left;
       background: #18181b;
       border: 1px solid #3f3f46;
-      padding: 14px;
-      font-size: 16px;
+      padding: 16px;
+      font-size: 19px; /* 👓 ANTES 16px */
     }
 
     .link {
-      color: #60a5fa; /* 👓 Azul más claro y brillante para el modo oscuro */
+      color: #60a5fa;
       cursor: pointer;
       text-decoration: none;
-      font-size: 16px; /* 👓 Aumentado */
+      font-size: 18px; /* 👓 ANTES 16px */
       text-align: center;
-      margin: 14px 0;
+      margin: 16px 0;
       font-weight: 600;
     }
     .link:hover { text-decoration: underline; }
@@ -315,14 +323,14 @@
       position: fixed;
       top: 12px;
       right: 15px;
-      width: 46px;
-      height: 46px;
+      width: 52px; /* 👓 ANTES 46px */
+      height: 52px; /* 👓 ANTES 46px */
       border-radius: 10px;
       background: #18181b;
       color: white;
-      font-size: 20px;
+      font-size: 24px;
       z-index: 999;
-      border: 1px solid #3f3f46;
+      border: 1px solid #52525b;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
 
@@ -333,10 +341,10 @@
       transform: translateX(-50%);
       background: #ef4444;
       color: white;
-      width: 60px;
-      height: 60px;
+      width: 68px; /* 👓 ANTES 60px */
+      height: 68px; /* 👓 ANTES 60px */
       border-radius: 50%;
-      font-size: 24px;
+      font-size: 28px;
       display: none;
       align-items: center;
       justify-content: center;
@@ -360,21 +368,21 @@
 
     .loginCard {
       width: 90%;
-      max-width: 360px;
+      max-width: 400px; /* 👓 ANTES 360px */
       margin: 0 auto;
       background: #111113;
-      border: 1px solid #3f3f46;
-      padding: 24px;
+      border: 1px solid #52525b;
+      padding: 28px;
       border-radius: 16px;
       box-shadow: 0 20px 40px rgba(0,0,0,0.6);
     }
     
     #loginMsg {
       text-align: center;
-      margin-top: 8px;
+      margin-top: 10px;
       color: #f87171;
-      font-size: 15px;
-      min-height: 18px;
+      font-size: 17px; /* 👓 ANTES 15px */
+      min-height: 20px;
     }
 
     /* --- CSS: VENTANAS EMERGENTES (MODALES PREMIUM) --- */
@@ -393,7 +401,7 @@
     
     .modal-content {
       width: 100%;
-      max-width: 440px;
+      max-width: 480px; /* 👓 ANTES 440px */
       background: #18181b !important;
       border: 1px solid #3f3f46;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
@@ -407,7 +415,7 @@
     /* --- CSS: REGLAS ESPECÍFICAS DE LEAFLET --- */
     .leaflet-container {
       text-align: left;
-      font-size: 14px; /* 👓 Aumentado */
+      font-size: 16px; /* 👓 ANTES 14px */
       font-family: inherit !important;
     }
     .texto-territorio-elegante {
@@ -415,8 +423,8 @@
       border: 1px solid rgba(59, 130, 246, 0.5) !important;
       color: #ffffff !important;
       font-weight: 700 !important;
-      font-size: 13px !important; /* 👓 Letras del mapa más claras */
-      padding: 4px 8px !important;
+      font-size: 15px !important; /* 👓 ANTES 13px */
+      padding: 6px 10px !important;
       border-radius: 4px !important;
       box-shadow: 0 4px 6px rgba(0,0,0,0.5) !important;
       white-space: nowrap !important;
@@ -430,7 +438,7 @@
       animation: skeleton 1.2s infinite;
     }
     @keyframes skeleton { 100% { transform: translateX(100%); } }
-    .skeletonLine { height: 18px; margin-bottom: 8px; }
+    .skeletonLine { height: 22px; margin-bottom: 10px; }
 
     /* --- CSS: PANEL DE ADMINISTRACIÓN - ENCABEZADOS Y NAV --- */
     .admin-nav-bar {
@@ -438,31 +446,31 @@
       justify-content: space-between;
       align-items: center;
       background: #111113;
-      padding: 12px 16px;
+      padding: 14px 18px;
       border-radius: 12px;
       margin-bottom: 16px;
       border: 1px solid #27272a;
     }
-    .nav-left { display: flex; align-items: center; gap: 12px; }
+    .nav-left { display: flex; align-items: center; gap: 14px; }
     .btn-atras-sutil {
       background: #27272a;
       color: #fff;
-      font-size: 16px;
-      width: 36px;
-      height: 36px;
+      font-size: 18px;
+      width: 42px;
+      height: 42px;
       border-radius: 6px;
       margin: 0; padding: 0;
     }
     .btn-atras-sutil:hover { background: #3f3f46; }
-    .nav-title { font-size: 18px; font-weight: 700; color: #ffffff; display: block; }
-    .nav-subtitle { font-size: 13px; color: #a1a1aa; display: block; }
+    .nav-title { font-size: 20px; font-weight: 700; color: #ffffff; display: block; }
+    .nav-subtitle { font-size: 15px; color: #a1a1aa; display: block; }
     
     .btn-salir-sutil {
       background: #451a03;
       color: #fcd34d;
-      padding: 8px 14px;
+      padding: 10px 16px;
       border-radius: 6px;
-      font-size: 13px;
+      font-size: 15px; /* 👓 ANTES 13px */
       font-weight: bold;
       width: auto; margin: 0;
     }
@@ -470,27 +478,27 @@
 
     /* --- CSS: PANEL DE ADMINISTRACIÓN - CUADRÍCULA DE ESTADÍSTICAS --- */
     .mini-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 15px;
-}
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+    }
     .mini-stat-card {
       background: #111113;
       border: 1px solid #27272a;
       border-radius: 10px;
-      padding: 12px;
+      padding: 14px;
       display: flex;
       align-items: center;
       gap: 12px;
     }
     .stat-icon {
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
+      font-size: 20px;
       flex-shrink: 0;
     }
     .b-blue { background: rgba(37, 99, 235, 0.15); }
@@ -498,8 +506,8 @@
     .b-orange { background: rgba(217, 119, 6, 0.15); }
     .b-red { background: rgba(220, 38, 38, 0.15); }
     
-    .stat-data h3 { margin: 0; font-size: 18px; font-weight: 700; color: #ffffff; }
-    .stat-data p { margin: 0; font-size: 13px; color: #a1a1aa; font-weight: 400; }
+    .stat-data h3 { margin: 0; font-size: 20px; font-weight: 700; color: #ffffff; }
+    .stat-data p { margin: 0; font-size: 14px; color: #a1a1aa; font-weight: 400; }
 
     /* --- CSS: PANEL DE ADMINISTRACIÓN - DISTRIBUCIÓN DE COLUMNAS --- */
     .workspace-grid {
@@ -510,7 +518,7 @@
 
     @media (min-width: 1024px) {
       .workspace-grid {
-        grid-template-columns: 280px 1fr 330px;
+        grid-template-columns: 300px 1fr 350px;
         align-items: start;
       }
     }
@@ -520,54 +528,54 @@
       background: #111113;
       border: 1px solid #27272a;
       border-radius: 12px;
-      padding: 14px;
+      padding: 16px;
       margin-bottom: 12px;
     }
-    .card-header-sm h3 { margin: 0 0 8px 0; font-size: 13px; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.5px; }
+    .card-header-sm h3 { margin: 0 0 10px 0; font-size: 14px; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    .filtros-compactos { display: flex; flex-direction: column; gap: 4px; }
+    .filtros-compactos { display: flex; flex-direction: column; gap: 6px; }
     .filtros-compactos input, .filtros-compactos select {
       background: #09090b;
-      padding: 10px 12px;
-      font-size: 15px;
+      padding: 12px 14px;
+      font-size: 17px; /* 👓 ANTES 15px */
       margin: 4px 0;
     }
     .filtro-doble-fila { display: flex; gap: 6px; }
 
     /* --- CSS: PANEL DE ADMINISTRACIÓN - LISTADO SCROLL DE EDIFICIOS --- */
     .lista-scroll-limpia {
-      max-height: 340px;
+      max-height: 380px;
       overflow-y: auto;
       padding-right: 4px;
     }
-    .lista-scroll-limpia::-webkit-scrollbar { width: 4px; }
+    .lista-scroll-limpia::-webkit-scrollbar { width: 5px; }
     .lista-scroll-limpia::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
 
-    .paginador-sutil { display: flex; gap: 6px; margin-top: 8px; }
+    .paginador-sutil { display: flex; gap: 6px; margin-top: 10px; }
     .btn-pag {
       flex: 1;
       background: #18181b;
       border: 1px solid #27272a;
-      padding: 10px;
-      font-size: 14px;
+      padding: 12px;
+      font-size: 16px; /* 👓 ANTES 14px */
       margin: 0;
     }
     .btn-pag:hover { background: #27272a; }
 
     /* --- CSS: PANEL DE ADMINISTRACIÓN - MAPA PRINCIPAL --- */
     .mapa-card-wrapper { padding: 0; overflow: hidden; border-radius: 12px; border: 1px solid #27272a; }
-    .mapa-principal-moderno { height: 490px; width: 100%; background: #09090b; }
+    .mapa-principal-moderno { height: 520px; width: 100%; background: #09090b; }
 
     .detalle-edificio-premium {
       background: #111113;
       border: 1px solid #27272a;
       border-radius: 12px;
-      padding: 14px;
+      padding: 16px;
     }
     
     /* --- CSS: MENÚ DE CONTROL PRINCIPAL (DASHBOARD) --- */
     #dashboardView {
-      max-width: 500px;
+      max-width: 540px; /* 👓 ANTES 500px */
       margin: 20px auto;
       padding: 0 8px;
     }
@@ -575,20 +583,20 @@
     .dashboardGrid {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      margin-top: 16px;
+      gap: 14px;
+      margin-top: 18px;
     }
 
     .dashboardCard {
       background: #111113;
       border: 1px solid #27272a;
       border-radius: 14px;
-      padding: 18px 20px;
+      padding: 20px 22px;
       cursor: pointer;
       transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 18px;
       text-align: left;
     }
 
@@ -604,9 +612,9 @@
     }
 
     .dashboardCard .icon {
-      font-size: 32px;
-      width: 54px;
-      height: 54px;
+      font-size: 36px; /* 👓 ANTES 32px */
+      width: 60px; /* 👓 ANTES 54px */
+      height: 60px; /* 👓 ANTES 54px */
       background: #18181b;
       border-radius: 10px;
       display: flex;
@@ -619,20 +627,20 @@
     .dashboardCard-content {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
       flex: 1;
     }
 
     .dashboardCard h3 {
       color: #ffffff;
       margin: 0;
-      font-size: 18px; /* 👓 Letra del menú principal más clara */
+      font-size: 21px; /* 👓 ANTES 18px - Menú principal mucho más visible */
       font-weight: 700;
     }
 
     .dashboardCard p {
       color: #a1a1aa;
-      font-size: 14px;
+      font-size: 16px; /* 👓 ANTES 14px */
       margin: 0;
     }
 
@@ -641,7 +649,7 @@
       background: #18181b;
       border: 1px solid #27272a;
       border-radius: 8px;
-      padding: 12px;
+      padding: 14px;
       margin-bottom: 8px;
       display: flex;
       justify-content: space-between;
@@ -656,26 +664,26 @@
     .edificio-info-txt {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 4px;
     }
     .edif-dir {
-      font-size: 15px;
+      font-size: 18px; /* 👓 ANTES 15px */
       font-weight: 600;
       color: #ffffff;
     }
     .edif-sub {
-      font-size: 13px;
+      font-size: 15px; /* 👓 ANTES 13px */
       color: #a1a1aa;
     }
     .btn-ver-flecha {
-      font-size: 16px;
+      font-size: 18px;
       color: #71717a;
     }
     .edificio-item-lista:hover .btn-ver-flecha {
       color: #3b82f6;
     }
 
-    /* --- CSS: AGRUPADORES DE MAPA (MARKER CLUSTER COLECTIVOS) --- */
+    /* --- CSS: AGRUPADORES DE MAPA (MARKER CLUSTER) --- */
     .custom-dark-cluster {
       background: transparent !important;
       border: none !important;
@@ -699,9 +707,9 @@
       display: flex;
       gap: 4px;
       background: #09090b;
-      padding: 3px;
+      padding: 4px;
       border-radius: 8px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       border: 1px solid #27272a;
     }
     .tab-btn {
@@ -709,8 +717,8 @@
       background: transparent;
       border: none;
       color: #a1a1aa;
-      padding: 8px 10px;
-      font-size: 13px;
+      padding: 10px 12px;
+      font-size: 15px; /* 👓 ANTES 13px */
       font-weight: 600;
       border-radius: 6px;
       margin: 0;
@@ -732,65 +740,65 @@
     .tab-content.active {
       display: block;
     }
+
     /* Estilos para el Panel Maestro SuperAdmin */
-.vista-pantalla-completa {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: #09090b;
-  z-index: 9999; /* Se superpone a todo, incluyendo el mapa */
-  overflow-y: auto; /* Permite scroll si hay muchos edificios */
-  display: none; /* Se activa dinámicamente por JS */
-  font-family: system-ui, -apple-system, sans-serif;
-}
+    .vista-pantalla-completa {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #09090b;
+      z-index: 9999;
+      overflow-y: auto;
+      display: none;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
 
-.vista-pantalla-completa table th {
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
+    .vista-pantalla-completa table th {
+      font-weight: 600;
+      font-size: 15px; /* 👓 ANTES 13px */
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
 
-.vista-pantalla-completa table tbody tr:hover {
-  background-color: #27272a !important; /* Efecto hover en las filas */
-  transition: background 0.2s ease;
-}
+    .vista-pantalla-completa table tbody tr:hover {
+      background-color: #27272a !important;
+      transition: background 0.2s ease;
+    }
 
-/* Botón peligroso para la acción de borrar */
-.vista-pantalla-completa .danger:hover {
-  background-color: #dc2626 !important;
-  box-shadow: 0 0 8px rgba(220, 38, 38, 0.4);
-}
+    .vista-pantalla-completa .danger:hover {
+      background-color: #dc2626 !important;
+      box-shadow: 0 0 8px rgba(220, 38, 38, 0.4);
+    }
+
     /* Números fijos de Territorio en el mapa */
-.texto-territorio-elegante {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 14px;
-    font-weight: 800;
-    transition: all 0.2s ease-in-out;
-    pointer-events: none;
-}
+    .texto-territorio-elegante {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: rgba(255, 255, 255, 0.4);
+        font-size: 16px; /* 👓 ANTES 14px */
+        font-weight: 800;
+        transition: all 0.2s ease-in-out;
+        pointer-events: none;
+    }
 
-/* Modificadores dinámicos controlados por JS según el Zoom */
-.texto-territorio-elegante.vista-cerca {
-    color: #ffffff !important;
-    background: #1f2937 !important;
-    border: 1px solid #4b5563 !important;
-    padding: 2px 6px !important;
-    border-radius: 6px !important;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
-    font-size: 12px;
-}
+    .texto-territorio-elegante.vista-cerca {
+        color: #ffffff !important;
+        background: #1f2937 !important;
+        border: 1px solid #4b5563 !important;
+        padding: 4px 8px !important;
+        border-radius: 6px !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+        font-size: 14px; /* 👓 ANTES 12px */
+    }
 
-.texto-territorio-elegante.zoom-alejado {
-    opacity: 0 !important;
-    visibility: hidden;
-}
-  </style>
+    .texto-territorio-elegante.zoom-alejado {
+        opacity: 0 !important;
+        visibility: hidden;
+    }
+ </style>
 </head>
 <body>
 
