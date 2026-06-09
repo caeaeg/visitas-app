@@ -845,8 +845,7 @@
 </div>
 
 <div id="territorioView" class="view">
-  
- <div style="margin-top: 15px; width: 100%;">
+  <div style="margin-top: 15px; width: 100%;">
     <button class="buscar" onclick="abrirVista('mapaView')" style="margin: 0; width: 100%; padding: 14px 24px; font-size: 14px; font-weight: 700; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 10px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25); cursor: pointer; border: none;">
       🗺️ Abrir Mapa Maestro de Edificios
     </button>
@@ -862,9 +861,7 @@
   </div>
 
   <div class="workspace-grid" style="margin-top: 20px;">
-    
     <div class="workspace-col col-lista">
-      
       <div class="component-card">
         <div class="tabs-filtros">
           <button id="btnTabDireccion" class="tab-btn active" onclick="cambiarTabFiltro('direccion')">📍 Dirección</button>
@@ -920,7 +917,6 @@
           <button id="btnFiltroSiguiente" class="btn-pag" onclick="cambiarPaginaAdmin(1)">Sig →</button>
         </div>
       </div>
-
     </div>
     
     <div class="workspace-col col-detalle">
@@ -929,13 +925,11 @@
         <button class="secondary" onclick="document.getElementById('panelDetalleEdificio').style.display='none'" style="width:100%; margin-top:15px; cursor: pointer;">Cerrar Vista</button>
       </div>
     </div>
-
   </div>
 </div>
 
 <div id="mapaView" class="view" style="display: none; padding: 10px; box-sizing: border-box; height: 100dvh; max-height: 100vh; overflow: hidden; position: relative;">
   <div class="component-card" style="padding: 12px; background: #1c1c1e; border: 1px solid #27272a; border-radius: 14px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px;">
-    
     <div style="display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
       <div>
         <h2 style="color: #ffffff; margin: 0; font-size: 18px; line-height: 1.2;">🗺️ Mapa Maestro de Coordenadas</h2>
@@ -945,7 +939,6 @@
         ⬅️ Volver
       </button>
     </div>
-
     <div id="mapaMaestroFullscreen" style="flex: 1; width: 100%; border-radius: 10px; border: 1px solid #27272a; background: #18181b;"></div>
   </div>
 </div>
@@ -972,54 +965,48 @@
 </div>
 
 <div id="appContainer" class="view">
-  <div class="card-container" style="max-width: 480px; margin: 20px auto; padding: 15px;">
-    <button id="reportBtn" onclick="abrirReporte()">🚨</button>
+  <div class="card-container" style="max-width: 480px; margin: 0 auto; padding: 15px; padding-bottom: 40px;">
     
     <div style="display: flex; gap: 10px; align-items: center; margin-top: 15px; margin-bottom: 14px;">
-  <input id="buildingId" placeholder="Código o dirección" onkeypress="if(event.key==='Enter') buscar()" autocomplete="off" style="margin: 0; flex: 1; padding: 14px 16px; font-size: 20px; height: 58px;">
-  <button class="buscar" onclick="buscar()" style="width: 58px; height: 58px; margin: 0; padding: 0; border-radius: 10px; flex-shrink: 0; font-size: 22px;">🔍</button>
-</div>
-
-<p id="mensajeInicial" style="text-align:center; font-size: 17px; color: #a1a1aa; margin-top: 4px; margin-bottom: 14px; font-weight: 600;">Ingresá una dirección para comenzar</p>
-
-<div id="contenedorDepartamento" style="margin-top: 10px; margin-bottom: 15px; background: #121214; border: 1px solid #27272a; padding: 14px 12px; border-radius: 16px;">
-  <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; width: 100%;">
-    
-    <div style="width: 110px; text-align: left; flex-shrink: 0;">
-      <p style="margin: 0; font-size: 12px; color: #a1a1aa; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.2;">Departamento</p>
-      <p style="margin: 2px 0 0 0; font-size: 13px; color: #ffffff; font-weight: 800; line-height: 1.2;">A VISITAR:</p>
-    </div>
-    
-    <div style="flex: 1; text-align: center; border-left: 1px solid #27272a; border-right: 1px solid #27272a; padding: 0 5px;">
-      <h2 id="resultado" style="font-size: 52px; font-weight: 900; color: #ffffff; margin: 0; line-height: 1; min-height: 52px; display: flex; align-items: center; justify-content: center;">--</h2>
-    </div>
-    
-    <div style="width: 95px; flex-shrink: 0; display: flex; justify-content: center;">
-      <button id="btnSiguiente" class="secondary" onclick="siguiente()" style="visibility: hidden; margin: 0; width: 100%; padding: 8px 6px; font-size: 12px; font-weight: 700; border-radius: 8px; white-space: nowrap; text-align: center;">Siguiente ➡</button>
+      <input id="buildingId" placeholder="Código o dirección" onkeypress="if(event.key==='Enter') buscar()" autocomplete="off" style="margin: 0; flex: 1; padding: 14px 16px; font-size: 20px; height: 58px;">
+      <button class="buscar" onclick="buscar()" style="width: 58px; height: 58px; margin: 0; padding: 0; border-radius: 10px; flex-shrink: 0; font-size: 22px;">🔍</button>
     </div>
 
+    <p id="mensajeInicial" style="text-align:center; font-size: 17px; color: #a1a1aa; margin-top: 4px; margin-bottom: 14px; font-weight: 600;">Ingresá una dirección para comenzar</p>
+
+    <div id="contenedorDepartamento" style="margin-top: 10px; margin-bottom: 15px; background: #121214; border: 1px solid #27272a; padding: 14px 12px; border-radius: 16px;">
+      <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; width: 100%;">
+        <div style="width: 110px; text-align: left; flex-shrink: 0;">
+          <p style="margin: 0; font-size: 12px; color: #a1a1aa; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.2;">Departamento</p>
+          <p style="margin: 2px 0 0 0; font-size: 13px; color: #ffffff; font-weight: 800; line-height: 1.2;">A VISITAR:</p>
+        </div>
+        <div style="flex: 1; text-align: center; border-left: 1px solid #27272a; border-right: 1px solid #27272a; padding: 0 5px;">
+          <h2 id="resultado" style="font-size: 52px; font-weight: 900; color: #ffffff; margin: 0; line-height: 1; min-height: 52px; display: flex; align-items: center; justify-content: center;">--</h2>
+        </div>
+        <div style="width: 95px; flex-shrink: 0; display: flex; justify-content: center;">
+          <button id="btnSiguiente" class="secondary" onclick="siguiente()" style="visibility: hidden; margin: 0; width: 100%; padding: 8px 6px; font-size: 12px; font-weight: 700; border-radius: 8px; white-space: nowrap; text-align: center;">Siguiente ➡</button>
+        </div>
+      </div>
+    </div>
+
+    <textarea id="nota" placeholder="Nota de la visita..." style="display:none; height: 100px; font-size: 19px; margin-bottom: 12px; padding: 12px;"></textarea>
+
+    <div id="botoneraVotacion" style="display: none; gap: 10px; margin-top: 8px; margin-bottom: 15px; width: 100%;">
+      <button id="btnOk" class="ok" onclick="marcar('ATENDIO')" style="display:none; flex: 1; margin: 0;">✔ ATENDIÓ</button>
+      <button id="btnNo" class="no" onclick="marcar('NO_EN_CASA')" style="display:none; flex: 1; margin: 0;">✕ NO EN CASA</button>
+    </div>
+
+    <div id="infoEdificio"></div>
+    <button id="btnNuevoEdificio" class="secondary" style="display:none; margin-top: 14px; padding: 14px 18px; font-size: 20px;">➕ Agregar edificio</button>
+
+    <div style="width: 100%; text-align: center; margin-top: 40px; margin-bottom: 10px;">
+      <button id="btnSalirPredi" onclick="logout()" style="display: none; background: #1c1c1e; border: 1px solid #3f3f46; color: #f87171; padding: 12px 24px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 700; width: 100%; max-width: 220px; transition: all 0.2s;">
+        ✕ Cerrar Sesión
+      </button>
+    </div>
   </div>
 </div>
 
-<textarea id="nota" placeholder="Nota de la visita..." style="display:none; height: 100px; font-size: 19px; margin-bottom: 12px; padding: 12px;"></textarea>
-
-<div id="botoneraVotacion" style="display: none; gap: 10px; margin-top: 8px; margin-bottom: 15px; width: 100%;">
-  <button id="btnOk" class="ok" onclick="marcar('ATENDIO')" style="display:none; flex: 1; margin: 0;">✔ ATENDIÓ</button>
-  <button id="btnNo" class="no" onclick="marcar('NO_EN_CASA')" style="display:none; flex: 1; margin: 0;">✕ NO EN CASA</button>
-</div>
-
-<div id="infoEdificio"></div>
-<button id="btnNuevoEdificio" class="secondary" style="display:none; margin-top: 14px; padding: 14px 18px; font-size: 20px;">➕ Agregar edificio</button>
-
-<div style="width: 100%; text-align: center; margin-top: 30px; margin-bottom: 20px;">
-  <button id="btnSalirPredi" onclick="logout()" style="display: none; background: #1c1c1e; border: 1px solid #3f3f46; color: #f87171; padding: 12px 24px; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: 700; width: 100%; max-width: 220px; transition: all 0.2s;">
-    ✕ Cerrar Sesión
-  </button>
-</div>
-
-  </div>
-</div>
-  
 <div id="modalReporte" class="modal">
   <div class="modal-content" style="background:#1c1c1e; color:white; padding:20px; border-radius:16px;">
     <h3>⚠️ Reportar Inconveniente</h3>
@@ -1062,6 +1049,7 @@
     </div>
   </div>
 </div>
+
 <div id="toast-container" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px; pointer-events: none;"></div>
 <div id="editarView" class="view"></div>
 
