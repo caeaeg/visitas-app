@@ -400,9 +400,7 @@ function logout() {
   abrirVista("loginScreen");
 }
 
-/**
- * 9. RECEPTOR DE CARGA DEL DOCUMENTO Y ESCANEO QR
- */
+/** * 9. RECEPTOR DE CARGA DEL DOCUMENTO Y ESCANEO QR */
 window.addEventListener("load", async () => {
   const savedUser = localStorage.getItem("username") || localStorage.getItem("user");
   const savedRole = localStorage.getItem("role");
@@ -411,19 +409,36 @@ window.addEventListener("load", async () => {
     currentUser = savedUser;
     currentRole = savedRole;
     console.log(`🔄 Restaurando sesión activa para: ${currentUser} (${currentRole})`);
+  
+    // 🔥 ESTRATEGIA DEFINITIVA: Marcamos el rol en el documento antes de que renderice la UI
+    document.documentElement.setAttribute("data-user-role", currentRole);
     await iniciarAppConPermisos();
   } else {
+    // Si no hay sesión, nos aseguramos de limpiar el atributo de rol
+    document.documentElement.removeAttribute("data-user-role");
     abrirVista("loginScreen");
   }
-  
+ 
   const params = new URLSearchParams(window.location.search);
   const buildingIdParam = params.get("building");
+    // Capturamos el botón de salir inferior del predi
+  const btnSalirPredi = document.getElementById("btnSalirPredi");
   if (buildingIdParam && typeof cargarDepto === "function") {
     currentBuildingId = buildingIdParam;
     if (document.getElementById("mensajeInicial")) {
       document.getElementById("mensajeInicial").style.display = "none";
     }
     await cargarDepto();
+        // Si el rol es predi y ya hay un edificio cargado, mostramos el botón abajo sin problemas
+    if (currentRole === "predi" && btnSalirPredi) {
+      btnSalirPredi.style.display = "block";
+    }
+  } else {
+    // 👓 MEJORA DE FLUJO: Si entra limpio ("Ingresá una dirección..."), mantenemos el botón oculto
+    // para que la pantalla quede 100% minimalista hasta que busque algo.
+    if (currentRole === "predi" && btnSalirPredi) {
+      btnSalirPredi.style.display = "none";
+    }
   }
 });
 
