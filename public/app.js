@@ -404,18 +404,27 @@ function logout() {
 window.addEventListener("load", async () => {
   const savedUser = localStorage.getItem("username") || localStorage.getItem("user");
   const savedRole = localStorage.getItem("role");
+  
+  const btnSalirPredi = document.getElementById("btnSalirPredi");
+
   if (savedUser && savedRole) {
     currentUser = savedUser;
     currentRole = savedRole;
     console.log(`🔄 Restaurando sesión activa para: ${currentUser} (${currentRole})`);
+    
     document.documentElement.setAttribute("data-user-role", currentRole);
     await iniciarAppConPermisos();
   } else {
+    // Si no hay sesión, reiniciamos las variables de rol de manera segura
+    currentRole = null; 
     document.documentElement.removeAttribute("data-user-role");
+    if (btnSalirPredi) btnSalirPredi.style.display = "none"; // Ocultamos por seguridad en login
     abrirVista("loginScreen");
   }
+  
   const params = new URLSearchParams(window.location.search);
   const buildingIdParam = params.get("building");
+  
   if (buildingIdParam && typeof cargarDepto === "function") {
     currentBuildingId = buildingIdParam;
     if (document.getElementById("mensajeInicial")) {
@@ -423,8 +432,8 @@ window.addEventListener("load", async () => {
     }
     await cargarDepto();
   }
-  // 🔥 SOLUCIÓN DEFINTIVA: Si es predi, el botón de salir DEBE existir siempre visible al fondo
-  const btnSalirPredi = document.getElementById("btnSalirPredi");
+  
+  // 🔥 SOLUCIÓN DEFINITIVA: Si es predi, el botón de salir DEBE existir siempre visible al fondo
   if (currentRole === "predi" && btnSalirPredi) {
     btnSalirPredi.style.display = "block";
   }
