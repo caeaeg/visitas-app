@@ -215,11 +215,9 @@ async function login() {
   }
 }
 
-/**
- * 5. ORQUESTADOR DE ENTORNO SEGÚN PERMISOS Y ROLES DE TRABAJO
+/** * 5. ORQUESTADOR DE ENTORNO SEGÚN PERMISOS Y ROLES DE TRABAJO
  * Modula la UI adaptándola de forma exacta al Publicador, Conductor o Admin.
- * MODIFICADO: Ahora oculta el navbar global para el rol 'predi' y muestra su botón de salir inferior.
- */
+ * MODIFICADO: Ahora oculta el navbar global para el rol 'predi' y muestra su botón de salir inferior. */
 async function iniciarAppConPermisos() {
   const elLogin = document.getElementById("loginScreen");
   const navbar = document.getElementById("navbarGlobal");
@@ -237,17 +235,19 @@ async function iniciarAppConPermisos() {
   if (typeof aplicarPermisos === "function") aplicarPermisos();
 
   if (currentRole === "predi") {
-    // 🚪 USUARIO PREDI (PUBLICADOR): Va directo puerta a puerta, visor móvil directo en tiempo real.
+    // 🚪 USUARIO PREDI (PUBLICADOR)
     if (badge) badge.innerText = "Publicador (Predi)";
     if (btnSuperAdmin) btnSuperAdmin.style.display = "none";
     
-    // 👓 MEJORA VISUAL: Ocultamos la barra superior inútil y activamos su botón de cerrar sesión abajo
-    if (navbar) navbar.style.setProperty('display', 'none', 'important');
+    // 🔥 CORRECCIÓN CRUCIAL: Forzamos la desaparición total de la barra con !important desde JS
+    if (navbar) {
+      navbar.style.setProperty("display", "none", "important");
+    }
+    
+    // El botón de salir abajo solo se muestra si ya se cargó la interfaz real
     if (btnSalirPredi) btnSalirPredi.style.display = "block";
     
     console.log("⚡ Entorno PUBLICADOR (Puerta a puerta) configurado. Cargando Base Local Offline...");
-    
-    // Cambiado: Ejecuta la descarga masiva para tener los edificios disponibles sin internet
     await descargarBaseAdministrativa();
     
     if (typeof limpiarVista === "function") limpiarVista();
