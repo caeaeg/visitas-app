@@ -532,7 +532,10 @@ async function buscar() {
   }
   
   const resLabel = document.getElementById("resultado");
-  if (resLabel) resLabel.innerText = "Buscando edificio...";
+  // 🔥 MEJORA DE TIPOGRAFÍA: Evita que el texto intermedio "Buscando..." rompa el diseño por heredar el tamaño h2
+  if (resLabel) {
+    resLabel.innerHTML = `<span style="font-size: 16px; font-weight: 700; color: #a1a1aa; letter-spacing: 0.3px;">Buscando edificio...</span>`;
+  }
 
   // 🛡️ INTERCEPTOR MODO OFFLINE PREVENTIVO
   if (!navigator.onLine) {
@@ -547,7 +550,6 @@ async function buscar() {
 
     if (edificioEncontrado) {
       if (edificioEncontrado.isBlocked) {
-        // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
         mostrarAviso("ACCESO DENEGADO: Este edificio está bloqueado por el Administrador.", "error");
         if (resLabel) resLabel.innerText = ""; 
         return;
@@ -582,7 +584,6 @@ async function buscar() {
     }
     
     if (building.error === "EDIFICIO_BLOQUEADO" || building.isBlocked) {
-      // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
       mostrarAviso("ACCESO DENEGADO: Este edificio está bloqueado por el Administrador.", "error");
       if (resLabel) resLabel.innerText = ""; 
       if (document.getElementById("departamentoVisitar")) {
@@ -625,7 +626,6 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
     const edificioLocal = window.baseDatosEdificiosMemoria?.find(b => b._id === buildingId) || window.edificioActivo;
     
     if (!edificioLocal || !edificioLocal.departments || edificioLocal.departments.length === 0) {
-      // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
       mostrarAviso("Este edificio no contiene departamentos configurados en la memoria local.", "warning");
       return;
     }
@@ -644,18 +644,18 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
       if (d.lastVisit) {
         const mesesExclusion = 4;
         const limiteFecha = new Date();
-        limiteFecha.setMonth(limiteFecha.getMonth() - mesesExclusion); // 🔧 Corregido tipeo original 'limpiteFecha'
+        limiteFecha.setMonth(limiteFecha.getMonth() - mesesExclusion);
         if (new Date(d.lastVisit) > limiteFecha) return false;
       }
       return true;
     });
 
     if (deptosDisponibles.length === 0) {
-      // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
       mostrarAviso("Todos los departamentos ya fueron visitados en esta tanda offline.", "warning");
       window.departamentoEnFoco = null;
       const resultadoH2 = document.getElementById("resultado");
-      if (resultadoH2) resultadoH2.innerText = "Fin";
+      // 🔥 MEJORA DE DISEÑO: Estilo controlado para la palabra "Fin"
+      if (resultadoH2) resultadoH2.innerHTML = `<span style="font-size: 20px; font-weight: 800; color: #3b82f6;">Fin</span>`;
       return;
     }
 
@@ -679,16 +679,15 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
     const data = res.json ? await res.json() : res;
     
     if (data.message === "NO_AVAILABLE" || data.message === "COMPLETED") {
-      // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
       mostrarAviso("Todos los departamentos fueron visitados en los últimos 4 meses.", "warning");
       window.departamentoEnFoco = null;
       const resultadoH2 = document.getElementById("resultado");
-      if (resultadoH2) resultadoH2.innerText = "Fin";
+      // 🔥 MEJORA DE DISEÑO: Estilo controlado para la palabra "Fin" online
+      if (resultadoH2) resultadoH2.innerHTML = `<span style="font-size: 20px; font-weight: 800; color: #3b82f6;">Fin</span>`;
       return;
     }
     
     if (data.message === "EDIFICIO_BLOQUEADO") {
-      // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
       mostrarAviso("Este edificio está bloqueado de forma administrativa.", "error");
       tratarEdificioNoEncontrado();
       return;
@@ -704,8 +703,7 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
     }
   } catch (err) {
     console.error("❌ Error en sorteo de red, intentando conmutar a algoritmo local de emergencia:", err);
-    // Fallback reactivo inmediato si el servidor tira un error inesperado (ej: 502 Bad Gateway)
-    navigator.onLine = false; // Forzamos bandera interna momentánea
+    navigator.onLine = false; 
     await sortearSiguienteDepartamento(mostrarAlerta);
     navigator.onLine = true;
   }
@@ -717,6 +715,7 @@ async function mostrarEstructuraFlujoVisita() {
   const resultadoH2 = document.getElementById("resultado");
   if (resultadoH2) {
     resultadoH2.innerText = d && d.number ? d.number : "--";
+    resultadoH2.style.fontSize = "28px"; // Asegura tamaño consistente del número en celular
   }
   
   const btnSiguiente = document.getElementById("btnSiguiente");
@@ -730,7 +729,12 @@ async function mostrarEstructuraFlujoVisita() {
   document.getElementById("btnNo")?.classList.remove("seleccionado");
   
   const botonera = document.getElementById("botoneraVotacion");
-  if (botonera) botonera.style.display = "flex";
+  // 🔥 CONTROL DE INTERFAZ: Asegura alineación interna robusta en móviles al activarse
+  if (botonera) {
+    botonera.style.display = "flex";
+    botonera.style.alignItems = "center";
+    botonera.style.justifyContent = "space-between";
+  }
   
   if (document.getElementById("mensajeInicial")) document.getElementById("mensajeInicial").style.display = "none";
   if (document.getElementById("nota")) document.getElementById("nota").style.display = "block";
@@ -1085,13 +1089,17 @@ window.addEventListener('online', async () => {
 function tratarEdificioNoEncontrado() {
   const resLabel = document.getElementById("resultado");
   const btnNuevo = document.getElementById("btnNuevoEdificio");
-  const deptoLabel = document.getElementById("departamentoVisitar");
+  // CORREGIDO: Cambiado a "contenedorDepartamento" para que coincida con tu HTML real
+  const deptoLabel = document.getElementById("contenedorDepartamento"); 
   const inputCampo = document.getElementById("buildingId");
   
   if (resLabel) {
-    resLabel.innerHTML = `<div style="color:#ef4444; text-align:center; padding:10px; font-weight:bold;">Edificio no encontrado</div>`;
+    // Reducimos la tipografía a 16px y controlamos el diseño para que no rompa el contenedor
+    resLabel.innerHTML = `<div style="color:#ef4444; text-align:center; padding:4px; font-size:16px; font-weight:800; white-space:nowrap;">Edificio no encontrado</div>`;
   }
-  if (deptoLabel) deptoLabel.innerText = "--";
+  
+  // Si querés que el contenedor de arriba oculte o cambie algo más, lo controlás acá
+  // (Como ya pusimos el texto adentro de resLabel, este paso limpia lo demás)
   
   if (btnNuevo) {
     btnNuevo.style.setProperty("display", "block", "important");
@@ -1102,6 +1110,8 @@ function tratarEdificioNoEncontrado() {
     };
   }
   
+  // Ocultamos el resto de los componentes para limpiar la pantalla
+  if (document.getElementById("botoneraVotacion")) document.getElementById("botoneraVotacion").style.display = "none";
   if (document.getElementById("nota")) document.getElementById("nota").style.display = "none";
   if (document.getElementById("btnOk")) document.getElementById("btnOk").style.display = "none";
   if (document.getElementById("btnNo")) document.getElementById("btnNo").style.display = "none";
