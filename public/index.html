@@ -20,500 +20,607 @@
     }
   </script>
  <style>
-   /* Si el rol detectado es 'predi', la barra superior se oculta por completo por encima de cualquier script */
-[data-user-role="predi"] #navbarGlobal {
-    display: none !important;
-}
-    /* --- CSS: CONFIGURACIÓN BASE Y REINICIO (Optimizado para Alta Accesibilidad Visual) --- */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      font-size: 20px; /* 👓 ANTES 17px - Aumentado para que todo el texto base sea muy legible */
-      line-height: 1.6;
-      letter-spacing: 0.2px;
-      padding: 16px;
-      background: #09090b;
-      color: #f4f4f7;
-    }
-    /* --- CSS: COMPONENTES GLOBALES DE FORMULARIOS --- */
-    input, button, select, textarea {
-      box-sizing: border-box;
-      font-family: inherit;
-      width: 100%;
-      padding: 16px 18px; /* 👓 Un poco más amplio para facilitar el toque */
-      margin: 10px 0;
-      font-size: 20px; /* 👓 ANTES 17px - Letra grande en inputs y selectores para evitar forzar la vista */
-      border-radius: 10px;
-      background: #18181b;
-      color: #ffffff;
-      border: 1px solid #52525b; /* 👓 Mayor contraste en el contorno */
-      transition: background 0.2s ease, border 0.2s ease, transform 0.1s ease;
-    }
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: #3b82f6;
-      background: #27272a;
-    }
-    input::placeholder, textarea::placeholder {
-      color: #a1a1aa;
-    }
-    /* --- CSS: BOTONES Y ACCIONES --- */
-    button {
-      cursor: pointer;
-      font-weight: 700;
-      border: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      font-size: 20px; /* 👓 ANTES 17px */
-    }
-    button:active {
-      transform: scale(0.98);
-    }
-    .buscar { background: #2563eb; color: #ffffff; }
-    .buscar:hover { background: #1d4ed8; }
-    .secondary {
-      background: #27272a;
-      color: #ffffff;
-      border: 1px solid #71717a; /* 👓 Más definición */
-    }
-    .secondary:hover { background: #3f3f46; }
-    /* 🎨 Botones Principales de Visita (Atendió / No en casa) - Área de contacto aumentada */
-    .ok {
-      background: rgba(22, 163, 74, 0.05);
-      color: #4ade80;
-      height: 64px; /* 👓 ANTES 54px - Botón más alto, más fácil de presionar caminando */
-      font-size: 22px; /* 👓 ANTES 17px - Texto de acción más imponente */
-      border-radius: 8px;
-      border: 2px solid #16a34a; /* 👓 Borde más grueso */
-      box-shadow: none;
-    }
-    .ok:hover {
-      background: rgba(22, 163, 74, 0.15);
-    }
-    .ok.seleccionado {
-      background: #16a34a !important;
-      color: #ffffff !important;
-      border-color: #16a34a !important;
-      box-shadow: 0 4px 15px rgba(22, 163, 74, 0.4);
+    /* ==========================================================================
+       1. AJUSTES ESPECÍFICOS POR ROL Y REINICIOS GLOBALES (UI PREMIUM)
+       ========================================================================== */
+    [data-user-role="predi"] #navbarGlobal {
+        display: none !important;
     }
 
-    .no {
-      background: rgba(220, 38, 38, 0.05);
-      color: #f87171;
-      height: 64px; /* 👓 ANTES 54px */
-      font-size: 22px; /* 👓 ANTES 17px */
-      border-radius: 8px;
-      border: 2px solid #dc2626; /* 👓 Borde más grueso */
-      box-shadow: none;
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
     }
-    .no:hover {
-      background: rgba(220, 38, 38, 0.15);
+
+    body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        font-size: 20px;
+        line-height: 1.5;
+        letter-spacing: 0.2px;
+        padding: 8px !important; /* 📱 Compactado de 16px a 8px para optimizar alto en celular */
+        background: #09090b;
+        color: #f4f4f7;
+        overflow-x: hidden;
     }
-    .no.seleccionado {
-      background: #dc2626 !important;
-      color: #ffffff !important;
-      border-color: #dc2626 !important;
-      box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
+
+    /* ==========================================================================
+       2. COMPONENTES GLOBALES DE FORMULARIOS E INPUTS
+       ========================================================================== */
+    input, button, select, textarea {
+        box-sizing: border-box;
+        font-family: inherit;
+        width: 100%;
+        padding: 14px 16px; /* 👓 Sutil reducción táctil para proteger espacio vertical */
+        margin: 8px 0;
+        font-size: 19px; 
+        border-radius: 10px;
+        background: #18181b;
+        color: #ffffff;
+        border: 1px solid #52525b;
+        transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
     }
-    /* --- CSS: SECCIONES GENERALES Y VISTAS --- */
+
+    input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        background: #27272a;
+    }
+
+    input::placeholder, textarea::placeholder {
+        color: #a1a1aa;
+    }
+
+    /* REDUCCIÓN ESTRATÉGICA: Caja de notas de la visita compacta a la mitad */
+    .card-container textarea {
+        height: 54px !important; /* Ajuste perfecto para 2 líneas compactas */
+        padding: 8px 12px !important;
+        font-size: 17px !important;
+        margin: 6px 0 !important;
+        resize: none; /* Evita roturas accidentales de pantalla */
+    }
+
+    /* ==========================================================================
+       3. SISTEMA DE BOTONES Y NUEVA FILA DE MARCADO RÁPIDO (SÍ / NO)
+       ========================================================================== */
+    button {
+        cursor: pointer;
+        font-weight: 700;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-size: 19px;
+    }
+
+    button:active {
+        transform: scale(0.98);
+    }
+
+    .buscar { 
+        background: #2563eb; 
+        color: #ffffff; 
+    }
+    .buscar:hover { 
+        background: #1d4ed8; 
+    }
+
+    .secondary {
+        background: #27272a;
+        color: #ffffff;
+        border: 1px solid #71717a;
+    }
+
+    /* 🔥 NUEVO CONTENEDOR EFICIENTE: Marcado Rápido en una sola línea horizontal */
+    .fila-marcado-rapido {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 8px 0;
+        width: 100%;
+    }
+
+    .etiqueta-marcado {
+        font-size: 16px;
+        font-weight: 800;
+        color: #a1a1aa;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .bloque-botones-sino {
+        display: flex;
+        gap: 10px;
+        width: 65%; /* Toma el espacio óptimo a la derecha */
+    }
+
+    /* Botones de acción minimalistas y de alto contraste */
+    .btn-sino {
+        flex: 1;
+        height: 52px !important; /* Altura ideal ergonómica para usar en la calle */
+        font-size: 18px !important;
+        font-weight: 900 !important;
+        border-radius: 8px !important;
+        margin: 0 !important; 
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Configuración SÍ */
+    .btn-sino.si-ok {
+        background: rgba(22, 163, 74, 0.05);
+        color: #4ade80;
+        border: 2px solid #16a34a;
+    }
+    .btn-sino.si-ok:hover { background: rgba(22, 163, 74, 0.12); }
+    .btn-sino.si-ok.seleccionado {
+        background: #16a34a !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+    }
+
+    /* Configuración NO */
+    .btn-sino.no-cancel {
+        background: rgba(220, 38, 38, 0.05);
+        color: #f87171;
+        border: 2px solid #dc2626;
+    }
+    .btn-sino.no-cancel:hover { background: rgba(220, 38, 38, 0.12); }
+    .btn-sino.no-cancel.seleccionado {
+        background: #dc2626 !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    }
+
+    /* ==========================================================================
+       4. CONTENEDORES MÓVILES Y VISTAS (DISEÑO ABOVE THE FOLD)
+       ========================================================================== */
     .appShell {
-      max-width: 1200px;
-      margin: auto;
+        max-width: 1200px;
+        margin: auto;
     }
+    
     .view {
-      display: none;
-      animation: fade 0.2s ease-out;
-      margin-top: 12px;
+        display: none;
+        animation: fade 0.2s ease-out;
+        margin-top: 8px;
     }
+    
     .view.active {
-      display: block;
+        display: block;
     }
-    h2 {
-      font-size: 30px; /* 👓 ANTES 26px */
-      font-weight: 700;
-      margin-bottom: 18px;
-      color: #ffffff;
-    }
+
     @keyframes fade {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: none; }
+        from { opacity: 0; transform: translateY(4px); }
+        to { opacity: 1; transform: none; }
     }
-    /* --- CSS: CONTENEDORES MÓVILES (VISTA CLIENTE) --- */
+
     .container {
-      max-width: 520px; /* 👓 ANTES 480px - Un poquito más ancho para albergar fuentes grandes cómodamente */
-      margin: auto;
-      padding: 8px;
+        max-width: 520px;
+        margin: auto;
+        padding: 4px; /* Eliminamos excedentes laterales */
     }
+
     .card-container {
-      background: #111113;
-      border: 1px solid #27272a;
-      border-radius: 16px;
-      padding: 18px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        background: #111113;
+        border: 1px solid #27272a;
+        border-radius: 16px;
+        padding: 14px !important; /* Optimizado de 18px para forzar visualización en una pantalla */
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     }
-    /* 🛡️ CONTENEDOR DE INFORMACIÓN GENERAL DEL EDIFICIO ACTIVO */
+
+    /* ==========================================================================
+       5. TARJETA REESTRUCTURADA DEL EDIFICIO (HORIZONTAL Y POR PRIORIDADES)
+       ========================================================================== */
     #infoEdificio {
-      background: #18181b;
-      padding: 18px; /* Más aire interno */
-      border-radius: 14px;
-      margin-top: 14px;
-      display: none;
-      font-size: 21px; /* 👓 ANTES 20px - Aumentado un poco más para lectura en movimiento */
-      border: 1px solid #3f3f46;
-      flex-direction: column;
-      gap: 16px;
+        background: #18181b;
+        padding: 12px !important; /* Aire interno optimizado */
+        border-radius: 14px;
+        margin-top: 10px;
+        display: none;
+        border: 1px solid #3f3f46;
+        flex-direction: column;
+        gap: 10px;
     }
+
     .edificio-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #27272a;
-      padding-bottom: 10px;
-      margin-bottom: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #27272a;
+        padding-bottom: 8px;
+        margin-bottom: 2px;
     }
-    .edificio-title-wrapper {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
+
     .edificio-title-wrapper h2 {
-      font-size: 28px; /* 👓 ANTES 26px - Nombre del edificio un poco más imponente */
-      margin: 0;
-      line-height: 1.2;
+        font-size: 24px; /* Ajuste armónico */
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.2;
+        color: #ffffff;
     }
+
     .edificio-title-wrapper span {
-      font-size: 16px; /* 👓 ANTES 13px - Fecha de creación */
-      color: #a1a1aa;
+        font-size: 14px;
+        color: #a1a1aa;
     }
+
     .edificio-badge {
-      background: #27272a;
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 16px; /* 👓 ANTES 15px - Mayor claridad en el día de asignación */
-      font-weight: 700;
-      border: 1px solid #4b5563;
-      white-space: nowrap;
+        background: #27272a;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 700;
+        border: 1px solid #4b5563;
+        white-space: nowrap;
     }
+
+    /* Estructura asimétrica de 2 columnas: Textos prioritarios (75%) y Mini Mapa (25%) */
     .edificio-body {
-      display: grid;
-      grid-template-columns: 1fr 120px; /* Ajuste para el mapa con la nueva fuente */
-      gap: 14px;
-      align-items: start;
+        display: grid;
+        grid-template-columns: 1fr 90px !important; 
+        gap: 12px !important;
+        align-items: center !important;
     }
+
     .edificio-info-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px; /* 👓 ANTES 8px - Más espacio vertical entre Territorio y Pisos */
+        display: flex;
+        flex-direction: column;
+        gap: 6px !important; /* Pegaditos para ahorrar verticalidad */
     }
-    /* Estilos para los ítems: Territorio, Pisos, Notas */
+
     .edificio-info-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: #ffffff; /* 👓 Forzado a blanco absoluto para contraste premium */
-      font-size: 22px; /* 👓 ANTES 21px - Datos numéricos clave bien claros */
-      font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #ffffff;
+        font-size: 17px !important; /* Ajustado para que las direcciones no desborden */
+        font-weight: 700;
+        line-height: 1.3;
     }
-    /* Las notas aclaratorias del Admin (Ej: "Notas: probando") */
+
+    .edificio-sub-dir {
+        font-size: 14px;
+        color: #a1a1aa;
+        font-weight: 400;
+    }
+
     .edificio-notas {
-      font-style: italic;
-      color: #ffffff; /* 👓 Máximo brillo para que se lea bajo el sol */
-      margin-top: 8px;
-      font-size: 20px; /* 👓 ANTES 19px - Lectura holgada de descripciones largas */
-      line-height: 1.5;
-      background: rgba(255, 255, 255, 0.04); /* Fondo sutilmente más visible */
-      padding: 10px 14px;
-      border-radius: 8px;
-      border-left: 4px solid #3b82f6; /* Línea azul más gruesa que destaca la nota */
+        font-style: italic;
+        color: #ffffff;
+        margin-top: 4px;
+        font-size: 16px !important;
+        line-height: 1.4;
+        background: rgba(255, 255, 255, 0.04);
+        padding: 8px 12px;
+        border-radius: 8px;
+        border-left: 4px solid #3b82f6;
     }
-    /* Adaptación del mini-mapa Leaflet */
+
+    /* Miniatura del mapa de Leaflet compacta estilo Sticker Interactiva */
     #infoEdificio .leaflet-container {
-      width: 120px !important; /* Ajustado levemente */
-      height: 100px !important;
-      border-radius: 8px;
-      border: 1px solid #4b5563;
+        width: 90px !important;
+        height: 90px !important;
+        border-radius: 8px;
+        border: 2px solid #3b82f6; /* Destacado en azul para denotar que es clickeable */
+        cursor: pointer;
     }
+
     .edificio-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 4px;
-      padding-top: 10px;
-      border-top: 1px solid #27272a;
-      font-size: 16px; /* 👓 ANTES 15px */
-      color: #a1a1aa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 2px;
+        padding-top: 8px;
+        border-top: 1px solid #27272a;
+        font-size: 14px;
+        color: #a1a1aa;
     }
-    /* Botón Informar Problema */
+
     .btn-reportar-sutil {
-      padding: 12px 16px; /* 👓 Un poco más alto para mejor click */
-      font-size: 15px; /* 👓 Un punto más grande */
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid #ef4444;
-      color: #f87171;
-      border-radius: 8px;
-      font-weight: 700;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.2s;
+        padding: 8px 12px;
+        font-size: 14px;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid #ef4444;
+        color: #f87171;
+        border-radius: 8px;
+        font-weight: 700;
     }
-    .btn-reportar-sutil:hover {
-      background: #ef4444;
-      color: #ffffff;
+
+    /* ==========================================================================
+       6. MODAL INTERACTIVO: MAPA EXPANDIDO A PANTALLA COMPLETA (LIGHTBOX)
+       ========================================================================== */
+    .modal-mapa-completo {
+        display: none; /* Controlado dinámicamente mediante JS */
+        position: fixed;
+        inset: 0;
+        background: #09090b;
+        z-index: 99999; /* Por encima de absolutamente todo */
+        flex-direction: column;
     }
-    /* 👓 CAJA DEL DEPARTAMENTO REDISEÑADA AUTOMÁTICAMENTE EN 3 COLUMNAS */
-    /* Modificamos esta regla para reestructurar la fila entera sin tocar el HTML */
+
+    #mapaPantallaCompleta {
+        width: 100vw;
+        height: calc(100vh - 64px);
+        background: #111113;
+    }
+
+    .barra-inferior-mapa {
+        height: 64px;
+        background: #18181b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 16px;
+        border-top: 1px solid #27272a;
+    }
+
+    .btn-volver-mapa {
+        background: #27272a;
+        color: #ffffff;
+        border: 1px solid #52525b;
+        padding: 8px 24px !important;
+        font-size: 16px !important;
+        width: auto !important;
+        height: 42px !important;
+        margin: 0 !important;
+    }
+
+    /* ==========================================================================
+       7. CAJA DE DEPARTAMENTO (REDISEÑO DE 3 COLUMNAS Y CORRECCIÓN DE ERRORES)
+       ========================================================================== */
     .card-container div[style*="font-size: 48px"], 
     .card-container div[style*="font-size: 36px"],
     .card-container span[style*="font-size"] {
-      display: flex !important;
-      flex-direction: row !important;
-      align-items: center !important;
-      justify-content: space-between !important;
-      gap: 12px !important;
-      padding: 6px 0 !important;
-      width: 100% !important;
-      font-size: inherit !important; /* Resetea el heredado para manejar tamaños individuales por columna */
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 12px !important;
+        padding: 4px 0 !important;
+        width: 100% !important;
+        font-size: inherit !important;
     }
-    /* Columna 1: El texto "DEPARTAMENTO A VISITAR:" */
+
     .card-container div[style*="font-size: 48px"] > div:first-child,
     .card-container div[style*="font-size: 36px"] > div:first-child {
-      font-size: 15px !important;
-      font-weight: 800 !important;
-      color: #a1a1aa !important;
-      text-transform: uppercase !important;
-      line-height: 1.2 !important;
-      max-width: 130px !important;
-      text-align: left !important;
+        font-size: 14px !important;
+        font-weight: 800 !important;
+        color: #a1a1aa !important;
+        text-transform: uppercase !important;
+        line-height: 1.2 !important;
+        max-width: 120px !important;
+        text-align: left !important;
     }
-    /* Columna 2: El número gigante (Ej: 2C, 5A, 1A) */
-    /* Forzamos a que el texto del depto intermedio mantenga el tamaño gigante */
+
     .card-container div[style*="font-size: 48px"] > div:nth-child(2),
     .card-container div[style*="font-size: 36px"] > div:nth-child(2),
     #deptoAsignado {
-      font-size: 58px !important; 
-      font-weight: 900 !important;
-      color: #ffffff !important;
-      line-height: 1 !important;
-      flex: 1 !important;
-      text-align: center !important;
+        font-size: 54px !important; /* Optimizado sutilmente para evitar desborde vertical */
+        font-weight: 900 !important;
+        color: #ffffff !important;
+        line-height: 1 !important;
+        flex: 1 !important;
+        text-align: center !important;
     }
-    /* Columna 3: El botón "Siguiente depto." oculto/visible al costado */
-    /* Lo achicamos de manera elegante para que encaje perfecto en la esquina derecha */
+
     .card-container div[style*="font-size: 48px"] button,
     .card-container div[style*="font-size: 36px"] button,
     #btnSiguienteDepto {
-      width: auto !important;
-      margin: 0 !important;
-      padding: 10px 12px !important;
-      font-size: 14px !important; /* Más sutil y compacto */
-      font-weight: 700 !important;
-      background: #27272a !important;
-      color: #ffffff !important;
-      border: 1px solid #4b5563 !important;
-      border-radius: 8px !important;
-      white-space: nowrap !important;
+        width: auto !important;
+        margin: 0 !important;
+        padding: 8px 12px !important;
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        background: #27272a !important;
+        color: #ffffff !important;
+        border: 1px solid #4b5563 !important;
+        border-radius: 8px !important;
+        white-space: nowrap !important;
     }
+
+    /* 👓 CORRECCIÓN DE CAPTURAS: Reducción armónica de los carteles de estado */
+    .mensaje-busqueda, 
+    .mensaje-error,
+    #mensajeInicial { 
+        font-size: 17px !important; /* Súper prolijo y controlado, no rompe la caja */
+        font-weight: 700;
+        text-align: center;
+        padding: 8px;
+        line-height: 1.4;
+        color: #a1a1aa;
+    }
+    .mensaje-error { color: #f87171 !important; }
+
+    /* ==========================================================================
+       8. DEMÁS COMPONENTES DE SISTEMA (MANTENIDOS CON ALTO ESTILO)
+       ========================================================================== */
     #listaTerritorio button {
-      text-align: left;
-      background: #18181b;
-      border: 1px solid #3f3f46;
-      padding: 16px;
-      font-size: 19px; /* 👓 ANTES 16px */
+        text-align: left;
+        background: #18181b;
+        border: 1px solid #3f3f46;
+        padding: 16px;
+        font-size: 19px;
     }
+
     .link {
-      color: #60a5fa;
-      cursor: pointer;
-      text-decoration: none;
-      font-size: 18px; /* 👓 ANTES 16px */
-      text-align: center;
-      margin: 16px 0;
-      font-weight: 600;
+        color: #60a5fa;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 18px;
+        text-align: center;
+        margin: 16px 0;
+        font-weight: 600;
     }
     .link:hover { text-decoration: underline; }
-    /* --- CSS: ACCESOS RÁPIDOS Y BOTÓN FLOTANTE --- */
+
     #adminBtn {
-      position: fixed;
-      top: 12px;
-      right: 15px;
-      width: 52px; /* 👓 ANTES 46px */
-      height: 52px; /* 👓 ANTES 46px */
-      border-radius: 10px;
-      background: #18181b;
-      color: white;
-      font-size: 24px;
-      z-index: 999;
-      border: 1px solid #52525b;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        position: fixed;
+        top: 12px;
+        right: 15px;
+        width: 52px;
+        height: 52px;
+        border-radius: 10px;
+        background: #18181b;
+        color: white;
+        font-size: 24px;
+        z-index: 999;
+        border: 1px solid #52525b;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
+
     #reportBtn {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #ef4444;
-      color: white;
-      width: 68px; /* 👓 ANTES 60px */
-      height: 68px; /* 👓 ANTES 60px */
-      border-radius: 50%;
-      font-size: 28px;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      box-sizing: border-box;
-      box-shadow: 0 6px 18px rgba(239, 68, 68, 0.4);
-      z-index: 1000;
-      border: 2px solid #ffffff;
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #ef4444;
+        color: white;
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        font-size: 28px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 18px rgba(239, 68, 68, 0.4);
+        z-index: 1000;
+        border: 2px solid #ffffff;
     }
-    /* Ajuste de Alertas Críticas de problemas en porteros */
+
     .alerta { 
-      background: #ef4444 !important; 
-      font-size: 19px !important; /* 👓 Mensajes de error más grandes */
-      font-weight: 700 !important;
-      border-radius: 10px !important;
-      padding: 12px 16px !important;
+        background: #ef4444 !important; 
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        border-radius: 10px !important;
+        padding: 12px 16px !important;
     }
-     #loginScreen {
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      align-items: center;
-      padding-top: 7vh;
-      min-height: 100vh;
-      box-sizing: border-box;
+
+    #loginScreen {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        padding-top: 7vh;
+        min-height: 100vh;
     }
+
     .loginCard {
-      width: 90%;
-      max-width: 400px; /* 👓 ANTES 360px */
-      margin: 0 auto;
-      background: #111113;
-      border: 1px solid #52525b;
-      padding: 28px;
-      border-radius: 16px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        width: 90%;
+        max-width: 400px;
+        margin: 0 auto;
+        background: #111113;
+        border: 1px solid #52525b;
+        padding: 28px;
+        border-radius: 16px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.6);
     }
+
     #loginMsg {
-      text-align: center;
-      margin-top: 10px;
-      color: #f87171;
-      font-size: 17px; /* 👓 ANTES 15px */
-      min-height: 20px;
+        text-align: center;
+        margin-top: 10px;
+        color: #f87171;
+        font-size: 17px;
+        min-height: 20px;
     }
-    /* --- CSS: VENTANAS EMERGENTES (MODALES PREMIUM) --- */
+
     .modal {
-      display: none;
-      position: fixed;
-      z-index: 2000;
-      inset: 0;
-      background-color: rgba(9, 9, 11, 0.85);
-      backdrop-filter: blur(6px);
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-      animation: fadeInModal 0.2s ease-out;
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        inset: 0;
+        background-color: rgba(9, 9, 11, 0.85);
+        backdrop-filter: blur(6px);
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        animation: fadeInModal 0.2s ease-out;
     }
+
     .modal-content {
-      width: 100%;
-      max-width: 480px; /* 👓 ANTES 440px */
-      background: #18181b !important;
-      border: 1px solid #3f3f46;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-      transform: scale(0.96);
-      animation: scaleUpModal 0.2s forwards ease-out;
+        width: 100%;
+        max-width: 480px;
+        background: #18181b !important;
+        border: 1px solid #3f3f46;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        transform: scale(0.96);
+        animation: scaleUpModal 0.2s forwards ease-out;
     }
+
     @keyframes fadeInModal { from { opacity: 0; } to { opacity: 1; } }
     @keyframes scaleUpModal { to { transform: scale(1); } }
-    /* --- CSS: REGLAS ESPECÍFICAS DE LEAFLET --- */
+
     .leaflet-container {
-      text-align: left;
-      font-size: 16px; /* 👓 ANTES 14px */
-      font-family: inherit !important;
+        text-align: left;
+        font-size: 16px;
+        font-family: inherit !important;
     }
-    .texto-territorio-elegante {
-      background: rgba(9, 9, 11, 0.9) !important;
-      border: 1px solid rgba(59, 130, 246, 0.5) !important;
-      color: #ffffff !important;
-      font-weight: 700 !important;
-      font-size: 15px !important; /* 👓 ANTES 13px */
-      padding: 6px 10px !important;
-      border-radius: 4px !important;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.5) !important;
-      white-space: nowrap !important;
-    }
-    /* --- CSS: ESQUELETOS DE CARGA (SKELETONS) --- */
-    .skeleton { position: relative; overflow: hidden; background: #27272a; border-radius: 8px; }
-    .skeleton::after {
-      content: ""; position: absolute; inset: 0; transform: translateX(-100%);
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,.05), transparent);
-      animation: skeleton 1.2s infinite;
-    }
-    @keyframes skeleton { 100% { transform: translateX(100%); } }
-    .skeletonLine { height: 22px; margin-bottom: 10px; }
-    /* --- CSS: PANEL DE ADMINISTRACIÓN - ENCABEZADOS Y NAV --- */
+
+    /* Estilos de Administración Avanzada */
     .admin-nav-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #111113;
-      padding: 14px 18px;
-      border-radius: 12px;
-      margin-bottom: 16px;
-      border: 1px solid #27272a;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #111113;
+        padding: 14px 18px;
+        border-radius: 12px;
+        margin-bottom: 16px;
+        border: 1px solid #27272a;
     }
+    
     .nav-left { display: flex; align-items: center; gap: 14px; }
+    
     .btn-atras-sutil {
-      background: #27272a;
-      color: #fff;
-      font-size: 18px;
-      width: 42px;
-      height: 42px;
-      border-radius: 6px;
-      margin: 0; padding: 0;
+        background: #27272a;
+        color: #fff;
+        font-size: 18px;
+        width: 42px;
+        height: 42px;
+        border-radius: 6px;
+        margin: 0; padding: 0;
     }
     .btn-atras-sutil:hover { background: #3f3f46; }
     .nav-title { font-size: 20px; font-weight: 700; color: #ffffff; display: block; }
     .nav-subtitle { font-size: 15px; color: #a1a1aa; display: block; }
-     .btn-salir-sutil {
-      background: #451a03;
-      color: #fcd34d;
-      padding: 10px 16px;
-      border-radius: 6px;
-      font-size: 15px; /* 👓 ANTES 13px */
-      font-weight: bold;
-      width: auto; margin: 0;
+
+    .btn-salir-sutil {
+        background: #451a03;
+        color: #fcd34d;
+        padding: 10px 16px;
+        border-radius: 6px;
+        font-size: 15px;
+        font-weight: bold;
+        width: auto; margin: 0;
     }
     .btn-salir-sutil:hover { background: #78350f; }
-    /* --- CSS: PANEL DE ADMINISTRACIÓN - CUADRÍCULA DE ESTADÍSTICAS --- */
+
     .mini-stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 15px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 15px;
     }
+
     .mini-stat-card {
-      background: #111113;
-      border: 1px solid #27272a;
-      border-radius: 10px;
-      padding: 14px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
+        background: #111113;
+        border: 1px solid #27272a;
+        border-radius: 10px;
+        padding: 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
+
     .stat-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      flex-shrink: 0;
+        width: 44px;
+        height: 44px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
     }
     .b-blue { background: rgba(37, 99, 235, 0.15); }
     .b-green { background: rgba(22, 163, 74, 0.15); }
@@ -523,252 +630,218 @@
     .stat-data h3 { margin: 0; font-size: 20px; font-weight: 700; color: #ffffff; }
     .stat-data p { margin: 0; font-size: 14px; color: #a1a1aa; font-weight: 400; }
 
-    /* --- CSS: PANEL DE ADMINISTRACIÓN - DISTRIBUCIÓN DE COLUMNAS --- */
     .workspace-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 16px;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
     }
     @media (min-width: 1024px) {
-      .workspace-grid {
-        grid-template-columns: 300px 1fr 350px;
-        align-items: start;
-      }
+        .workspace-grid {
+            grid-template-columns: 300px 1fr 350px;
+            align-items: start;
+        }
     }
-    /* --- CSS: PANEL DE ADMINISTRACIÓN - COMPONENTES Y FILTROS --- */
+
     .component-card {
-      background: #111113;
-      border: 1px solid #27272a;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 12px;
+        background: #111113;
+        border: 1px solid #27272a;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
     }
     .card-header-sm h3 { margin: 0 0 10px 0; font-size: 14px; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.5px; }
     .filtros-compactos { display: flex; flex-direction: column; gap: 6px; }
     .filtros-compactos input, .filtros-compactos select {
-      background: #09090b;
-      padding: 12px 14px;
-      font-size: 17px; /* 👓 ANTES 15px */
-      margin: 4px 0;
+        background: #09090b;
+        padding: 12px 14px;
+        font-size: 17px;
+        margin: 4px 0;
     }
     .filtro-doble-fila { display: flex; gap: 6px; }
-    /* --- CSS: PANEL DE ADMINISTRACIÓN - LISTADO SCROLL DE EDIFICIOS --- */
+
     .lista-scroll-limpia {
-      max-height: 380px;
-      overflow-y: auto;
-      padding-right: 4px;
+        max-height: 380px;
+        overflow-y: auto;
+        padding-right: 4px;
     }
     .lista-scroll-limpia::-webkit-scrollbar { width: 5px; }
     .lista-scroll-limpia::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
     .paginador-sutil { display: flex; gap: 6px; margin-top: 10px; }
+    
     .btn-pag {
-      flex: 1;
-      background: #18181b;
-      border: 1px solid #27272a;
-      padding: 12px;
-      font-size: 16px; /* 👓 ANTES 14px */
-      margin: 0;
+        flex: 1;
+        background: #18181b;
+        border: 1px solid #27272a;
+        padding: 12px;
+        font-size: 16px;
+        margin: 0;
     }
     .btn-pag:hover { background: #27272a; }
-    /* --- CSS: PANEL DE ADMINISTRACIÓN - MAPA PRINCIPAL --- */
+
     .mapa-card-wrapper { padding: 0; overflow: hidden; border-radius: 12px; border: 1px solid #27272a; }
     .mapa-principal-moderno { height: 520px; width: 100%; background: #09090b; }
-    .detalle-edificio-premium {
-      background: #111113;
-      border: 1px solid #27272a;
-      border-radius: 12px;
-      padding: 16px;
-    }
-      /* --- CSS: MENÚ DE CONTROL PRINCIPAL (DASHBOARD) --- */
+    
     #dashboardView {
-      max-width: 540px; /* 👓 ANTES 500px */
-      margin: 20px auto;
-      padding: 0 8px;
+        max-width: 540px;
+        margin: 20px auto;
+        padding: 0 8px;
     }
     .dashboardGrid {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      margin-top: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-top: 18px;
     }
     .dashboardCard {
-      background: #111113;
-      border: 1px solid #27272a;
-      border-radius: 14px;
-      padding: 20px 22px;
-      cursor: pointer;
-      transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      text-align: left;
+        background: #111113;
+        border: 1px solid #27272a;
+        border-radius: 14px;
+        padding: 20px 22px;
+        cursor: pointer;
+        transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        text-align: left;
     }
-
     .dashboardCard:hover {
-      transform: translateY(-2px);
-      background: #141417;
-      border-color: #3b82f6;
-      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.08);
+        transform: translateY(-2px);
+        background: #141417;
+        border-color: #3b82f6;
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.08);
     }
-    .dashboardCard:active {
-      transform: scale(0.98);
-    }
+    .dashboardCard:active { transform: scale(0.98); }
+    
     .dashboardCard .icon {
-      font-size: 36px; /* 👓 ANTES 32px */
-      width: 60px; /* 👓 ANTES 54px */
-      height: 60px; /* 👓 ANTES 54px */
-      background: #18181b;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      border: 1px solid #3f3f46;
+        font-size: 36px;
+        width: 60px;
+        height: 60px;
+        background: #18181b;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        border: 1px solid #3f3f46;
     }
     .dashboardCard-content {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        flex: 1;
     }
     .dashboardCard h3 {
-      color: #ffffff;
-      margin: 0;
-      font-size: 21px; /* 👓 ANTES 18px - Menú principal mucho más visible */
-      font-weight: 700;
+        color: #ffffff;
+        margin: 0;
+        font-size: 21px;
+        font-weight: 700;
     }
     .dashboardCard p {
-      color: #a1a1aa;
-      font-size: 16px; /* 👓 ANTES 14px */
-      margin: 0;
-    }
-    /* --- CSS: FILAS DINÁMICAS DE LA LISTA DE EDIFICIOS --- */
-    .edificio-item-lista {
-      background: #18181b;
-      border: 1px solid #27272a;
-      border-radius: 8px;
-      padding: 14px;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-      transition: background 0.2s, border-color 0.2s;
-    }
-    .edificio-item-lista:hover {
-      background: #202024;
-      border-color: #3f3f46;
-    }
-    .edificio-info-txt {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .edif-dir {
-      font-size: 18px; /* 👓 ANTES 15px */
-      font-weight: 600;
-      color: #ffffff;
-    }
-    .edif-sub {
-      font-size: 15px; /* 👓 ANTES 13px */
-      color: #a1a1aa;
-    }
-    .btn-ver-flecha {
-      font-size: 18px;
-      color: #71717a;
-    }
-    .edificio-item-lista:hover .btn-ver-flecha {
-      color: #3b82f6;
-    }
-    /* --- CSS: AGRUPADORES DE MAPA (MARKER CLUSTER) --- */
-    .custom-dark-cluster {
-      background: transparent !important;
-      border: none !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
+        color: #a1a1aa;
+        font-size: 16px;
+        margin: 0;
     }
 
+    .edificio-item-lista {
+        background: #18181b;
+        border: 1px solid #27272a;
+        border-radius: 8px;
+        padding: 14px;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        transition: background 0.2s, border-color 0.2s;
+    }
+    .edificio-item-lista:hover {
+        background: #202024;
+        border-color: #3f3f46;
+    }
+    .edificio-info-txt { display: flex; flex-direction: column; gap: 4px; }
+    .edif-dir { font-size: 18px; font-weight: 600; color: #ffffff; }
+    .edif-sub { font-size: 15px; color: #a1a1aa; }
+    .btn-ver-flecha { font-size: 18px; color: #71717a; }
+    .edificio-item-lista:hover .btn-ver-flecha { color: #3b82f6; }
+
+    .custom-dark-cluster {
+        background: transparent !important;
+        border: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
     .custom-dark-cluster div {
-      transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+        transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
     }
-     .custom-dark-cluster :hover {
-      transform: scale(1.08);
-      border-color: #3b82f6 !important;
-      background: rgba(24, 24, 27, 0.95) !important;
+    .custom-dark-cluster :hover {
+        transform: scale(1.08);
+        border-color: #3b82f6 !important;
+        background: rgba(24, 24, 27, 0.95) !important;
     }
-    /* --- CSS: PESTAÑAS CONMUTABLES DE FILTROS --- */
+
     .tabs-filtros {
-      display: flex;
-      gap: 4px;
-      background: #09090b;
-      padding: 4px;
-      border-radius: 8px;
-      margin-bottom: 12px;
-      border: 1px solid #27272a;
+        display: flex;
+        gap: 4px;
+        background: #09090b;
+        padding: 4px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        border: 1px solid #27272a;
     }
     .tab-btn {
-      flex: 1;
-      background: transparent;
-      border: none;
-      color: #a1a1aa;
-      padding: 10px 12px;
-      font-size: 15px; /* 👓 ANTES 13px */
-      font-weight: 600;
-      border-radius: 6px;
-      margin: 0;
-      cursor: pointer;
-      transition: all 0.2s ease;
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: #a1a1aa;
+        padding: 10px 12px;
+        font-size: 15px;
+        font-weight: 600;
+        border-radius: 6px;
+        margin: 0;
+        cursor: pointer;
+        transition: all 0.2s ease;
     }
-    .tab-btn:hover {
-      color: #ffffff;
-      background: rgba(255, 255, 255, 0.03);
-    }
+    .tab-btn:hover { color: #ffffff; background: rgba(255, 255, 255, 0.03); }
     .tab-btn.active {
-      background: #27272a;
-      color: #ffffff;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        background: #27272a;
+        color: #ffffff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.4);
     }
-    .tab-content {
-      display: none;
-    }
-    .tab-content.active {
-      display: block;
-    }
-    /* Estilos para el Panel Maestro SuperAdmin */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
     .vista-pantalla-completa {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background-color: #09090b;
-      z-index: 9999;
-      overflow-y: auto;
-      display: none;
-      font-family: system-ui, -apple-system, sans-serif;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: #09090b;
+        z-index: 9999;
+        overflow-y: auto;
+        display: none;
     }
     .vista-pantalla-completa table th {
-      font-weight: 600;
-      font-size: 15px; /* 👓 ANTES 13px */
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
+        font-weight: 600;
+        font-size: 15px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
     }
     .vista-pantalla-completa table tbody tr:hover {
-      background-color: #27272a !important;
-      transition: background 0.2s ease;
+        background-color: #27272a !important;
     }
     .vista-pantalla-completa .danger:hover {
-      background-color: #dc2626 !important;
-      box-shadow: 0 0 8px rgba(220, 38, 38, 0.4);
+        background-color: #dc2626 !important;
+        box-shadow: 0 0 8px rgba(220, 38, 38, 0.4);
     }
-    /* Números fijos de Territorio en el mapa */
+
     .texto-territorio-elegante {
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
         color: rgba(255, 255, 255, 0.4);
-        font-size: 16px; /* 👓 ANTES 14px */
+        font-size: 16px;
         font-weight: 800;
         transition: all 0.2s ease-in-out;
         pointer-events: none;
@@ -780,29 +853,29 @@
         padding: 4px 8px !important;
         border-radius: 6px !important;
         box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
-        font-size: 14px; /* 👓 ANTES 12px */
+        font-size: 14px;
     }
     .texto-territorio-elegante.zoom-alejado {
         opacity: 0 !important;
         visibility: hidden;
     }
- </style>
+</style>
 </head>
 <body>
 
-<div id="navbarGlobal" class="admin-nav-bar" style="display: none; width: 100%; box-sizing: border-box; justify-content: space-between; align-items: center; padding: 12px 24px; background: #18181b; border-bottom: 1px solid #27272a; position: sticky; top: 0; z-index: 1000;">
-  <div class="nav-left" style="display: flex; align-items: center; gap: 10px;">
-    <button id="btnVolverNavbar" class="btn-atras-sutil" onclick="abrirVista('dashboardView')" style="display: none; background: transparent; border: none; color: #a1a1aa; font-size: 24px; cursor: pointer; margin-right: 8px; font-weight: bold;">←</button>
+<div id="navbarGlobal" class="admin-nav-bar">
+  <div class="nav-left">
+    <button id="btnVolverNavbar" class="btn-atras-sutil" onclick="abrirVista('dashboardView')">←</button>
     <div>
-      <span class="nav-title" style="font-weight: 800; color: #ffffff; font-size: 16px; display: block;">📍 Gestión de Territorio</span>
-      <span id="badge-rol-usuario" style="font-size: 13px; color: #a1a1aa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Panel de Control</span>
+      <span class="nav-title">📍 Gestión de Territorio</span>
+      <span id="badge-rol-usuario">Panel de Control</span>
     </div>
   </div>
-  <div class="nav-right" style="display: flex; align-items: center; gap: 12px;">
-    <button id="btnSuperAdminMenu" class="secondary" onclick="abrirAccesoSuperAdmin()" style="background: #1c1c1e; border: 1px solid #2c2c2e; font-size: 13px; color: #a1a1aa; padding: 8px 14px; border-radius: 6px; cursor: pointer; display: none; align-items: center; gap: 6px;">
+  <div class="nav-right">
+    <button id="btnSuperAdminMenu" class="secondary" onclick="abrirAccesoSuperAdmin()">
       🛠️ SuperAdmin
     </button>
-    <button class="btn-salir-sutil" onclick="logout()" style="background: transparent; border: 1px solid #3f3f46; color: #f87171; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600;">Salir</button>
+    <button class="btn-salir-sutil" onclick="logout()">Salir</button>
   </div>
 </div>
 
@@ -817,7 +890,7 @@
 </div>
 
 <div id="dashboardView" class="view">
-  <div class="dashboardGrid" style="margin-top: 20px;">
+  <div class="dashboardGrid">
     <div class="dashboardCard" onclick="abrirVista('territorioView')">
       <div class="icon">🗺️</div>
       <div class="dashboardCard-content">
@@ -972,29 +1045,32 @@
       <button class="buscar" onclick="buscar()" style="width: 58px; height: 58px; margin: 0; padding: 0; border-radius: 10px; flex-shrink: 0; font-size: 22px;">🔍</button>
     </div>
 
-    <p id="mensajeInicial" style="text-align:center; font-size: 17px; color: #a1a1aa; margin-top: 4px; margin-bottom: 14px; font-weight: 600;">Ingresá una dirección para comenzar</p>
+    <p id="mensajeInicial">Ingresá una dirección para comenzar</p>
 
     <div id="contenedorDepartamento" style="margin-top: 10px; margin-bottom: 15px; background: #121214; border: 1px solid #27272a; padding: 14px 12px; border-radius: 16px;">
-      <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; width: 100%;">
-        <div style="width: 110px; text-align: left; flex-shrink: 0;">
+      <div>
+        <div>
           <p style="margin: 0; font-size: 12px; color: #a1a1aa; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.2;">Departamento</p>
           <p style="margin: 2px 0 0 0; font-size: 13px; color: #ffffff; font-weight: 800; line-height: 1.2;">A VISITAR:</p>
         </div>
-        <div style="flex: 1; text-align: center; border-left: 1px solid #27272a; border-right: 1px solid #27272a; padding: 0 5px;">
-          <h2 id="resultado" style="font-size: 52px; font-weight: 900; color: #ffffff; margin: 0; line-height: 1; min-height: 52px; display: flex; align-items: center; justify-content: center;">--</h2>
+        <div id="deptoAsignado">
+          <h2 id="resultado" style="font-size: inherit; font-weight: inherit; color: inherit; margin: 0; line-height: 1; min-height: 52px; display: flex; align-items: center; justify-content: center;">--</h2>
         </div>
-        <div style="width: 95px; flex-shrink: 0; display: flex; justify-content: center;">
-          <button id="btnSiguiente" class="secondary" onclick="siguiente()" style="visibility: hidden; margin: 0; width: 100%; padding: 8px 6px; font-size: 12px; font-weight: 700; border-radius: 8px; white-space: nowrap; text-align: center;">Siguiente ➡</button>
+        <div>
+          <button id="btnSiguiente" id="btnSiguienteDepto" onclick="siguiente()" style="visibility: hidden;">Siguiente ➡</button>
         </div>
       </div>
     </div>
 
-    <textarea id="nota" placeholder="Nota de la visita..." style="display:none; height: 100px; font-size: 19px; margin-bottom: 12px; padding: 12px;"></textarea>
-
-    <div id="botoneraVotacion" style="display: none; gap: 10px; margin-top: 8px; margin-bottom: 15px; width: 100%;">
-      <button id="btnOk" class="ok" onclick="marcar('ATENDIO')" style="display:none; flex: 1; margin: 0;">✔ ATENDIÓ</button>
-      <button id="btnNo" class="no" onclick="marcar('NO_EN_CASA')" style="display:none; flex: 1; margin: 0;">✕ NO EN CASA</button>
+    <div id="botoneraVotacion" class="fila-marcado-rapido" style="display: none;">
+      <span class="etiqueta-marcado">Estado:</span>
+      <div class="bloque-botones-sino">
+        <button id="btnOk" class="btn-sino si-ok" onclick="marcar('ATENDIO')">SÍ</button>
+        <button id="btnNo" class="btn-sino no-cancel" onclick="marcar('NO_EN_CASA')">NO</button>
+      </div>
     </div>
+
+    <textarea id="nota" placeholder="Nota de la visita..."></textarea>
 
     <div id="infoEdificio"></div>
     <button id="btnNuevoEdificio" class="secondary" style="display:none; margin-top: 14px; padding: 14px 18px; font-size: 20px;">➕ Agregar edificio</button>
@@ -1004,6 +1080,15 @@
         ✕ Cerrar Sesión
       </button>
     </div>
+  </div>
+</div>
+
+<div id="modalMapaExpandido" class="modal-mapa-completo">
+  <div id="mapaPantallaCompleta"></div>
+  <div class="barra-inferior-mapa">
+    <button class="btn-volver-mapa" onclick="document.getElementById('modalMapaExpandido').style.display='none'">
+      Volver a la Visita
+    </button>
   </div>
 </div>
 
