@@ -713,10 +713,11 @@ async function sortearSiguienteDepartamento(mostrarAlerta = true) {
 async function mostrarEstructuraFlujoVisita() {
   const d = window.departamentoEnFoco;
   const resultadoH2 = document.getElementById("resultado");
-  if (resultadoH2) {
-    resultadoH2.innerText = d && d.number ? d.number : "--";
-    resultadoH2.style.fontSize = "28px"; // Asegura tamaño consistente del número en celular
-  }
+ if (resultadoH2) {
+  resultadoH2.innerText = d && d.number ? d.number : "--";
+  resultadoH2.style.fontSize = "40px"; // 🔥 Agrandado un 40% para mejor visualización
+  resultadoH2.style.fontWeight = "800"; 
+}
   
   const btnSiguiente = document.getElementById("btnSiguiente");
   if (btnSiguiente) {
@@ -814,7 +815,7 @@ async function mostrarInfoEdificio() {
   const mostrarMapaVisual = navigator.onLine ? "flex" : "none";
 
   infoEdificio.innerHTML = `
-    <div class="sectionCard" style="background: #121214; border: 1px solid #27272a; padding: 16px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
+  <div class="sectionCard" style="position: relative; background: #121214; border: 1px solid #27272a; padding: 16px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 14px;">
         <div>
           <div style="font-size:24px; font-weight:800; color:#ffffff; line-height:1.2; letter-spacing: -0.5px;">${b.address}</div>
@@ -1987,12 +1988,12 @@ async function verDetalleEdificioAdmin(buildingId) {
 
     let alertaHtml = "";
     if (data.issue) {
-      alertaHtml = `
-        <div style="background:#3a1f1f; border: 1px solid #f44336; color:#ff8a80; padding:12px; border-radius:12px; margin-bottom:15px; font-size:15px;">
-          ⚠️ <b>Problema Reportado (${data.issue.type}):</b> ${data.issue.description || "Sin descripción adicional"}
-        </div>
-      `;
-    }
+  issueHtml = `
+    <div style="position: absolute; bottom: 12px; right: 16px; font-size: 20px; filter: drop-shadow(0 0 4px rgba(239,68,68,0.5));" title="Problema detectado por el Admin">
+      ⚠️
+    </div>
+  `;
+}
 
     // Renderizamos la estructura base aplicando el diseño compatible con ID como string simple
     panel.innerHTML = `
