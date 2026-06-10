@@ -241,7 +241,7 @@ async function iniciarAppConPermisos() {
     
     // 🔥 CORRECCIÓN CRUCIAL: Forzamos la desaparición total de la barra con !important desde JS
     if (navbar) {
-      navbar.style.setProperty("display", "none", "important");
+      navbar.style.setProperty("none");
     }
     
     // El botón de salir abajo solo se muestra si ya se cargó la interfaz real
