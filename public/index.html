@@ -42,6 +42,10 @@
         background: #09090b;
         color: #f4f4f7;
         overflow-x: hidden;
+        /* 🛠️ SOLUCIÓN AL ESPACIO NEGRO: Evita que el body estire scroll fantasma si no hay contenido */
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
     }
 
     /* ==========================================================================
@@ -180,6 +184,7 @@
     .appShell {
         max-width: 1200px;
         margin: auto;
+        width: 100%;
     }
     
     .view {
@@ -209,6 +214,7 @@
         border-radius: 16px;
         padding: 14px !important; /* Optimizado de 18px para forzar visualización en una pantalla */
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        margin-bottom: 0px !important; /* 🛠️ SOLUCIÓN AL ESPACIO NEGRO: Evita empujar márgenes vacíos abajo */
     }
 
     /* ==========================================================================
@@ -395,15 +401,17 @@
         text-align: left !important;
     }
 
+    /* 🛠️ MODIFICACIÓN: Agrandamos notablemente el departamento ("3A", "3D", etc.) */
     .card-container div[style*="font-size: 48px"] > div:nth-child(2),
     .card-container div[style*="font-size: 36px"] > div:nth-child(2),
     #deptoAsignado {
-        font-size: 54px !important; /* Optimizado sutilmente para evitar desborde vertical */
+        font-size: 72px !important; /* 🚀 Subido de 54px a 72px para que se vea bien grande en celular */
         font-weight: 900 !important;
         color: #ffffff !important;
         line-height: 1 !important;
         flex: 1 !important;
         text-align: center !important;
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.1); /* Sutil brillo premium */
     }
 
     .card-container div[style*="font-size: 48px"] button,
@@ -496,6 +504,7 @@
         font-weight: 700 !important;
         border-radius: 10px !important;
         padding: 12px 16px !important;
+        margin-bottom: 0px !important; /* 🛠️ SOLUCIÓN AL ESPACIO NEGRO: Evita que el cartel rojo tire margen inferior */
     }
 
     #loginScreen {
@@ -558,7 +567,7 @@
         font-family: inherit !important;
     }
 
-    /* Estilos de Administración Avanzada */
+    /* Estilos de Administración Advanced */
     .admin-nav-bar {
         display: flex;
         justify-content: space-between;
