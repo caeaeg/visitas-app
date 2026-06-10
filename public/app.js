@@ -239,9 +239,9 @@ async function iniciarAppConPermisos() {
     if (badge) badge.innerText = "Publicador (Predi)";
     if (btnSuperAdmin) btnSuperAdmin.style.display = "none";
     
-    // 🔥 CORRECCIÓN CRUCIAL: Forzamos la desaparición total de la barra con !important desde JS
+    // 🔥 CORRECCIÓN EFECTIVA: Ocultamos el navbar usando la sintaxis estándar sin romper la ejecución
     if (navbar) {
-      navbar.style.setProperty("none");
+      navbar.style.display = "none";
     }
     
     // El botón de salir abajo solo se muestra si ya se cargó la interfaz real
