@@ -219,7 +219,7 @@ async function login() {
 async function iniciarAppConPermisos() {
   const elLogin = document.getElementById("loginScreen");
   const badge = document.getElementById("badge-rol-usuario");
-  const btnSuperAdmin = document.getElementById("btnSuperAdminMenu");
+  const btnSuperAdmin = document.getElementById("btnSuperAdminMenu"); // Ahora es nuestro escudo SVG
   const btnSalirPredi = document.getElementById("btnSalirPredi");
   const navbar = document.getElementById("navbarGlobal");
 
@@ -229,9 +229,9 @@ async function iniciarAppConPermisos() {
 
   if (currentRole === "predi") {
     if (badge) badge.innerText = "Publicador (Predi)";
-    if (btnSuperAdmin) btnSuperAdmin.style.display = "none";
+    if (btnSuperAdmin) btnSuperAdmin.style.display = "none"; // Oculto
     if (btnSalirPredi) btnSalirPredi.style.display = "block";
-    if (navbar) navbar.style.display = "none"; // Asegura que el predi jamás lo vea
+    if (navbar) navbar.style.display = "none";
     
     console.log("⚡ Entorno PUBLICADOR (Puerta a puerta) configurado de forma segura y limpia.");
     await descargarBaseAdministrativa();
@@ -241,9 +241,9 @@ async function iniciarAppConPermisos() {
 
   } else if (currentRole === "conductor") {
     if (badge) badge.innerText = "Conductor de Grupo";
-    if (btnSuperAdmin) btnSuperAdmin.style.display = "none";
+    if (btnSuperAdmin) btnSuperAdmin.style.display = "none"; // 🛡️ Oculto para conductores
     if (btnSalirPredi) btnSalirPredi.style.display = "none";
-    if (navbar) navbar.style.display = "flex"; // 🔥 Activa la barra para el Conductor
+    if (navbar) navbar.style.display = "flex";
     
     console.log("🗺️ Entorno CONDUCTOR configurado.");
     await descargarBaseAdministrativa();
@@ -251,9 +251,9 @@ async function iniciarAppConPermisos() {
 
   } else if (currentRole === "admin") {
     if (badge) badge.innerText = "Administrador";
-    if (btnSuperAdmin) btnSuperAdmin.style.display = "flex";
+    if (btnSuperAdmin) btnSuperAdmin.style.display = "inline-block"; // 👑 ¡Activado solo para el Admin!
     if (btnSalirPredi) btnSalirPredi.style.display = "none";
-    if (navbar) navbar.style.display = "flex"; // 👑 Activa la barra para el Admin
+    if (navbar) navbar.style.display = "flex";
     
     console.log("👑 Entorno ADMINISTRADOR TOTAL activo.");
     await descargarBaseAdministrativa();
