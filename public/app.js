@@ -219,7 +219,7 @@ async function login() {
 async function iniciarAppConPermisos() {
   const elLogin = document.getElementById("loginScreen");
   const badge = document.getElementById("badge-rol-usuario");
-  const btnSuperAdmin = document.getElementById("btnSuperAdminMenu"); // Ahora es nuestro escudo SVG
+  const escudoAdmin = document.getElementById("escudoSuperAdmin"); // Selector del nuevo escudo
   const btnSalirPredi = document.getElementById("btnSalirPredi");
   const navbar = document.getElementById("navbarGlobal");
 
@@ -229,7 +229,7 @@ async function iniciarAppConPermisos() {
 
   if (currentRole === "predi") {
     if (badge) badge.innerText = "Publicador (Predi)";
-    if (btnSuperAdmin) btnSuperAdmin.style.display = "none"; // Oculto
+    if (escudoAdmin) escudoAdmin.style.display = "none";
     if (btnSalirPredi) btnSalirPredi.style.display = "block";
     if (navbar) navbar.style.display = "none";
     
@@ -241,7 +241,7 @@ async function iniciarAppConPermisos() {
 
   } else if (currentRole === "conductor") {
     if (badge) badge.innerText = "Conductor de Grupo";
-    if (btnSuperAdmin) btnSuperAdmin.style.display = "none"; // 🛡️ Oculto para conductores
+    if (escudoAdmin) escudoAdmin.style.display = "none"; // Oculto para conductores
     if (btnSalirPredi) btnSalirPredi.style.display = "none";
     if (navbar) navbar.style.display = "flex";
     
@@ -251,7 +251,7 @@ async function iniciarAppConPermisos() {
 
   } else if (currentRole === "admin") {
     if (badge) badge.innerText = "Administrador";
-    if (btnSuperAdmin) btnSuperAdmin.style.display = "inline-block"; // 👑 ¡Activado solo para el Admin!
+    if (escudoAdmin) escudoAdmin.style.display = "inline-block"; // 🔥 Visible SÓLO para el Admin
     if (btnSalirPredi) btnSalirPredi.style.display = "none";
     if (navbar) navbar.style.display = "flex";
     
@@ -327,41 +327,16 @@ function abrirVista(vistaId) {
     }
   });
 
-  // 🔄 CONTROL INTELIGENTE DEL NAVBAR Y BOTÓN VOLVER PARA GESTIÓN
-  const navbar = document.getElementById("navbarGlobal");
-  const btnVolver = document.getElementById("btnVolverNavbar");
-
-  if (navbar) {
-    // Si es predi o está en el login, el navbar se oculta por completo
-    if (currentRole === "predi" || vistaId === "loginScreen") {
-      navbar.style.display = "none";
-    } else {
-      // Para admin/conductor, se muestra siempre en las pantallas de gestión
-      navbar.style.display = "flex";
-      
-      // El botón de la flecha "←" para volver al menú principal (dashboardView)
-      if (vistaId === "dashboardView" || vistaId === "mapaView") {
-        if (btnVolver) btnVolver.style.display = "none";
-      } else {
-        if (btnVolver) btnVolver.style.display = "block";
-      }
-    }
-  }
-
-  // Lanzamiento de disparadores automáticos para vistas internas
+  // Disparadores automáticos de mapas y filtros
   if (vistaId === "territorioView") {
     setTimeout(() => {
-      if (typeof ejecutarFiltrosAdmin === "function") {
-        ejecutarFiltrosAdmin();
-      }
+      if (typeof ejecutarFiltrosAdmin === "function") ejecutarFiltrosAdmin();
     }, 100);
   }
 
   if (vistaId === "mapaView") {
     setTimeout(() => {
-      if (typeof inicializarMapaGeneralAdministrador === "function") {
-        inicializarMapaGeneralAdministrador();
-      }
+      if (typeof inicializarMapaGeneralAdministrador === "function") inicializarMapaGeneralAdministrador();
       if (typeof mapaGeneral !== 'undefined' && mapaGeneral) {
         mapaGeneral.invalidateSize({ animate: false });
       }
