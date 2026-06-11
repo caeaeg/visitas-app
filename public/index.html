@@ -872,22 +872,6 @@
 </head>
 <body>
 
-<div id="navbarGlobal" class="admin-nav-bar" style="display: none;">
-  <div class="nav-left">
-    <button id="btnVolverNavbar" class="btn-atras-sutil" onclick="abrirVista('dashboardView')">←</button>
-    <div>
-      <span class="nav-title">📍 Gestión de Territorio</span>
-      <span id="badge-rol-usuario">Panel de Control</span>
-    </div>
-  </div>
-  <div class="nav-right">
-    <button id="btnSuperAdminMenu" class="secondary" onclick="abrirAccesoSuperAdmin()">
-      🛠️ SuperAdmin
-    </button>
-    <button class="btn-salir-sutil" onclick="logout()">Salir</button>
-  </div>
-</div>
-
 <div id="loginScreen">
   <div class="loginCard">
     <h2>🔐 Acceso</h2>
@@ -898,7 +882,24 @@
   </div>
 </div>
 
-<div id="dashboardView" class="view">
+<div id="dashboardView" class="view" style="display: none;">
+  
+  <div id="navbarGlobal" class="admin-nav-bar" style="display: flex; margin-bottom: 20px;">
+    <div class="nav-left">
+      <button id="btnVolverNavbar" class="btn-atras-sutil" onclick="abrirVista('dashboardView')" style="display: none;">←</button>
+      <div>
+        <span class="nav-title">📍 Gestión de Territorio</span>
+        <span id="badge-rol-usuario">Panel de Control</span>
+      </div>
+    </div>
+    <div class="nav-right">
+      <button id="btnSuperAdminMenu" class="secondary" onclick="abrirAccesoSuperAdmin()">
+        🛠️ SuperAdmin
+      </button>
+      <button class="btn-salir-sutil" onclick="logout()">Salir</button>
+    </div>
+  </div>
+
   <div class="dashboardGrid">
     <div class="dashboardCard" onclick="abrirVista('territorioView')">
       <div class="icon">🗺️</div>
@@ -926,7 +927,16 @@
   </div>
 </div>
 
-<div id="territorioView" class="view">
+<div id="territorioView" class="view" style="display: none;">
+  <div class="admin-nav-bar" style="display: flex; margin-bottom: 15px;">
+    <div class="nav-left">
+      <button class="btn-atras-sutil" onclick="abrirVista('dashboardView')">← Volver</button>
+      <div>
+        <span class="nav-title">🗺️ Territorios y Edificios</span>
+      </div>
+    </div>
+  </div>
+
   <div style="margin-top: 15px; width: 100%;">
     <button class="buscar" onclick="abrirVista('mapaView')" style="margin: 0; width: 100%; padding: 14px 24px; font-size: 14px; font-weight: 700; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 10px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25); cursor: pointer; border: none;">
       🗺️ Abrir Mapa Maestro de Edificios
@@ -1025,8 +1035,17 @@
   </div>
 </div>
 
-<div id="problemasView" class="view">
-  <div class="component-card" style="margin-top: 20px; padding: 20px;">
+<div id="problemasView" class="view" style="display: none;">
+  <div class="admin-nav-bar" style="display: flex; margin-bottom: 15px;">
+    <div class="nav-left">
+      <button class="btn-atras-sutil" onclick="abrirVista('dashboardView')">← Volver</button>
+      <div>
+        <span class="nav-title">⚠️ Reportes Activos</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="component-card" style="padding: 20px;">
     <h2 style="color: #ffffff; margin-top: 0; margin-bottom: 0;">⚠️ Reportes de Problemas</h2>
     <div class="lista-scroll-limpia" style="margin-top: 15px; border-top: 1px solid #27272a; padding-top: 15px;">
       <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
@@ -1046,7 +1065,7 @@
   </div>
 </div>
 
-<div id="appContainer" class="view">
+<div id="appContainer" class="view" style="display: none;">
   <div class="card-container" style="max-width: 480px; margin: 0 auto; padding: 5px 15px 40px 15px;">
     
     <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px; margin-bottom: 12px;">
@@ -1146,7 +1165,7 @@
 </div>
 
 <div id="toast-container" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px; pointer-events: none;"></div>
-<div id="editarView" class="view"></div>
+<div id="editarView" class="view" style="display: none;"></div>
 
 </body>
 </html>
