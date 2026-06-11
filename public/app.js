@@ -770,18 +770,20 @@ async function mostrarInfoEdificio() {
   } else {
     try {
       const res = await apiFetch(`/building-info/${currentBuildingId}`);
-      if (res) {
-        const data = res.json ? await res.json() : res;
-        edificioData = data.building;
-        ultimaVisitaTexto = data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca";
-        if (data.issue) {
-          issueHtml = `
-            <div style="background:#7f1d1d; color:#fef2f2; border:1px solid #dc2626; padding:10px; border-radius:10px; margin-top:12px; font-size:13px; font-weight:600; line-height:1.4;">
-              ⚠ <b>Alerta (${data.issue.type}):</b> ${data.issue.description || "Sin detalles"}
-            </div>
-          `;
-        }
-      }
+      
+if (res) {
+  const data = res.json ? await res.json() : res;
+  edificioData = data.building;
+  ultimaVisitaTexto = data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca";
+  if (data.issue) {
+    
+    issueHtml = `
+      <div style="position: absolute; top: 14px; right: 14px; font-size: 20px; z-index: 10;" title="Alerta: ${data.issue.type}">
+        ⚠️
+      </div>
+    `;
+  }
+}
     } catch (err) {
       console.warn("Error buscando info extendida en red, usando datos básicos locales:", err);
       edificioData = window.edificioActivo;
@@ -814,7 +816,7 @@ async function mostrarInfoEdificio() {
   // 🔥 CONDICIONAL DE MAPA: Si no hay internet, ocultamos por completo el bloque del mapa para optimizar espacio
   const mostrarMapaVisual = navigator.onLine ? "flex" : "none";
 
-  infoEdificio.innerHTML = `
+ infoEdificio.innerHTML = `
   <div class="sectionCard" style="position: relative; background: #121214; border: 1px solid #27272a; padding: 16px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 14px;">
         <div>
