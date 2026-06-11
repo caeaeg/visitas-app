@@ -215,64 +215,40 @@ async function login() {
   }
 }
 
-/** * 5. ORQUESTADOR DE ENTORNO SEGÚN PERMISOS Y ROLES DE TRABAJO
- * Modula la UI adaptándola de forma exacta al Publicador, Conductor o Admin.
- * MODIFICADO: Ahora oculta el navbar global para el rol 'predi' y muestra su botón de salir inferior. */
+/** * 5. ORQUESTADOR DE ENTORNO SEGÚN PERMISOS Y ROLES DE TRABAJO */
 async function iniciarAppConPermisos() {
   const elLogin = document.getElementById("loginScreen");
-  const navbar = document.getElementById("navbarGlobal");
   const badge = document.getElementById("badge-rol-usuario");
   const btnSuperAdmin = document.getElementById("btnSuperAdminMenu");
-  
-  // Capturamos el botón de salir inferior exclusivo para el predi
   const btnSalirPredi = document.getElementById("btnSalirPredi");
 
   if (elLogin) elLogin.style.display = "none";
   
-  // Quitamos la línea fija que ponía el navbar en flex para todos,
-  // ahora cada rol va a decidir qué hacer con su barra de navegación.
-  
   if (typeof aplicarPermisos === "function") aplicarPermisos();
 
   if (currentRole === "predi") {
-    // 🚪 USUARIO PREDI (PUBLICADOR)
     if (badge) badge.innerText = "Publicador (Predi)";
     if (btnSuperAdmin) btnSuperAdmin.style.display = "none";
-    
-    // 🔥 CORRECCIÓN EFECTIVA: Ocultamos el navbar usando la sintaxis estándar sin romper la ejecución
-    if (navbar) {
-      navbar.style.display = "none";
-    }
-    
-    // El botón de salir abajo solo se muestra si ya se cargó la interfaz real
     if (btnSalirPredi) btnSalirPredi.style.display = "block";
     
-    console.log("⚡ Entorno PUBLICADOR (Puerta a puerta) configurado. Cargando Base Local Offline...");
+    console.log("⚡ Entorno PUBLICADOR (Puerta a puerta) configurado de forma segura y limpia.");
     await descargarBaseAdministrativa();
     
     if (typeof limpiarVista === "function") limpiarVista();
     abrirVista("appContainer");
 
   } else if (currentRole === "conductor") {
-    // 🧭 USUARIO CONDUCTOR: Capitanea un grupo, ve el mapa y estadísticas pero NO SuperAdmin.
     if (badge) badge.innerText = "Conductor de Grupo";
     if (btnSuperAdmin) btnSuperAdmin.style.display = "none";
-    
-    // Los otros roles sí necesitan ver la barra de navegación superior
-    if (navbar) navbar.style.display = "flex";
     if (btnSalirPredi) btnSalirPredi.style.display = "none";
     
-    console.log("🗺️ Entorno CONDUCTOR (Líder de Grupo) configurado. Cargando panel operativo.");
+    console.log("🗺️ Entorno CONDUCTOR configurado.");
     await descargarBaseAdministrativa();
     abrirVista("dashboardView");
 
   } else if (currentRole === "admin") {
-    // 👑 USUARIO ADMIN: Administrador total del sistema.
     if (badge) badge.innerText = "Administrador";
     if (btnSuperAdmin) btnSuperAdmin.style.display = "flex";
-    
-    // Los otros roles sí necesitan ver la barra de navegación superior
-    if (navbar) navbar.style.display = "flex";
     if (btnSalirPredi) btnSalirPredi.style.display = "none";
     
     console.log("👑 Entorno ADMINISTRADOR TOTAL activo.");
@@ -326,7 +302,7 @@ async function descargarBaseAdministrativa() {
  * MODIFICADO: Agregada protección estricta para evitar que el 'predi' acceda a 'mapaView' de admin.
  */
 function abrirVista(vistaId) {
-  // Aseguramos que el predi no pueda saltar de polizón a vistas de gestión o mapas maestros
+  // Seguro para que el predi no acceda a paneles administrativos
   if (currentRole === "predi" && vistaId !== "editarView" && vistaId !== "appContainer") {
     abrirVista("appContainer");
     return;
@@ -347,20 +323,7 @@ function abrirVista(vistaId) {
     }
   });
 
-  const navbar = document.getElementById("navbarGlobal");
-  const btnVolver = document.getElementById("btnVolverNavbar");
-
-  if (vistaId === "loginScreen") {
-    if (navbar) navbar.style.display = "none";
-  } else {
-    if (navbar) navbar.style.display = "flex";
-    if (vistaId === "dashboardView" || vistaId === "appContainer" || vistaId === "mapaView") {
-      if (btnVolver) btnVolver.style.display = "none";
-    } else {
-      if (btnVolver) btnVolver.style.display = "block";
-    }
-  }
-
+  // Lanzamiento de disparadores automáticos para vistas internas
   if (vistaId === "territorioView") {
     setTimeout(() => {
       if (typeof ejecutarFiltrosAdmin === "function") {
