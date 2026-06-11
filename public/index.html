@@ -882,23 +882,29 @@
   </div>
 </div>
 
-<div id="dashboardView" class="view" style="display: none;">
-  
-  <div id="navbarGlobal" class="admin-nav-bar" style="display: flex; margin-bottom: 20px;">
-    <div class="nav-left">
-      <button id="btnVolverNavbar" class="btn-atras-sutil" onclick="abrirVista('dashboardView')" style="display: none;">←</button>
-      <div>
+<div id="navbarGlobal" class="admin-nav-bar" style="display: flex; margin-bottom: 20px;">
+  <div class="nav-left">
+    <button id="btnVolverNavbar" class="btn-atras-sutil" onclick="abrirVista('dashboardView')" style="display: none;">←</button>
+    <div>
+      <div style="display: flex; align-items: center; gap: 8px;">
         <span class="nav-title">📍 Gestión de Territorio</span>
-        <span id="badge-rol-usuario">Panel de Control</span>
+        
+        <div id="btnSuperAdminMenu" onclick="abrirAccesoSuperAdmin()" title="Acceso Súper Administrador" style="display: none; width: 24px; height: 26px; position: relative; cursor: pointer; transform: translateY(-1px);">
+          <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; position: absolute; fill: #1e3a8a; stroke: #ffffff; stroke-width: 4;">
+            <path d="M50 0 L100 25 L100 75 L50 100 L0 75 L0 25 Z" />
+          </svg>
+          <svg viewBox="0 0 100 100" style="width: 65%; height: 65%; position: absolute; top: 17%; left: 17%; fill: #dc2626; stroke: #ffffff; stroke-width: 5;">
+            <path d="M50 8 L88 92 L12 92 Z M50 28 L72 80 L28 80 Z" />
+          </svg>
+        </div>
       </div>
-    </div>
-    <div class="nav-right">
-      <button id="btnSuperAdminMenu" class="secondary" onclick="abrirAccesoSuperAdmin()">
-        🛠️ SuperAdmin
-      </button>
-      <button class="btn-salir-sutil" onclick="logout()">Salir</button>
+      <span id="badge-rol-usuario">Panel de Control</span>
     </div>
   </div>
+  <div class="nav-right">
+    <button class="btn-salir-sutil" onclick="logout()">Salir</button>
+  </div>
+</div>
 
   <div class="dashboardGrid">
     <div class="dashboardCard" onclick="abrirVista('territorioView')">
