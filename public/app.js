@@ -221,6 +221,7 @@ async function iniciarAppConPermisos() {
   const badge = document.getElementById("badge-rol-usuario");
   const btnSuperAdmin = document.getElementById("btnSuperAdminMenu");
   const btnSalirPredi = document.getElementById("btnSalirPredi");
+  const navbar = document.getElementById("navbarGlobal");
 
   if (elLogin) elLogin.style.display = "none";
   
@@ -230,6 +231,7 @@ async function iniciarAppConPermisos() {
     if (badge) badge.innerText = "Publicador (Predi)";
     if (btnSuperAdmin) btnSuperAdmin.style.display = "none";
     if (btnSalirPredi) btnSalirPredi.style.display = "block";
+    if (navbar) navbar.style.display = "none"; // Asegura que el predi jamás lo vea
     
     console.log("⚡ Entorno PUBLICADOR (Puerta a puerta) configurado de forma segura y limpia.");
     await descargarBaseAdministrativa();
@@ -241,6 +243,7 @@ async function iniciarAppConPermisos() {
     if (badge) badge.innerText = "Conductor de Grupo";
     if (btnSuperAdmin) btnSuperAdmin.style.display = "none";
     if (btnSalirPredi) btnSalirPredi.style.display = "none";
+    if (navbar) navbar.style.display = "flex"; // 🔥 Activa la barra para el Conductor
     
     console.log("🗺️ Entorno CONDUCTOR configurado.");
     await descargarBaseAdministrativa();
@@ -250,6 +253,7 @@ async function iniciarAppConPermisos() {
     if (badge) badge.innerText = "Administrador";
     if (btnSuperAdmin) btnSuperAdmin.style.display = "flex";
     if (btnSalirPredi) btnSalirPredi.style.display = "none";
+    if (navbar) navbar.style.display = "flex"; // 👑 Activa la barra para el Admin
     
     console.log("👑 Entorno ADMINISTRADOR TOTAL activo.");
     await descargarBaseAdministrativa();
@@ -322,6 +326,27 @@ function abrirVista(vistaId) {
       }
     }
   });
+
+  // 🔄 CONTROL INTELIGENTE DEL NAVBAR Y BOTÓN VOLVER PARA GESTIÓN
+  const navbar = document.getElementById("navbarGlobal");
+  const btnVolver = document.getElementById("btnVolverNavbar");
+
+  if (navbar) {
+    // Si es predi o está en el login, el navbar se oculta por completo
+    if (currentRole === "predi" || vistaId === "loginScreen") {
+      navbar.style.display = "none";
+    } else {
+      // Para admin/conductor, se muestra siempre en las pantallas de gestión
+      navbar.style.display = "flex";
+      
+      // El botón de la flecha "←" para volver al menú principal (dashboardView)
+      if (vistaId === "dashboardView" || vistaId === "mapaView") {
+        if (btnVolver) btnVolver.style.display = "none";
+      } else {
+        if (btnVolver) btnVolver.style.display = "block";
+      }
+    }
+  }
 
   // Lanzamiento de disparadores automáticos para vistas internas
   if (vistaId === "territorioView") {
