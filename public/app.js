@@ -303,8 +303,7 @@ async function descargarBaseAdministrativa() {
 }
 
 /** * 7. ENRUTADOR DINÁMICO DE PANTALLAS (PROTECCIÓN ESTRICTA POR ROL) 
- * MODIFICADO: Agregada protección estricta para evitar que el 'predi' acceda a 'mapaView' de admin.
- */
+ * MODIFICADO: Agregada protección estricta para evitar que el 'predi' acceda a 'mapaView' de admin. */
 function abrirVista(vistaId) {
   // Seguro para que el predi no acceda a paneles administrativos
   if (currentRole === "predi" && vistaId !== "editarView" && vistaId !== "appContainer") {
@@ -402,9 +401,7 @@ window.addEventListener("load", async () => {
   }
 });
 
-/**
- * 10. INICIALIZADOR INMEDIATO AUTOCONVOCADO
- */
+/** * 10. INICIALIZADOR INMEDIATO AUTOCONVOCADO */
 (function iniciarValidacionInmediata() {
   console.log("🔄 Inicializando núcleo de la aplicación...");
 
@@ -1524,19 +1521,13 @@ function limpiarVista() {
  * Este módulo unifica el renderizado de la grilla operativa del Administrador,
  * los controles de paginación optimizados en memoria, el control de modales de
  * detalle técnico, auditorías de visitas y la consola avanzada con clave maestra. */
-
-/**
- * 6.1 RENDERIZADO DE LA GRILLA OPERATIVA DEL ADMINISTRADOR
- * Optimizado: Fila completa cliqueable para ver detalles, eliminando botones redundantes.
- */
+/** * 6.1 RENDERIZADO DE LA GRILLA OPERATIVA DEL ADMINISTRADOR * Optimizado: Fila completa cliqueable para ver detalles, eliminando botones redundantes. */
 async function cargarEdificios() {
   const tablaCuerpo = document.getElementById("tablaEdificiosCuerpo");
   if (!tablaCuerpo) return;
-
   // RESTRICCIÓN: Validamos si el usuario escribió algo en los campos de búsqueda
   const TXT_DIR = document.getElementById("busquedaDireccionAdmin")?.value.trim() || "";
   const TXT_TERR = document.getElementById("busquedaTerritorio")?.value.trim() || "";
-
   // Si ambos campos están vacíos, forzamos que permanezca el mensaje instructivo y salimos
   if (TXT_DIR === "" && TXT_TERR === "") {
     tablaCuerpo.innerHTML = `
@@ -1549,42 +1540,33 @@ async function cargarEdificios() {
     actualizarControlesPaginacion(0);
     return;
   }
-
   tablaCuerpo.innerHTML = "";
-
   // Si no hay datos cargados, intentamos una sincronización rápida
   if (!window.todosLosEdificiosDB || window.todosLosEdificiosDB.length === 0) {
     if (typeof preCargarBaseDatosEnMemoria === 'function') {
       await preCargarBaseDatosEnMemoria();
     }
   }
-
   const datosAIterar = window.todosLosEdificiosDB || [];
-
   if (datosAIterar.length === 0) {
     tablaCuerpo.innerHTML = `<tr><td style="text-align:center; color:#a1a1aa; padding:20px;">📭 No hay edificios registrados en el sistema.</td></tr>`;
     actualizarControlesPaginacion(0);
     return;
   }
-
   // Cálculo de índices para la segmentación por página
   const indiceInicio = (paginaActual - 1) * ELEMENTOS_POR_PAGINA;
   const indiceFin = indiceInicio + ELEMENTOS_POR_PAGINA;
   const paginaSegmentada = datosAIterar.slice(indiceInicio, indiceFin);
-
   paginaSegmentada.forEach(e => {
     const fila = document.createElement("tr");
     const idEdificio = e.id || e._id;
-
     // Configuración de la fila como un botón interactivo completo
     fila.style.cursor = "pointer";
     fila.style.transition = "background-color 0.2s ease";
     fila.setAttribute("onclick", `verDetalleEdificioAdmin('${idEdificio}')`);
-    
     // Efecto visual hover sencillo (puedes complementarlo en tu CSS si querés)
     fila.onmouseover = () => fila.style.backgroundColor = "#27272a";
     fila.onmouseout = () => fila.style.backgroundColor = "transparent";
-
     // Inyección limpia: Solo la Dirección. Al hacer click en cualquier lado de la fila abre el detalle.
     fila.innerHTML = `
       <td style="font-weight: 600; color: #ffffff; padding: 14px 12px; border-bottom: 1px solid #27272a;">
@@ -1594,31 +1576,22 @@ async function cargarEdificios() {
     `;
     tablaCuerpo.appendChild(fila);
   });
-
   actualizarControlesPaginacion(datosAIterar.length);
 }
 
-/**
- * 6.2 CONTROLES DE FLUJO DE PAGINACIÓN ADMIN
- * Actualiza dinámicamente las etiquetas de estado y procesa el desplazamiento incremental de la grilla.
- */
+/** * 6.2 CONTROLES DE FLUJO DE PAGINACIÓN ADMIN * Actualiza dinámicamente las etiquetas de estado y procesa el desplazamiento incremental de la grilla. */
 function actualizarControlesPaginacion(totalElementos) {
   const totalPaginas = Math.ceil(totalElementos / ELEMENTOS_POR_PAGINA) || 1;
-  
   const infoPagina = document.getElementById("infoPaginacion");
   if (infoPagina) infoPagina.innerText = `Página ${paginaActual} de ${totalPaginas}`;
-
   const btnAnt = document.getElementById("btnFiltroAnterior");
   const btnSig = document.getElementById("btnFiltroSiguiente");
-
   if (btnAnt) btnAnt.disabled = (paginaActual === 1);
   if (btnSig) btnSig.disabled = (paginaActual >= totalPaginas);
 }
-
 function cambiarPaginaAdmin(direccion) {
   const totalElementos = window.todosLosEdificiosDB ? window.todosLosEdificiosDB.length : 0;
   const totalPaginas = Math.ceil(totalElementos / ELEMENTOS_POR_PAGINA) || 1;
-  
   if (direccion === -1 && paginaActual > 1) {
     paginaActual--;
   } else if (direccion === 1 && paginaActual < totalPaginas) {
@@ -1626,34 +1599,25 @@ function cambiarPaginaAdmin(direccion) {
   }
   cargarEdificios();
 }
-
-/**
- * 6.3 INTERRUPTOR GENERAL DE MODALES DE AUDITORÍA E HISTORIAL de VISITAS
- * Controla el despliegue del modal de visitas, limpia sus tarjetas y cierra el panel lateral analítico.
- */
+/** * 6.3 INTERRUPTOR GENERAL DE MODALES DE AUDITORÍA E HISTORIAL de VISITAS * Controla el despliegue del modal de visitas, limpia sus tarjetas y cierra el panel lateral analítico. */
 async function abrirHistorialEdificio(idEdificioOpcional = null) {
   const idEdificio = idEdificioOpcional || (typeof currentBuildingId !== 'undefined' ? currentBuildingId : null);
   const contenedorHistorial = document.getElementById("historialContenido");
   const modal = document.getElementById("modalHistorial");
-  
   if (!idEdificio) {
     // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
     mostrarAviso("Primero selecciona un edificio de la lista.", "warning");
     return;
   }
-  
-  if (modal) modal.style.display = "flex";
+    if (modal) modal.style.display = "flex";
   if (contenedorHistorial) {
     contenedorHistorial.innerHTML = `<p style="color:#71717a; text-align:center; padding:20px; font-size:13px;">Buscando registros...</p>`;
   }
-  
   try {
     const res = await apiFetch(`/building-info/${idEdificio}`);
     if (!res.ok) throw new Error("No se pudo obtener el historial");
-    
     const resData = await res.json();
     const visitas = resData.history || resData.visits || resData.visitas || (resData.lastVisit ? [resData.lastVisit] : []); 
-    
     if (visitas.length === 0) {
       if (contenedorHistorial) {
         contenedorHistorial.innerHTML = `
@@ -1664,33 +1628,27 @@ async function abrirHistorialEdificio(idEdificioOpcional = null) {
       }
       return;
     }
-
     visitas.sort((a, b) => new Date(b.date || b.fecha || b.createdAt) - new Date(a.date || a.fecha || a.createdAt));
     if (contenedorHistorial) contenedorHistorial.innerHTML = "";
-    
     visitas.forEach(vis => {
       const fechaRaw = vis.date || vis.fecha || vis.createdAt;
       const fechaFormateada = fechaRaw ? new Date(fechaRaw).toLocaleDateString('es-AR', {
         day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit'
       }) : "Fecha desconocida";
-      
       const depto = vis.department || vis.depto || vis.departamento || "-";
       const estado = vis.status || vis.resultado || "REGISTRADO";
       const nota = vis.notes || vis.nota || "";
       const tieneProblema = vis.hasIssue || vis.issue || vis.problema;
-      
       let badgeColor = "#71717a"; 
       let badgeText = estado;
-      
-      if (estado === "ATENDIO" || estado === "ATENDIÓ") {
+     if (estado === "ATENDIO" || estado === "ATENDIÓ") {
         badgeColor = "#16a34a"; 
         badgeText = "✔ ATENDIÓ";
       } else if (estado === "NO_EN_CASA" || estado === "NO EN CASA") {
         badgeColor = "#ca8a04"; 
         badgeText = "✕ NO EN CASA";
       }
-      
-      const tarjetaVisita = `
+     const tarjetaVisita = `
         <div style="background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; text-align: left;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-weight: bold; color: #f4f4f5; font-size: 14px;">🚪 Depto / Unidad: <span style="color:#3b82f6;">${depto}</span></span>
@@ -1717,16 +1675,13 @@ async function abrirHistorialEdificio(idEdificioOpcional = null) {
     }
   }
 }
-
 function cerrarHistorial() {
   const modal = document.getElementById("modalHistorial");
   if (modal) modal.style.display = "none";
 }
-
 function cerrarDetalleAdmin() {
   const panel = document.getElementById("panelDetalleEdificio") || document.getElementById("panelDetalleAdmin");
   if (panel) panel.style.display = "none";
-  
   if (window.miniMapaAdminInstance) {
     try {
       window.miniMapaAdminInstance.off();
@@ -1737,54 +1692,44 @@ function cerrarDetalleAdmin() {
 }
 
 /**
- * 6.4 CONSOLA DE VALIDACIÓN SUPERADMIN
- * Procesa la llave maestra estructural de seguridad y conmuta la vista hacia el entorno analítico.
+ * =========================================================================
+ * 🔐 SECCIÓN 6.4 & 6.5: GESTIÓN DE ACCESO, CONSOLA Y ENTORNO SUPERADMIN
+ * =========================================================================
  */
+
 function verificarAccesoSuperAdmin() {
   const claveInput = document.getElementById("superAdminKey")?.value.trim();
-
   if (claveInput === "2414") {
     window.superAdminAutenticado = true;
-    
-    // 🌟 CAMBIO: Aviso estético no bloqueante en verde
     mostrarAviso("Acceso de SuperAdmin Autorizado. Abriendo panel avanzado...", "success");
-    
     if (document.getElementById("superAdminKey")) document.getElementById("superAdminKey").value = "";
     abrirVista("superAdminView");
     window.superAdminPaginaActual = 1;
     ejecutarFiltroSuperAdmin();
   } else {
-    // 🌟 CAMBIO: Aviso estético en rojo
     mostrarAviso("Clave maestra incorrecta. Intento denegado.", "error");
   }
 }
 
-// ========================================================
-// 🔐 GESTIÓN DE ACCESO SÚPER ADMINISTRADOR (MODAL PREMIUM)
-// ========================================================
-
 function abrirAccesoSuperAdmin() {
-    // 1. Limpiar el input por seguridad antes de mostrarlo
-    const inputClave = document.getElementById('inputClaveMaestra');
-    if (inputClave) inputClave.value = '';
-    
-    // 2. Mostrar el modal con flex para un centrado perfecto
-    const modal = document.getElementById('modalClaveSuperAdmin');
-    if (modal) {
-        modal.style.display = 'flex';
-    }
-    
-    // 3. Foco automático en el input para mejorar la usabilidad
-    setTimeout(() => {
-        if (inputClave) inputClave.focus();
-    }, 100);
+  const inputClave = document.getElementById('inputClaveMaestra');
+  if (inputClave) inputClave.value = '';
+  
+  const modal = document.getElementById('modalClaveSuperAdmin');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+  
+  setTimeout(() => {
+    if (inputClave) inputClave.focus();
+  }, 100);
 }
 
 function cerrarModalClave() {
-    const modal = document.getElementById('modalClaveSuperAdmin');
-    if (modal) {
-        modal.style.display = 'none';
-    }
+  const modal = document.getElementById('modalClaveSuperAdmin');
+  if (modal) {
+    modal.style.display = 'none';
+  }
 }
 
 function procesarClaveSuperAdmin() {
@@ -1795,59 +1740,62 @@ function procesarClaveSuperAdmin() {
     
     if (clave) {
         if (clave === "2414") {
-            // Cerramos el modal premium de inmediato
             cerrarModalClave();
-            
-            // Mantenemos intacto tu flujo y estados globales
             window.superAdminAutenticado = true;
             
-            // Tu aviso moderno en verde
             mostrarAviso("Acceso de SuperAdmin Autorizado. Abriendo panel avanzado...", "success");
-            
-            // Ejecución de tus vistas y filtros originales
             abrirVista("superAdminView");
+            
             window.superAdminPaginaActual = 1;
+            
+            // Forzar inicialización de datos para evitar grillas vacías al arrancar
+            if (!window.todosLosEdificiosDB || window.todosLosEdificiosDB.length === 0) {
+                window.superAdminFiltrados = [];
+            } else {
+                window.superAdminFiltrados = [...window.todosLosEdificiosDB];
+            }
+            
             ejecutarFiltroSuperAdmin();
         } else {
-            // Tu aviso moderno en rojo
             mostrarAviso("Clave maestra incorrecta. Intento denegado.", "error");
-            
-            // Limpieza del campo fallido y re-enfoque para reintentar
             inputClave.value = '';
             inputClave.focus();
         }
     }
 }
-// Permitir el envío del modal presionando la tecla Enter
-document.addEventListener('DOMContentLoaded', () => {
-    const inputClave = document.getElementById('inputClaveMaestra');
-    if (inputClave) {
-        inputClave.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                procesarClaveSuperAdmin();
-            }
-        });
-    }
-});
 
-/**
- * 6.5 FILTRADO E INTERFACES DE CONTROL DEL SUPERADMIN
- * Filtra cruzadamente las incidencias críticas reportadas desde el campo de trabajo y renderiza la grilla analítica destructiva.
- */
+function ejecutarBusquedaSuperAdmin() {
+  const input = document.getElementById("buscadorSuperAdmin");
+  const valor = input ? input.value : "";
+  const query = valor.toLowerCase().trim();
+  
+  if (query === "") {
+    window.superAdminFiltrados = window.todosLosEdificiosDB ? [...window.todosLosEdificiosDB] : [];
+  } else {
+    window.superAdminFiltrados = (window.todosLosEdificiosDB || []).filter(b => {
+      const dir = (b.address || b.direccion || "").toLowerCase();
+      const nom = (b.name || b.nombre || "").toLowerCase();
+      const terr = (b.territory || b.territorio || "").toString();
+      return dir.includes(query) || nom.includes(query) || terr.includes(query);
+    });
+  }
+  window.superAdminPaginaActual = 1;
+  renderizarTablaSuperAdmin();
+}
+
 function ejecutarFiltroSuperAdmin() {
   if (!window.superAdminAutenticado) return;
-
   const selectorFiltro = document.getElementById("superAdminFiltroEstado")?.value || "TODOS";
   const origenDatos = window.todosLosEdificiosDB || [];
   
   window.superAdminFiltrados = origenDatos.filter(e => {
     const estado = (e.status || e.estado || "Pendiente").toUpperCase();
-    
     if (selectorFiltro === "TODOS") return true;
     if (selectorFiltro === "PROBLEMA") return (estado === "PROBLEMA" || estado === "INCIDENCIA" || !!e.problema || !!e.issue);
     return estado === selectorFiltro;
   });
-
+  
+  window.superAdminPaginaActual = 1;
   renderizarTablaSuperAdmin();
 }
 
@@ -1857,9 +1805,15 @@ function renderizarTablaSuperAdmin() {
 
   tabla.innerHTML = "";
   const datosSuper = window.superAdminFiltrados || [];
+  const totalEdificios = window.todosLosEdificiosDB ? window.todosLosEdificiosDB.length : 0;
+
+  const contadorLabel = document.getElementById("contadorSuperAdmin");
+  if (contadorLabel) {
+    contadorLabel.innerText = `Mostrando ${datosSuper.length} de ${totalEdificios} edificios reales`;
+  }
 
   if (datosSuper.length === 0) {
-    tabla.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#a1a1aa; padding:20px;">📭 Ningún registro cumple el criterio del filtro seleccionado.</td></tr>`;
+    tabla.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#a1a1aa; padding:30px; font-weight:500;">📭 Ningún registro cumple el criterio del filtro seleccionado.</td></tr>`;
     actualizarPaginacionSuperAdmin(0);
     return;
   }
@@ -1871,16 +1825,30 @@ function renderizarTablaSuperAdmin() {
   segmento.forEach(e => {
     const id = e.id || e._id;
     const fila = document.createElement("tr");
-    const detalleProblema = e.notes || e.problema || (e.issue ? e.issue.description : 'Sin incidencias activas');
+    fila.style.borderBottom = "1px solid #27272a";
     
+    const detalleProblema = e.notes || e.problema || (e.issue ? e.issue.description : 'Sin incidencias activas');
+    const estadoTexto = (e.status || e.estado || 'Pendiente').toUpperCase();
+    
+    let badgeColor = "#e2e8f0";
+    if(estadoTexto === "PROBLEMA") badgeColor = "#fca5a5";
+    if(estadoTexto === "ATENDIO" || estadoTexto === "ATENDIÓ") badgeColor = "#86efac";
+
     fila.innerHTML = `
-      <td style="color:#ffffff; font-weight:500;">${e.address || 'Sin Dirección'}</td>
-      <td style="color:#e4e4e7;">${e.territory || e.territorio || '-'}</td>
-      <td style="color:#fcd34d; font-size:12px; max-width:200px; overflow:hidden; text-overflow:ellipsis;">${detalleProblema}</td>
-      <td style="color:#cbd5e1; font-weight:bold; font-size:12px;">${(e.status || e.estado || 'Pendiente').toUpperCase()}</td>
-      <td style="text-align:center;">
-        <button class="btn-super-history" onclick="verHistorialLogs('${id}')" title="Ver Historial de Logs">📜</button>
-        <button class="btn-super-delete" onclick="eliminarEdificioDestructivo('${id}')" title="Eliminar Registro permanentemente">🗑️</button>
+      <td style="padding: 14px 16px; color: #ffffff; font-weight: 600;">
+        ${e.address || 'Sin Dirección'}
+        ${e.name ? `<br><span style="color:#71717a; font-size:12px; font-weight:normal;">${e.name}</span>` : ''}
+      </td>
+      <td style="padding: 14px 16px; color: #e4e4e7; text-align: center; font-weight: 700;">${e.territory || e.territorio || '-'}</td>
+      <td style="padding: 14px 16px; color: #a1a1aa; font-size: 13px; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${detalleProblema}</td>
+      <td style="padding: 14px 16px; text-align: center;">
+        <span style="color: ${badgeColor}; font-weight: 800; font-size: 12px; letter-spacing: 0.5px;">${estadoTexto}</span>
+      </td>
+      <td style="padding: 14px 16px; text-align: right;">
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button onclick="verHistorialLogs('${id}')" title="Ver Historial de Logs" style="background: #27272a; border: 1px solid #3f3f46; color: white; padding: 6px 10px; border-radius: 8px; cursor: pointer; transition: background 0.2s;">📜 Logs</button>
+          <button onclick="eliminarEdificioDestructivo('${id}')" title="Eliminar permanentemente" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; padding: 6px 10px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s;">🗑️ Borrar</button>
+        </div>
       </td>
     `;
     tabla.appendChild(fila);
@@ -1893,12 +1861,18 @@ function actualizarPaginacionSuperAdmin(total) {
   const paginas = Math.ceil(total / ELEMENTOS_POR_PAGINA) || 1;
   const label = document.getElementById("infoPaginacionSuper");
   if (label) label.innerText = `Página ${window.superAdminPaginaActual} de ${paginas}`;
-
+  
   const btnAnt = document.getElementById("btnSuperAnt");
   const btnSig = document.getElementById("btnSuperSig");
-
-  if (btnAnt) btnAnt.disabled = (window.superAdminPaginaActual === 1);
-  if (btnSig) btnSig.disabled = (window.superAdminPaginaActual >= paginas);
+  
+  if (btnAnt) {
+    btnAnt.disabled = (window.superAdminPaginaActual === 1);
+    btnAnt.style.opacity = (window.superAdminPaginaActual === 1) ? "0.4" : "1";
+  }
+  if (btnSig) {
+    btnSig.disabled = (window.superAdminPaginaActual >= paginas);
+    btnSig.style.opacity = (window.superAdminPaginaActual >= paginas) ? "0.4" : "1";
+  }
 }
 
 function cambiarPaginaSuper(dir) {
@@ -1909,10 +1883,19 @@ function cambiarPaginaSuper(dir) {
   renderizarTablaSuperAdmin();
 }
 
-/**
- * 6.6 ACCIONES CRÍTICAS EN CASCADA Y HISTÓRICOS DE LOGS
- * Ejecuta la eliminación física irreversible en el backend y parsea las trazas de auditoría profunda.
- */
+// Escuchador global para la tecla Enter en el input de la clave
+document.addEventListener('DOMContentLoaded', () => {
+  const inputClave = document.getElementById('inputClaveMaestra');
+  if (inputClave) {
+    inputClave.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        procesarClaveSuperAdmin();
+      }
+    });
+  }
+});
+/** * 6.6 ACCIONES CRÍTICAS EN CASCADA Y HISTÓRICOS DE LOGS
+ * Ejecuta la eliminación física irreversible en el backend y parsea las trazas de auditoría profunda. */
 async function eliminarEdificioDestructivo(id) {
   // Se mantiene el confirm nativo como freno de mano de seguridad extrema antes de borrar
   const confirmacion = confirm("⚠️ ADVERTENCIA CRÍTICA ⚠️\n\n¿Está absolutamente seguro de eliminar permanentemente este edificio? Esta acción borrará de forma irreversible el historial de visitas, coordenadas y reportes asociados.");
@@ -1946,52 +1929,39 @@ async function verHistorialLogs(id) {
         ? logs.map(l => `• [${l.fecha || 'Fecha ausente'}] - ${l.usuario || 'Sistema'}: ${l.accion || 'Modificación'}`).join("\n")
         : "• No se registran logs históricos previos para este elemento.";
       
-      // 🌟 CAMBIO: Aviso moderno tipo toast. 
-      // TIP: Como es una lista de texto, si querés que dure más tiempo en pantalla para leerla bien,
-      // podés pasarle un tiempo personalizado o dejar que use el sistema estándar.
       mostrarAviso(`📜 AUDITORÍA (ID: ${id}):\n${formatLogs}`, "success");
     } else {
-      // 🌟 CAMBIO: Aviso estético de error
-      mostrarAviso("No se pudo recuperar el historial de auditoría.", "error");
+    mostrarAviso("No se pudo recuperar el historial de auditoría.", "error");
     }
   } catch (err) {
     console.error("Falla en petición de logs:", err);
-    // 🌟 CAMBIO: Aviso estético de error
+   
     mostrarAviso("Error de red al solicitar los logs.", "error");
   }
 }
-
-/**
- * 6.7 VISUALIZADOR DE DETALLES, ALERTAS HISTORIAL Y MINI-MAPA INDEPENDIENTE (ADMIN)
+/** * 6.7 VISUALIZADOR DE DETALLES, ALERTAS HISTORIAL Y MINI-MAPA INDEPENDIENTE (ADMIN)
  * Consume la información extendida desde el backend y despliega el panel técnico. */
 async function verDetalleEdificioAdmin(buildingId) {
   // Guardamos el ID en la variable global para que la app sepa qué edificio está en pantalla
   currentBuildingId = buildingId; 
-
   const panel = document.getElementById("panelDetalleEdificio");
   if (!panel) {
     console.warn("⚠️ No se encontró el contenedor 'panelDetalleEdificio' en el HTML.");
     return;
   }
-  
-  panel.style.display = "block";
+    panel.style.display = "block";
   panel.innerHTML = `<p style="text-align:center; color:gray; padding:20px;">Cargando historial y detalles...</p>`;
-
   try {
     const res = await apiFetch(`/building-info/${buildingId}`);
     if (!res.ok) throw new Error(`Status ${res.status}`);
-    
     const data = await res.json();
     const b = data.building;
     if (!b) throw new Error("No se recibieron datos válidos del edificio.");
-
-    // ✨ CALCULO DE EDIFICIO NUEVO EN PANEL ADMIN
     let cartelNuevoAdminHtml = "";
     if (b.createdAt || b.fechaCreacion) {
       const fechaCreacion = new Date(b.createdAt || b.fechaCreacion);
       const hoy = new Date();
       const diferenciaDias = Math.floor((hoy - fechaCreacion) / (1000 * 60 * 60 * 24));
-      
       if (diferenciaDias <= 30) {
         const fechaFormateada = fechaCreacion.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
         cartelNuevoAdminHtml = `
@@ -2001,7 +1971,6 @@ async function verDetalleEdificioAdmin(buildingId) {
         `;
       }
     }
-
     let alertaHtml = "";
     if (data.issue) {
   issueHtml = `
@@ -2010,13 +1979,10 @@ async function verDetalleEdificioAdmin(buildingId) {
     </div>
   `;
 }
-
-    // Renderizamos la estructura base aplicando el diseño compatible con ID como string simple
     panel.innerHTML = `
       ${cartelNuevoAdminHtml}
       ${alertaHtml}
-      
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px; gap: 10px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px; gap: 10px;">
         <div>
           <h3 style="margin:0; color:white; font-size:22px;">${b.address || "Sin Dirección"}</h3>
           <p style="color:gray; margin:2px 0;">${b.address2 || ""}</p>
@@ -2026,42 +1992,34 @@ async function verDetalleEdificioAdmin(buildingId) {
           <button class="secondary" style="width:auto; min-height:38px; padding:6px 12px; font-size:13px; border-radius:8px; white-space:nowrap;" onclick="abrirEditorEdificio('${b._id || b.id}')">✏️ Editar</button>
         </div>
       </div>
-
       <div style="display: flex; gap: 14px; align-items: stretch; margin-bottom: 15px;">
-        
-        <div style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 13px; background:#252525; padding:12px; border-radius:12px; color: #e4e4e7;">
+                <div style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 13px; background:#252525; padding:12px; border-radius:12px; color: #e4e4e7;">
           <div>🏢 <b>Nombre:</b> ${b.name || "-"}</div>
           <div>🗺️ <b>Territorio:</b> ${b.territory || b.territorio || "-"}</div>
           <div>🔢 <b>Pisos:</b> ${b.floors || 0}</div>
           <div>🚪 <b>Deptos/Piso:</b> ${b.unitsPerFloor || 0}</div>
           <div>🌱 <b>PB:</b> ${b.hasGroundFloor ? "Sí" : "No"} | 🛎️ <b>Portero:</b> ${b.hasDoorman ? "Sí" : "No"}</div>
         </div>
-
         <div id="contenedorMapaAdminSquare" style="width: 140px; height: 140px; flex-shrink: 0; position: relative; overflow: hidden; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
           <div id="miniMapaDetalle" style="width: 140px; height: 140px; border-radius: 12px; background:#181818; border: none;"></div>
         </div>
-
       </div>
-
       <h4 style="margin:10px 0 5px; color:#2196F3; font-size:16px;">🕒 Historial de Visitas e Información</h4>
       <div style="font-size:14px; background:#181818; padding:10px; border-radius:10px; max-height:180px; overflow-y:auto; border:1px solid #2b2b2b;">
         <p style="margin:0; color:#bdbdbd;">Última visita registrada: ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca"}</p>
         ${b.description ? `<p style="margin-top:8px; color:gray; font-style: italic;"><b>Descripción interna:</b> ${b.description}</p>` : ""}
       </div>
     `;
-
-    // Manejo seguro del temporizador global
+   
     if (typeof miTemporizadorMapa !== 'undefined' && miTemporizadorMapa) {
       clearTimeout(miTemporizadorMapa);
     }
-
     miTemporizadorMapa = setTimeout(() => {
       // Intentamos enlazar primero con la instancia dedicada al mapa de pantalla completa
       const miMapaReal = (typeof mapaMaestroFullscreenInstance !== 'undefined' && mapaMaestroFullscreenInstance !== null) ? mapaMaestroFullscreenInstance :
                          (typeof mapaGeneral !== 'undefined' && mapaGeneral !== null) ? mapaGeneral : 
                          (typeof leafletMap !== 'undefined' && leafletMap !== null) ? leafletMap : 
                          (typeof map !== 'undefined' && map !== null) ? map : null;
-
       const latValida = parseFloat(b.latitude);
       const lngValida = parseFloat(b.longitude);
       const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
@@ -2071,7 +2029,6 @@ async function verDetalleEdificioAdmin(buildingId) {
         try { miniMapaAdminInstance.remove(); } catch (e) { console.warn("Error limpiando mini-mapa anterior:", e); }
         miniMapaAdminInstance = null;
       }
-
       if (tieneCoordenadas) {
         setTimeout(() => {
           try {
