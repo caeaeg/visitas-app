@@ -910,53 +910,55 @@
   </div>
 </div>
 
-<div id="dashboardView" class="view" style="display: none; padding: 20px 15px;">
-  
-  <div class="dashboard-header-moderna" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding: 0 5px;">
-    <div>
-      <h2 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">📍 Gestión de Territorio</h2>
-      <span id="badge-rol-usuario" style="font-size: 13px; color: #3b82f6; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Panel de Control</span>
-    </div>
+<div id="dashboardView" class="view" style="display: none;">
+  <div class="dashboard-container-premium">
     
-    <div style="display: flex; align-items: center; gap: 12px;">
+    <div class="dashboard-header-moderna" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding: 10px 5px; border-bottom: 1px solid #27272a;">
+      <div>
+        <h2 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">📍 Gestión de Territorio</h2>
+        <span id="badge-rol-usuario" style="font-size: 13px; color: #3b82f6; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-top: 2px;">Panel de Control</span>
+      </div>
       
-      <button id="btnSuperAdminMenu" onclick="abrirAccesoSuperAdmin()" title="Acceso Súper Administrador" style="display: none; width: 40px; height: 40px; border-radius: 50%; background: #1e3a8a; border: 2px solid #3b82f6; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); transition: transform 0.2s;">
-        <svg viewBox="0 0 100 100" style="width: 20px; height: 20px; fill: #ffffff;">
-          <path d="M50 0 L100 25 L100 75 L50 100 L0 75 L0 25 Z" />
-        </svg>
-      </button>
-
-      <button class="btn-salir-premium" onclick="logout()" style="background: #27272a; border: 1px solid #3f3f46; color: #f87171; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.15);">
+      <button class="btn-salir-premium" onclick="logout()" style="background: #27272a; border: 1px solid #3f3f46; color: #f87171; padding: 10px 18px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; width: auto; margin: 0; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
         ✕ Salir
       </button>
     </div>
-  </div>
 
-  <div class="dashboardGrid">
-    <div class="dashboardCard" onclick="abrirVista('territorioView')">
-      <div class="icon">🗺️</div>
-      <div class="dashboardCard-content">
-        <h3>Territorios y Edificios</h3>
-        <p>Mapa, estadísticas, filtros e historial</p>
+    <div class="dashboardGridModerna">
+      
+      <div class="dashboardCardModerna" onclick="abrirVista('territorioView')">
+        <div class="icon">🗺️</div>
+        <div>
+          <h3>Territorios y Edificios</h3>
+          <p>Mapa, estadísticas, filtros e historial.</p>
+        </div>
       </div>
-    </div>
-    
-    <div class="dashboardCard" onclick="abrirEditorEdificio()">
-      <div class="icon">➕</div>
-      <div class="dashboardCard-content">
-        <h3>Nuevo edificio</h3>
-        <p>Agregar rápidamente</p>
+      
+      <div class="dashboardCardModerna" onclick="abrirEditorEdificio()">
+        <div class="icon">➕</div>
+        <div>
+          <h3>Nuevo Edificio</h3>
+          <p>Agregar rápidamente puntos de acceso.</p>
+        </div>
       </div>
-    </div>
-    
-    <div class="dashboardCard" onclick="abrirVista('problemasView')">
-      <div class="icon">⚠️</div>
-      <div class="dashboardCard-content">
-        <h3>Problemas</h3>
-        <p>Reportes pendientes</p>
+      
+      <div class="dashboardCardModerna" onclick="abrirVista('problemasView')">
+        <div class="icon">⚠️</div>
+        <div>
+          <h3>Problemas</h3>
+          <p>Ver reportes e incidencias pendientes.</p>
+        </div>
       </div>
-    </div>
-  </div>
+
+      <div id="btnSuperAdminMenu" class="dashboardCardModerna card-superadmin-premium" onclick="abrirAccesoSuperAdmin()" style="display: none;">
+        <div class="icon" style="background: rgba(30, 58, 138, 0.4); color: #3b82f6; border-color: rgba(59, 130, 246, 0.4);">🛡️</div>
+        <div>
+          <h3 style="color: #60a5fa;">Súper Administrador</h3>
+          <p>Configuraciones críticas del sistema y servidor.</p>
+        </div>
+      </div>
+
+    </div> </div>
 </div>
   
   <div id="territorioView" class="view" style="display: none;">
