@@ -909,7 +909,61 @@
     <p id="loginMsg"></p>
   </div>
 </div>
+<div id="superAdminView" class="vista-seccion" style="display: none; padding: 20px; color: white; max-width: 1200px; margin: 0 auto;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #27272a; padding-bottom: 15px;">
+        <div>
+            <h2 style="margin: 0; font-size: 24px; color: #f4f4f5; display: flex; align-items: center; gap: 10px;">
+                ⚡ Consola Analítica SuperAdmin
+            </h2>
+            <p id="contadorSuperAdmin" style="margin: 5px 0 0 0; color: #a1a1aa; font-size: 14px;">Cargando datos del sistema...</p>
+        </div>
+        <button onclick="abrirVista('menuPrincipal')" style="background: #27272a; border: 1px solid #3f3f46; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+            ↩ Volver al Menú
+        </button>
+    </div>
 
+    <div style="display: flex; gap: 15px; margin-bottom: 20px; background: #18181b; padding: 15px; border-radius: 12px; border: 1px solid #27272a;">
+        <div style="flex: 1; position: relative;">
+            <input type="text" id="buscadorSuperAdmin" oninput="ejecutarBusquedaSuperAdmin()" placeholder="🔍 Buscar por dirección, nombre o territorio..." 
+                   style="width: 100%; background: #09090b; border: 1px solid #27272a; color: white; padding: 10px 12px; border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+        </div>
+        <div>
+            <select id="superAdminFiltroEstado" onchange="ejecutarFiltroSuperAdmin()" 
+                    style="background: #09090b; border: 1px solid #27272a; color: white; padding: 10px 12px; border-radius: 8px; font-size: 14px; cursor: pointer; height: 100%;">
+                <option value="TODOS">📁 Todos los Estados</option>
+                <option value="PENDIENTE">⏳ Pendientes</option>
+                <option value="PROBLEMA">⚠️ Con Incidencias / Problemas</option>
+                <option value="ATENDIO">✅ Atendidos</option>
+            </select>
+        </div>
+    </div>
+
+    <div style="overflow-x: auto; background: #18181b; border-radius: 12px; border: 1px solid #27272a;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+            <thead>
+                <tr style="background: #27272a; color: #d4d4d8; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px;">
+                    <th style="padding: 12px 16px;">Dirección / Edificio</th>
+                    <th style="padding: 12px 16px; text-align: center;">Territorio</th>
+                    <th style="padding: 12px 16px;">Última Nota / Incidencia</th>
+                    <th style="padding: 12px 16px; text-align: center;">Estado</th>
+                    <th style="padding: 12px 16px; text-align: right;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaSuperAdminCuerpo">
+                </tbody>
+        </table>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; background: #18181b; padding: 12px 20px; border-radius: 10px; border: 1px solid #27272a;">
+        <span id="infoPaginacionSuper" style="color: #a1a1aa; font-size: 14px; font-weight: 500;">Página 1 de 1</span>
+        <div style="display: flex; gap: 10px;">
+            <button id="btnSuperAnt" onclick="cambiarPaginaSuper(-1)" style="background: #27272a; border: 1px solid #3f3f46; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">◀ Ant</button>
+            <button id="btnSuperSig" onclick="cambiarPaginaSuper(1)" style="background: #27272a; border: 1px solid #3f3f46; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">Sig ▶</button>
+        </div>
+    </div>
+
+</div>
 <div id="dashboardView" class="view" style="display: none;">
   <div class="dashboard-container-premium">
     
