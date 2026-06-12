@@ -1759,25 +1759,76 @@ function verificarAccesoSuperAdmin() {
   }
 }
 
+// ========================================================
+// 🔐 GESTIÓN DE ACCESO SÚPER ADMINISTRADOR (MODAL PREMIUM)
+// ========================================================
+
 function abrirAccesoSuperAdmin() {
-  // Mantenemos el prompt temporalmente para capturar el texto sin romper tu flujo actual
-  const clave = prompt("🔑 Ingrese la clave maestra de SuperAdmin:");
-  if (clave) {
-    if (clave === "2414") {
-      window.superAdminAutenticado = true;
-      
-      // 🌟 CAMBIO: Aviso moderno en verde
-      mostrarAviso("Acceso de SuperAdmin Autorizado. Abriendo panel avanzado...", "success");
-      
-      abrirVista("superAdminView");
-      window.superAdminPaginaActual = 1;
-      ejecutarFiltroSuperAdmin();
-    } else {
-      // 🌟 CAMBIO: Aviso moderno en rojo
-      mostrarAviso("Clave maestra incorrecta. Intento denegado.", "error");
+    // 1. Limpiar el input por seguridad antes de mostrarlo
+    const inputClave = document.getElementById('inputClaveMaestra');
+    if (inputClave) inputClave.value = '';
+    
+    // 2. Mostrar el modal con flex para un centrado perfecto
+    const modal = document.getElementById('modalClaveSuperAdmin');
+    if (modal) {
+        modal.style.display = 'flex';
     }
-  }
+    
+    // 3. Foco automático en el input para mejorar la usabilidad
+    setTimeout(() => {
+        if (inputClave) inputClave.focus();
+    }, 100);
 }
+
+function cerrarModalClave() {
+    const modal = document.getElementById('modalClaveSuperAdmin');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function procesarClaveSuperAdmin() {
+    const inputClave = document.getElementById('inputClaveMaestra');
+    if (!inputClave) return;
+    
+    const clave = inputClave.value;
+    
+    if (clave) {
+        if (clave === "2414") {
+            // Cerramos el modal premium de inmediato
+            cerrarModalClave();
+            
+            // Mantenemos intacto tu flujo y estados globales
+            window.superAdminAutenticado = true;
+            
+            // Tu aviso moderno en verde
+            mostrarAviso("Acceso de SuperAdmin Autorizado. Abriendo panel avanzado...", "success");
+            
+            // Ejecución de tus vistas y filtros originales
+            abrirVista("superAdminView");
+            window.superAdminPaginaActual = 1;
+            ejecutarFiltroSuperAdmin();
+        } else {
+            // Tu aviso moderno en rojo
+            mostrarAviso("Clave maestra incorrecta. Intento denegado.", "error");
+            
+            // Limpieza del campo fallido y re-enfoque para reintentar
+            inputClave.value = '';
+            inputClave.focus();
+        }
+    }
+}
+// Permitir el envío del modal presionando la tecla Enter
+document.addEventListener('DOMContentLoaded', () => {
+    const inputClave = document.getElementById('inputClaveMaestra');
+    if (inputClave) {
+        inputClave.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                procesarClaveSuperAdmin();
+            }
+        });
+    }
+});
 
 /**
  * 6.5 FILTRADO E INTERFACES DE CONTROL DEL SUPERADMIN
