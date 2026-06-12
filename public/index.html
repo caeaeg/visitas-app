@@ -868,6 +868,21 @@
         opacity: 0 !important;
         visibility: hidden;
     }
+   .btn-salir-premium:hover {
+  background: #7f1d1d !important;
+  color: #fca5a5 !important;
+  border-color: #ef4444 !important;
+  transform: translateY(-1px);
+}
+
+.btn-salir-premium:active {
+  transform: translateY(1px);
+}
+
+#btnSuperAdminMenu:hover {
+  transform: scale(1.08);
+  background: #1d4ed8;
+}
 </style>
 </head>
 <body>
@@ -882,29 +897,25 @@
   </div>
 </div>
 
-<div id="dashboardView" class="view" style="display: none;">
+<div id="dashboardView" class="view" style="display: none; padding: 20px 15px;">
   
-  <div id="navbarGlobal" class="admin-nav-bar" style="display: flex; margin-bottom: 20px;">
-    <div class="nav-left">
-      <button id="btnVolverNavbar" class="btn-atras-sutil" onclick="abrirVista('dashboardView')" style="display: none;">←</button>
-      <div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span class="nav-title">📍 Gestión de Territorio</span>
-          
-          <div id="btnSuperAdminMenu" onclick="abrirAccesoSuperAdmin()" title="Acceso Súper Administrador" style="display: none; width: 24px; height: 26px; position: relative; cursor: pointer; transform: translateY(-1px);">
-            <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; position: absolute; fill: #1e3a8a; stroke: #ffffff; stroke-width: 4;">
-              <path d="M50 0 L100 25 L100 75 L50 100 L0 75 L0 25 Z" />
-            </svg>
-            <svg viewBox="0 0 100 100" style="width: 65%; height: 65%; position: absolute; top: 17%; left: 17%; fill: #dc2626; stroke: #ffffff; stroke-width: 5;">
-              <path d="M50 8 L88 92 L12 92 Z M50 28 L72 80 L28 80 Z" />
-            </svg>
-          </div>
-        </div>
-        <span id="badge-rol-usuario">Panel de Control</span>
-      </div>
+  <div class="dashboard-header-moderna" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding: 0 5px;">
+    <div>
+      <h2 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">📍 Gestión de Territorio</h2>
+      <span id="badge-rol-usuario" style="font-size: 13px; color: #3b82f6; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Panel de Control</span>
     </div>
-    <div class="nav-right">
-      <button class="btn-salir-sutil" onclick="logout()">Salir</button>
+    
+    <div style="display: flex; align-items: center; gap: 12px;">
+      
+      <button id="btnSuperAdminMenu" onclick="abrirAccesoSuperAdmin()" title="Acceso Súper Administrador" style="display: none; width: 40px; height: 40px; border-radius: 50%; background: #1e3a8a; border: 2px solid #3b82f6; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); transition: transform 0.2s;">
+        <svg viewBox="0 0 100 100" style="width: 20px; height: 20px; fill: #ffffff;">
+          <path d="M50 0 L100 25 L100 75 L50 100 L0 75 L0 25 Z" />
+        </svg>
+      </button>
+
+      <button class="btn-salir-premium" onclick="logout()" style="background: #27272a; border: 1px solid #3f3f46; color: #f87171; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.15);">
+        ✕ Salir
+      </button>
     </div>
   </div>
 
@@ -933,8 +944,9 @@
       </div>
     </div>
   </div>
-
-</div> <div id="territorioView" class="view" style="display: none;">
+</div>
+  
+  <div id="territorioView" class="view" style="display: none;">
   <div class="admin-nav-bar" style="display: flex; margin-bottom: 15px;">
     <div class="nav-left">
       <button class="btn-atras-sutil" onclick="abrirVista('dashboardView')">← Volver</button>
