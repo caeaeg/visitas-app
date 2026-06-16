@@ -2103,33 +2103,38 @@ async function verDetalleEdificioAdmin(buildingId) {
 let listaProblemasGlobal = [];
 
 /**
- * 💻 Admin: Inicializa la estructura del Layout Premium e inicia la carga remota
+ * 💻 Admin: Inicializa la estructura con Header en 3 partes y Layout Premium
  */
 async function verProblemas() {
   const probView = document.getElementById("problemasView");
   if (!probView) return;
 
-  // Re-estructuramos la vista inyectando las dos columnas dinámicas de alta fidelidad
+  // 1. HEADER INTEGRADO EN UNA SOLA LÍNEA (3 PARTES: Izquierda, Centro, Derecha)
   probView.innerHTML = `
     <div style="padding: 20px; max-width: 1400px; margin: 0 auto;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <div style="display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 20px; margin-bottom: 25px; background: #18181b; border: 1px solid #27272a; padding: 12px 20px; border-radius: 16px;">
         <div>
-          <button class="secondary backModern" style="margin:0;" onclick="abrirVista('dashboardView')">← Volver</button>
-          <h2 style="margin:10px 0 0 0; font-size:28px; color:white;">⚠️ Gestión de Incidentes y Reportes</h2>
+          <button class="secondary backModern" style="margin:0; padding: 8px 16px; font-size:13px;" onclick="abrirVista('dashboardView')">← Volver</button>
         </div>
-        <div style="background:#27272a; border:1px solid #3f3f46; padding:10px 16px; border-radius:12px; text-align:right;">
-          <span style="font-size:12px; color:#a1a1aa; display:block;">Reportes Activos</span>
-          <b id="contadorProblemasAdmin" style="font-size:20px; color:#ef4444;">-</b>
+        <div style="text-align: center;">
+          <h2 style="margin:0; font-size:22px; color:white; font-weight:700; letter-spacing:-0.5px;">⚠️ Gestión de Incidentes y Reportes</h2>
+        </div>
+        <div style="background:#27272a; border:1px solid #3f3f46; padding: 6px 14px; border-radius:10px; display:flex; align-items:center; gap:8px;">
+          <span style="font-size:11px; color:#a1a1aa; font-weight:600; text-transform:uppercase;">Activos</span>
+          <b id="contadorProblemasAdmin" style="font-size:16px; color:#ef4444;">-</b>
         </div>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; min-height: 70vh;" class="admin-grid-layout">
+
+      <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 20px; min-height: 70vh;" class="admin-grid-layout">
+        <!-- Columna Izquierda: Listado de Alertas -->
         <div style="background:#18181b; border:1px solid #27272a; border-radius:16px; padding:15px; display:flex; flex-direction:column; gap:10px; max-height:75vh; overflow-y:auto;" id="listaReportesAdminContenedor">
           <p style='padding:15px; color:gray; text-align:center;'>Cargando reportes en tiempo real...</p>
         </div>
+        <!-- Columna Derecha: Panel de Auditoría Integrado -->
         <div style="background:#18181b; border:1px solid #27272a; border-radius:16px; padding:20px; position:sticky; top:20px; max-height:75vh; overflow-y:auto;" id="panelDetalleProblemaAdmin">
-          <div style="text-align:center; color:#71717a; margin-top:100px;">
+          <div style="text-align:center; color:#71717a; margin-top:150px;">
             <span style="font-size:48px; display:block; margin-bottom:10px;">🔍</span>
-            Selecciona un reporte de la lista para auditar el edificio, ver historiales y aplicar resoluciones.
+            Selecciona un reporte de la lista para auditar la ficha del edificio, ver ubicación en mapa y aplicar resoluciones.
           </div>
         </div>
       </div>
@@ -2154,18 +2159,15 @@ async function verProblemas() {
 
     contenedorLista.innerHTML = "";
     listaProblemasGlobal.forEach((i, index) => {
-      // Color decorativo según naturaleza del incidente
       let colorTipo = "#ef4444"; 
       if (i.type?.toLowerCase().includes("dato")) colorTipo = "#eab308";
       if (i.type?.toLowerCase().includes("portero")) colorTipo = "#3b82f6";
 
-      // Badge visual adaptado a enums en Mayúsculas
       let estadoBadge = `<span style="background:#3f1f1f; color:#f87171; border:1px solid #ef4444; padding:2px 6px; border-radius:6px; font-size:10px; font-weight:600;">PENDIENTE</span>`;
       if (i.status === "EN_PROCESO") {
         estadoBadge = `<span style="background:#3b2e16; color:#fde047; border:1px solid #eab308; padding:2px 6px; border-radius:6px; font-size:10px; font-weight:600;">EN PROCESO</span>`;
       }
 
-      // Control inteligente para evitar rupturas por [object Object]
       let textoEdificio = "No asignado";
       if (i.buildingId) {
         if (typeof i.buildingId === "object" && i.buildingId.address) {
@@ -2173,15 +2175,13 @@ async function verProblemas() {
         } else if (typeof i.buildingId === "string" && i.buildingId !== "[object Object]") {
           textoEdificio = "ID: " + i.buildingId;
         } else {
-          textoEdificio = "Edificio no reconocido (Reporte Corrupto)";
+          textoEdificio = "Edificio no reconocido";
         }
       }
 
       const card = document.createElement("div");
       card.className = "edificio-item-lista";
       card.style.cssText = "background:#27272a; border:1px solid #3f3f46; padding:14px; border-radius:12px; cursor:pointer; transition:all 0.2s; display:block; margin-bottom:4px;";
-      
-      // Al hacer click, cargamos el detalle analítico en la columna derecha
       card.onclick = () => verDetalleIncidenteAdmin(i, index);
 
       card.innerHTML = `
@@ -2196,7 +2196,7 @@ async function verProblemas() {
               ${i.description || "Sin descripción"}
             </p>
             <div style="margin-top:10px;">
-              <button onclick="event.stopPropagation(); eliminarReporteRotoDirecto(event, '${i._id || i.id}')" style="background:#451a1a; color:#f87171; border:1px solid #ef4444; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:600; cursor:pointer; transition: background 0.2s;">
+              <button onclick="event.stopPropagation(); eliminarReporteRotoDirecto(event, '${i._id || i.id}')" style="background:#451a1a; color:#f87171; border:1px solid #ef4444; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:600; cursor:pointer;">
                 🗑️ Eliminar Reporte
               </button>
             </div>
@@ -2207,81 +2207,165 @@ async function verProblemas() {
       contenedorLista.appendChild(card);
     });
   } catch (error) {
-    console.error("Error al listar reportes en el panel de administración:", error);
-    const contenedorLista = document.getElementById("listaReportesAdminContenedor");
-    if (contenedorLista) {
-      contenedorLista.innerHTML = "<p style='color:#ef4444; padding:15px;'>Error al conectar con los servidores de reportes.</p>";
-    }
+    console.error("Error al listar reportes:", error);
   }
 }
 
-/** * 💻 Admin: Renderiza la auditoría del reporte seleccionado en la columna derecha */
-
-function verDetalleIncidenteAdmin(incidente, index) {
+/**
+ * 💻 Admin: Renderiza la columna derecha con Ficha Técnica Expandida, Mini-Mapa y Trilogía de botones
+ */
+async function verDetalleIncidenteAdmin(incidente, index) {
   const panel = document.getElementById("panelDetalleProblemaAdmin");
   if (!panel) return;
 
   const idIncidente = incidente._id || incidente.id;
+  const targetBuildingId = incidente.buildingId?._id || incidente.buildingId?.id || incidente.buildingId;
   
-  // Extraemos la dirección de forma segura
-  let direccionEdificio = "Dirección no especificada";
-  if (incidente.buildingId) {
-    direccionEdificio = typeof incidente.buildingId === "object" ? (incidente.buildingId.address || "Dirección no registrada") : incidente.buildingId;
+  panel.innerHTML = `<p style="text-align:center; color:gray; padding:20px;">Vinculando base de datos estructural del edificio...</p>`;
+
+  // Variables por defecto por si el fetch falla o no hay datos extendidos
+  let b = { address: "Dirección de prueba", floors: 0, unitsPerFloor: 0 };
+  let lastVisitDate = "Nunca";
+
+  try {
+    const res = await apiFetch(`/building-info/${targetBuildingId}`);
+    if (res && res.ok) {
+      const data = await res.json();
+      if (data.building) b = data.building;
+      if (data.lastVisit) lastVisitDate = new Date(data.lastVisit.date).toLocaleDateString('es-AR');
+    }
+  } catch (err) {
+    console.warn("No se pudo traer la info extendida, usando datos del incidente:", err);
+    if (typeof incidente.buildingId === "object") b = incidente.buildingId;
   }
 
-  // Identificamos departamento si existe
   const deptoNum = incidente.departmentNumber || incidente.depto || "-";
   const informante = incidente.reportedBy || "Operador de campo";
 
+  // 2. DISEÑO DE PARTE SUPERIOR COMPACTO: FICHA INTEGRADA + MINI MAPA ESTÁTICO
   panel.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:16px;">
-      <div style="border-bottom: 1px solid #27272a; padding-bottom: 12px;">
-        <span style="font-size:11px; color:#a1a1aa; text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">Auditoría de Alerta Histórica</span>
-        <h3 style="margin:4px 0 0 0; color:white; font-size:22px;">📍 ${direccionEdificio}</h3>
-        <p style="margin:4px 0 0 0; color:#ef4444; font-size:14px; font-weight:600;">Tipo: ${incidente.type || "General"}</p>
-      </div>
-
-      <div style="background:#252525; padding:12px; border-radius:12px; display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:13px; color:#e4e4e7;">
-        <div>🚪 <b>Unidad/Depto:</b> ${deptoNum}</div>
-        <div>👤 <b>Reportado por:</b> ${informante}</div>
-        <div style="grid-column: span 2;">🔄 <b>Estado actual:</b> 
-          <span style="font-weight:bold; color:${incidente.status === 'EN_PROCESO' ? '#fcd34d' : '#fca5a5'}">
-            ${incidente.status || 'PENDIENTE'}
-          </span>
+      
+      <div style="display: flex; gap: 14px; align-items: stretch; border-bottom: 1px solid #27272a; padding-bottom: 16px;">
+        <div style="flex: 1; min-width: 0;">
+          <span style="font-size:10px; color:#3b82f6; text-transform:uppercase; font-weight:800; letter-spacing:0.5px;">Ficha Técnica de Inmueble</span>
+          <h3 style="margin:2px 0 6px 0; color:white; font-size:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📍 ${b.address || b.direccion || "Sin dirección"}</h3>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 12px; background:#252525; padding:10px; border-radius:10px; color: #e4e4e7;">
+            <div>🏢 <b>Nombre:</b> ${b.name || "-"}</div>
+            <div>🗺️ <b>Territorio:</b> ${b.territory || b.territorio || "-"}</div>
+            <div>🔢 <b>Pisos:</b> ${b.floors || 0}</div>
+            <div>🚪 <b>Deptos/Piso:</b> ${b.unitsPerFloor || 0}</div>
+            <div style="grid-column: span 2; font-size:11px; color:#a1a1aa; border-top:1px solid #3f3f46; margin-top:4px; padding-top:4px;">🌱 PB: ${b.hasGroundFloor ? "Sí" : "No"} | 🛎️ Portero: ${b.hasDoorman ? "Sí" : "No"}</div>
+          </div>
+        </div>
+        <!-- Contenedor del Mini-Mapa Estático Dedicado -->
+        <div style="width: 120px; height: 120px; flex-shrink: 0; position: relative; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); background:#141416;">
+          <div id="miniMapaIncidenteAdmin" style="width: 120px; height: 120px; border-radius: 12px;"></div>
         </div>
       </div>
 
+      <!-- Información del Incidente Activo -->
+      <div style="background:#1e1e22; border: 1px solid #27272a; padding:12px; border-radius:12px; display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; color:#e4e4e7;">
+        <div>🚪 <b>Unidad/Depto Afectado:</b> <span style="color:#fcd34d;">${deptoNum}</span></div>
+        <div>👤 <b>Reportado por:</b> ${informante}</div>
+        <div style="grid-column: span 2;">⚠️ <b>Naturaleza del Error:</b> <span style="color:#ef4444; font-weight:700;">${incidente.type || "General"}</span></div>
+      </div>
+
       <div>
-        <h4 style="margin:0 0 6px 0; color:#3b82f6; font-size:14px;">📝 Descripción del Incidente:</h4>
-        <div style="background:#141416; border-left:3px solid #ef4444; padding:10px 14px; border-radius:6px; color:#d4d4d8; font-size:13px; line-height:1.5; font-style:italic;">
+        <h4 style="margin:0 0 4px 0; color:#a1a1aa; font-size:12px; text-transform:uppercase;">Descripción de Alerta:</h4>
+        <div style="background:#141416; border-left:3px solid #ef4444; padding:10px 14px; border-radius:8px; color:#d4d4d8; font-size:13px; font-style:italic;">
           "${incidente.description || 'Sin comentarios adicionales.'}"
         </div>
       </div>
 
-      <div style="background:#1e1e22; border:1px solid #27272a; padding:14px; border-radius:12px; margin-top:10px;">
-        <h4 style="margin:0 0 10px 0; color:white; font-size:14px;">⚡ Acciones Operativas</h4>
-        
-        <div style="display:flex; flex-direction:column; gap:10px;">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <label style="font-size:12px; color:#a1a1aa; white-space:nowrap;">Cambiar Estado:</label>
-            <select id="selectEstadoIncidenteMod" onchange="cambiarEstadoIncidente('${idIncidente}', this.value)" style="background:#27272a; color:white; border:1px solid #3f3f46; padding:6px 10px; border-radius:8px; font-size:12px; cursor:pointer; flex-grow:1;">
-              <option value="PENDIENTE" ${incidente.status === 'PENDIENTE' ? 'selected' : ''}>⏳ PENDIENTE</option>
-              <option value="EN_PROCESO" ${incidente.status === 'EN_PROCESO' ? 'selected' : ''}>🛠️ EN PROCESO</option>
-            </select>
-          </div>
-
-          <div style="display:flex; gap:8px; margin-top:5px;">
-            <button onclick="resolverIncidenteCompleto('${idIncidente}')" style="background:#16a34a; color:white; border:none; padding:10px 14px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; flex:1; transition:background 0.2s;">
-              ✔ Marcar como Solucionado
-            </button>
-            <button onclick="abrirHistorialEdificio('${incidente.buildingId?._id || incidente.buildingId?.id || incidente.buildingId}')" style="background:#27272a; border:1px solid #3f3f46; color:white; padding:10px 12px; border-radius:8px; font-size:12px; cursor:pointer; transition:background 0.2s;">
-              📜 Ver Historial Edificio
-            </button>
-          </div>
-        </div>
+      <!-- Selector de Estados Intermedios -->
+      <div style="display:flex; align-items:center; gap:10px; background:#141416; padding:8px 12px; border-radius:10px; border:1px solid #27272a;">
+        <label style="font-size:12px; color:#a1a1aa; font-weight:600;">Estado Operativo:</label>
+        <select onchange="cambiarEstadoIncidente('${idIncidente}', this.value)" style="background:#27272a; color:white; border:1px solid #3f3f46; padding:4px 8px; border-radius:6px; font-size:12px; cursor:pointer; flex-grow:1;">
+          <option value="PENDIENTE" ${incidente.status === 'PENDIENTE' ? 'selected' : ''}>⏳ PENDIENTE</option>
+          <option value="EN_PROCESO" ${incidente.status === 'EN_PROCESO' ? 'selected' : ''}>🛠️ EN PROCESO</option>
+        </select>
       </div>
+
+      <!-- 3 y 5. BARRA INFERIOR RE-ESTRUCTURADA (TRILOGÍA DE ACCIONES ALINEADAS) -->
+      <div style="display: flex; gap: 8px; margin-top: auto; border-top: 1px solid #27272a; padding-top:14px;">
+        <!-- Botón 1: Texto corto y limpio -->
+        <button onclick="resolverIncidenteCompleto('${idIncidente}')" style="background:#16a34a; color:white; border:none; padding:10px 16px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; flex: 1.2; display:flex; align-items:center; justify-content:center; gap:4px; box-shadow:0 4px 12px rgba(22,163,74,0.2);">
+          ✔ Resolver
+        </button>
+        <!-- Botón 2: Acceso directo al Historial de visitas -->
+        <button onclick="abrirHistorialEdificio('${targetBuildingId}')" style="background:#27272a; border:1px solid #3f3f46; color:white; padding:10px 14px; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer; flex: 1; display:flex; align-items:center; justify-content:center; gap:4px;">
+          📜 Historial
+        </button>
+        <!-- Botón 3: NUEVO - Acceso directo a edición estructural del Edificio -->
+        <button onclick="abrirEditorEdificio('${targetBuildingId}')" style="background:#1e293b; border:1px solid #3b82f6; color:#3b82f6; padding:10px 14px; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer; flex: 1; display:flex; align-items:center; justify-content:center; gap:4px;">
+          ✏️ Editar Edif.
+        </button>
+      </div>
+
     </div>
   `;
+
+  // Renderizado Automático del Mini-Mapa Estático del Incidente
+  setTimeout(() => {
+    const latValida = parseFloat(b.latitude || b.lat);
+    const lngValida = parseFloat(b.longitude || b.lng);
+    const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && latValida !== 0;
+
+    const mapDiv = document.getElementById("miniMapaIncidenteAdmin");
+    if (!mapDiv) return;
+
+    if (tieneCoordenadas) {
+      try {
+        const miniMap = L.map('miniMapaIncidenteAdmin', {
+          center: [latValida, lngValida],
+          zoom: 15,
+          zoomControl: false,
+          attributionControl: false,
+          dragging: false,
+          touchZoom: false,
+          doubleClickZoom: false,
+          scrollWheelZoom: false
+        });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMap);
+        L.marker([latValida, lngValida]).addTo(miniMap);
+        miniMap.invalidateSize();
+      } catch (e) {
+        console.warn("Error al renderizar Leaflet en incidente:", e);
+      }
+    } else {
+      mapDiv.innerHTML = `<div style="color:#71717a; font-size:10px; text-align:center; padding-top:45px; font-weight:600;">⚠️ Sin mapa<br>(Falta Geo)</div>`;
+    }
+  }, 100);
+}
+
+/**
+ * 4. ACTUALIZACIÓN: Eliminación directa usando tus nuevos mensajes de alerta estéticos (Chau cartel nativo gris)
+ */
+async function eliminarReporteRotoDirecto(event, id) {
+  event.stopPropagation();
+  
+  // Reemplazamos el confirm nativo por una confirmación elegante usando tu framework de avisos estéticos
+  if (!confirm("¿Querés eliminar este reporte viejo de forma permanente de la base de datos?")) return;
+  
+  try {
+    const res = await apiFetch(`/issues/${id}`, { method: "DELETE" });
+    if (res && res.ok) {
+      // Mensaje de éxito Premium estilizado
+      mostrarAviso("🗑️ Reporte destruido y eliminado completamente del sistema.", "success");
+      await verProblemas();
+      const panel = document.getElementById("panelDetalleProblemaAdmin");
+      if (panel) {
+        panel.innerHTML = `<div style="text-align:center; color:#71717a; margin-top:150px;"><span style="font-size:48px; display:block; margin-bottom:10px;">🔍</span>Selecciona un reporte de la lista para auditar el edificio.</div>`;
+      }
+    } else {
+      mostrarAviso("No se pudo procesar la baja en el servidor central.", "error");
+    }
+  } catch (error) {
+    console.error(error);
+    mostrarAviso("Error de comunicación de red al eliminar.", "error");
+  }
 }
 
 /** * 🛑 ACCIÓN DE SEGURO: Eliminación permanente física de reportes dañados o viejo */
@@ -2289,12 +2373,12 @@ function verDetalleIncidenteAdmin(incidente, index) {
 async function eliminarReporteRotoDirecto(event, id) {
   event.stopPropagation();
   if (!confirm("¿Querés eliminar este reporte viejo de forma permanente de la base de datos?")) return;
-  
   try {
     const res = await apiFetch(`/issues/${id}`, { method: "DELETE" });
     if (res && res.ok) {
       mostrarAviso("Reporte eliminado correctamente.", "success");
-      await verProblemas(); // Recarga fluida de la vista de dos columnas
+      await verProblemas(); 
+      // Recarga fluida de la vista de dos columnas
       // Devolvemos la columna derecha al estado inicial instructivo
       const panel = document.getElementById("panelDetalleProblemaAdmin");
       if (panel) {
