@@ -1514,8 +1514,7 @@ function limpiarVista() {
   console.log("🧼 Interfaz del visor móvil restablecida de forma segura (Limpieza completa).");
 }
 
-/**
- * =========================================================================
+/** * =========================================================================
  * 💼 SECCIÓN 6: PANEL DE ADMINISTRACIÓN, PAGINACIÓN, MODALES Y SUPERADMIN
  * =========================================================================
  * Este módulo unifica el renderizado de la grilla operativa del Administrador,
@@ -2093,8 +2092,7 @@ async function verDetalleEdificioAdmin(buildingId) {
 // =========================================================================
 /** * 7.1 INICIALIZACIÓN DE LA ARQUITECTURA DEL MAPA MAESTRO GENERAL FULLSCREEN
  * Levanta el mapa en pantalla completa, inyecta polígonos vectoriales y renderiza
- * automáticamente marcadores (pins) con detalles para los edificios geolocalizados.
- */
+ * automáticamente marcadores (pins) con detalles para los edificios geolocalizados. */
 function inicializarMapaGeneralAdministrador() {
   // Apuntamos al nuevo div fullscreen dedicado exclusivamente al mapa maestro
   const mapaDiv = document.getElementById("mapaMaestroFullscreen");
@@ -2213,11 +2211,9 @@ function inicializarMapaGeneralAdministrador() {
   }
 }
 
-/**
- * 7.2 INTERCONEXIÓN DE FILTROS ADMINISTRATIVOS
+/** * 7.2 INTERCONEXIÓN DE FILTROS ADMINISTRATIVOS
  * Procesa en tiempo real las búsquedas por dirección o territorio cruzando los
- * datos contra la caché global para actualizar la grilla operativa de forma inmediata.
- */
+ * datos contra la caché global para actualizar la grilla operativa de forma inmediata. */
 function ejecutarFiltrosAdmin() {
   const filtroDir = document.getElementById("busquedaDireccionAdmin")?.value.toLowerCase().trim() || "";
   const filtroTerr = document.getElementById("busquedaTerritorio")?.value.toLowerCase().trim() || "";
