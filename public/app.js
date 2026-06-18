@@ -2370,59 +2370,94 @@ async function verDetalleIncidenteAdmin(incidente, index) {
   }, 100);
 }
 
-/**
- * 4. ACTUALIZACIÓN: Eliminación directa usando tus nuevos mensajes de alerta estéticos (Chau cartel nativo gris)
- */
+// Variable global temporal para el seguro del botón de eliminación directa
+let idReporteRotoBorrando = null;
+
+/** * 🛑 ACCIÓN DE SEGURO: Eliminación permanente física de reportes dañados o viejos
+ * SISTEMA: Doble click estético integrado con detención de propagación (Chau cartel gris) */
 async function eliminarReporteRotoDirecto(event, id) {
-  event.stopPropagation();
-  
-  // Reemplazamos el confirm nativo por una confirmación elegante usando tu framework de avisos estéticos
-  if (!confirm("¿Querés eliminar este reporte viejo de forma permanente de la base de datos?")) return;
-  
-  try {
-    const res = await apiFetch(`/issues/${id}`, { method: "DELETE" });
-    if (res && res.ok) {
-      // Mensaje de éxito Premium estilizado
-      mostrarAviso("🗑️ Reporte destruido y eliminado completamente del sistema.", "success");
-      await verProblemas();
-      const panel = document.getElementById("panelDetalleProblemaAdmin");
-      if (panel) {
-        panel.innerHTML = `<div style="text-align:center; color:#71717a; margin-top:150px;"><span style="font-size:48px; display:block; margin-bottom:10px;">🔍</span>Selecciona un reporte de la lista para auditar el edificio.</div>`;
-      }
-    } else {
-      mostrarAviso("No se pudo procesar la baja en el servidor central.", "error");
-    }
-  } catch (error) {
-    console.error(error);
-    mostrarAviso("Error de comunicación de red al eliminar.", "error");
+  // OBLIGATORIO: Frenamos el click para que no se active la tarjeta de la lista izquierda
+  if (event && typeof event.stopPropagation === "function") {
+    event.stopPropagation();
   }
-}
 
-/** * 🛑 ACCIÓN DE SEGURO: Eliminación permanente física de reportes dañados o viejo */
+  // 🔍 Buscamos dinámicamente el botón rojo de la tarjeta usando su atributo onclick
+  const botonEliminar = document.querySelector(`button[onclick*="eliminarReporteRotoDirecto"][onclick*="${id}"]`);
 
-async function eliminarReporteRotoDirecto(event, id) {
-  event.stopPropagation();
-  if (!confirm("¿Querés eliminar este reporte viejo de forma permanente de la base de datos?")) return;
+  // 🛡️ PASO 1: Primer click - Activamos el modo confirmación en el botón
+  if (idReporteRotoBorrando !== id) {
+    idReporteRotoBorrando = id;
+    
+    if (botonEliminar) {
+      // Guardamos el texto original por las dudas
+      botonEliminar.dataset.originalText = botonEliminar.innerHTML;
+      botonEliminar.style.background = "#dc2626"; // Rojo vivo de alerta
+      botonEliminar.style.borderColor = "#f87171";
+      botonEliminar.innerHTML = "⚠️ ¿Seguro? Eliminar";
+    }
+
+    // Seguro de 4 segundos: Si no confirma, vuelve a la normalidad solo
+    setTimeout(() => {
+      if (idReporteRotoBorrando === id) {
+        idReporteRotoBorrando = null;
+        if (botonEliminar) {
+          botonEliminar.style.background = ""; // Reestablece el CSS original
+          botonEliminar.style.borderColor = "";
+          botonEliminar.innerHTML = botonEliminar.dataset.originalText || "🗑️ Eliminar Reporte";
+        }
+      }
+    }, 4000);
+    
+    return; // Detenemos la ejecución hasta el próximo click
+  }
+
+  // 🚀 PASO 2: Segundo click - Confirmado el borrado definitivo
+  idReporteRotoBorrando = null; // Reseteamos el seguro
+  
+  if (botonEliminar) {
+    botonEliminar.innerHTML = "⏳ Eliminando...";
+    botonEliminar.disabled = true;
+  }
+
   try {
     const res = await apiFetch(`/issues/${id}`, { method: "DELETE" });
     if (res && res.ok) {
-      mostrarAviso("Reporte eliminado correctamente.", "success");
-      await verProblemas(); 
-      // Recarga fluida de la vista de dos columnas
+      // Mensaje de éxito Premium estilizado abajo
+      mostrarAviso("🗑️ Reporte destruido y eliminado completamente del sistema.", "success");
+      
+      // Actualizamos fluidamente la lista izquierda
+      await verProblemas();
+      
       // Devolvemos la columna derecha al estado inicial instructivo
       const panel = document.getElementById("panelDetalleProblemaAdmin");
       if (panel) {
-        panel.innerHTML = `<div style="text-align:center; color:#71717a; margin-top:100px;"><span style="font-size:48px; display:block; margin-bottom:10px;">🔍</span>Selecciona un reporte de la lista para auditar el edificio.</div>`;
+        panel.innerHTML = `
+          <div style="text-align:center; color:#71717a; margin-top:120px;">
+            <span style="font-size:48px; display:block; margin-bottom:10px;">🔍</span>
+            Selecciona un reporte de la lista para auditar la ficha del edificio, ver ubicación en mapa y aplicar resoluciones.
+          </div>
+        `;
       }
     } else {
-      mostrarAviso("No se pudo eliminar el reporte del servidor.", "error");
+      mostrarAviso("No se pudo procesar la baja en el servidor central.", "error");
+      restaurarBotonEliminar(botonEliminar);
     }
   } catch (error) {
     console.error("Error en eliminarReporteRotoDirecto:", error);
-    mostrarAviso("Error de red al intentar borrar.", "error");
+    mostrarAviso("Error de comunicación de red al eliminar.", "error");
+    restaurarBotonEliminar(botonEliminar);
   }
 }
 
+/** * Función auxiliar para devolver el botón a su estado normal si falla el servidor */
+function restaurarBotonEliminar(boton) {
+  if (boton) {
+    boton.disabled = false;
+    boton.style.background = "";
+    boton.style.borderColor = "";
+    boton.innerHTML = boton.dataset.originalText || "🗑️ Eliminar Reporte";
+  }
+}
 /** * 💻 Admin: Cambia el estado intermedio a EN_PROCESO o PENDIENTE en el servidor */
 
 async function cambiarEstadoIncidente(id, nuevoEstado) {
