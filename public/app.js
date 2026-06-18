@@ -29,10 +29,8 @@ let markerClusterGroup = null;  // Contenedor lógico para el empaquetado de mar
 let mapaGeneral = null;         // ✨ Instancia maestra unificada del mapa (Admin / General)
 let marcadoresClusterGlobal = null; // ✨ Grupo de clústeres dinámicos translúcidos Dark Mode
 
-/**
- * 4. ESTRATOS DE PERSISTENCIA Y FLUJO EN MEMORIA VOLÁTIL
- * Buffers e índices globales compartidos por el motor de relevamiento y paneles.
- */
+/** * 4. ESTRATOS DE PERSISTENCIA Y FLUJO EN MEMORIA VOLÁTIL
+ * Buffers e índices globales compartidos por el motor de relevamiento y paneles. */
 window.todosLosEdificiosDB = [];       // Pool central de sincronización de la base de datos
 window.baseDatosEdificiosMemoria = []; // Caché unificado para roles de administración y conducción
 window.edificiosEncontrados = [];      // Resultados temporales del motor de búsqueda predictiva
@@ -50,10 +48,8 @@ window.superAdminAutenticado = false;
 window.superAdminPaginaActual = 1;
 window.superAdminFiltrados = [];
 
-/**
- * 5. CAPTURA DINÁMICA BLINDADA DEL DOM
- * Acceso seguro a componentes del visor de campo. Evita inicializaciones nulas prematuras.
- */
+/** * 5. CAPTURA DINÁMICA BLINDADA DEL DOM
+ * Acceso seguro a componentes del visor de campo. Evita inicializaciones nulas prematuras. */
 const UI = {
   get resultado() { return document.getElementById("resultado"); },
   get infoEdificio() { return document.getElementById("infoEdificio"); },
@@ -2712,55 +2708,115 @@ function inicializarMapaGeneralAdministrador() {
 
 /** * 7.2 INTERCONEXIÓN DE FILTROS ADMINISTRATIVOS
  * Procesa en tiempo real las búsquedas por dirección o territorio cruzando los
- * datos contra la caché global para actualizar la grilla operativa de forma inmediata. */
+ * datos contra la caché global para actualizar la grilla operativa y las estadísticas. */
 function ejecutarFiltrosAdmin() {
   const filtroDir = document.getElementById("busquedaDireccionAdmin")?.value.toLowerCase().trim() || "";
   const filtroTerr = document.getElementById("busquedaTerritorio")?.value.toLowerCase().trim() || "";
 
-  // Filtramos la base de datos completa basándonos en los inputs activos
+  // 1. Filtramos la base de datos completa basándonos en los inputs activos
   window.todosLosEdificiosDB = window.baseDatosEdificiosMemoria.filter(e => {
     const cumpleDir = !filtroDir || (e.address && e.address.toLowerCase().includes(filtroDir));
     const cumpleTerr = !filtroTerr || (e.territory && String(e.territory).toLowerCase().includes(filtroTerr)) || (e.territorio && String(e.territorio).toLowerCase().includes(filtroTerr));
     return cumpleDir && cumpleTerr;
   });
 
+  // 🔥 2. EJECUTAMOS EL MOTOR DE CÁLCULO EN TIEMPO REAL
+  actualizarContadoresInformativos();
+
   // Reseteamos a la página 1 para evitar desbordamientos de índice y redibujamos
   paginaActual = 1;
-  cargarEdificios();
+  if (typeof cargarEdificios === "function") cargarEdificios();
 }
+
+/** * 📊 MOTOR DE CÁLCULO DE ESTADÍSTICAS OPERATIVAS
+* Procesa analíticamente la base de datos local en memoria y actualiza la UI. */
+function actualizarContadoresInformativos() {
+  // Usamos la base de datos total en memoria para que las estadísticas reflejen el estado global
+  const edificios = window.baseDatosEdificiosMemoria || [];
+  
+  // 🕒 Obtener fecha de referencia para los últimos 30 días
+  const hace30Dias = new Date();
+  hace30Dias.setDate(hace30Dias.getDate() - 30);
+
+  // 1. Inicializamos los acumuladores analíticos
+  let total = edificios.length;
+  let visitadosHoy = 0;
+  let nuncaVisitados = 0;
+  let alertasActivas = 0;
+  let bloqueados = 0;
+  let nuevos30Dias = 0;
+
+  // 2. Procesamos cada edificio analizando sus banderas y metadatos del backend
+  edificios.forEach(e => {
+    // 🔹 Visitados Hoy (Chequea flag booleano o si la fecha de última visita coincide con el día de hoy)
+    const hoyStr = new Date().toISOString().split('T')[0];
+    const ultimaVisitaStr = e.lastVisitDate || e.ultimaVisita || "";
+    if (e.visitedToday === true || e.visitadoHoy === true || (ultimaVisitaStr && ultimaVisitaStr.startsWith(hoyStr))) {
+      visitadosHoy++;
+    }
+
+    // 🔹 Nunca Visitados (No tiene historial ni fecha de visitas previas)
+    if (!e.lastVisitDate && !e.ultimaVisita && !e.history && e.visitsCount === 0) {
+      nuncaVisitados++;
+    }
+
+    // 🔹 Alertas Activas / Problemas (Si su estado operativo es de riesgo o tiene incidencias)
+    const estado = String(e.status || e.estado || "").toLowerCase();
+    if (estado === "problema" || estado === "alerta" || e.hasIncident === true || e.incidencia === true) {
+      alertasActivas++;
+    }
+
+    // 🔹 Bloqueados por Admin
+    if (e.isBlocked === true || e.bloqueado === true || estado === "bloqueado") {
+      bloqueados++;
+    }
+
+    // 🔹 Nuevos (Creados en los últimos 30 días)
+    const fechaCreacion = e.createdAt || e.fechaCreacion ? new Date(e.createdAt || e.fechaCreacion) : null;
+    if (fechaCreacion && fechaCreacion >= hace30Dias) {
+      nuevos30Dias++;
+    }
+  });
+
+  // 3. Inyección segura en el DOM de la aplicación
+  const safeSet = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.innerText = value;
+  };
+
+  safeSet("totalEdificios", total);
+  safeSet("visitados", visitadosHoy);
+  safeSet("nuncaVisitados", nuncaVisitados);
+  safeSet("problemasActivos", alertasActivas);
+  safeSet("edificiosBloqueados", bloqueados);
+  safeSet("edificiosNuevos", nuevos30Dias);
+}
+
 // =========================================================================
 // 🔤 SECTOR: NORMALIZADOR ALFANUMÉRICO DE DIRECCIONES Y NOMENCLATURA VIAL
 // =========================================================================
 
-/**
- * Normaliza cadenas de texto borrando acentos, caracteres extraños y abreviaturas comunes.
+/** Normaliza cadenas de texto borrando acentos, caracteres extraños y abreviaturas comunes.
  * Optimiza las búsquedas e impide fallas de inyección HTML o quiebres por comillas.
  * @param {string} texto - Dirección en bruto tipeada por el encuestador
- * @returns {string} Texto plano limpio listo para comparación indexada
- */
+ * @returns {string} Texto plano limpio listo para comparación indexada */
 function normalizarDireccion(texto) {
   if (!texto) return "";
   
   return texto
     .toLowerCase()
     .trim()
-    // Limpieza estricta de acentos y tildes (Normalización de caracteres de Posadas)
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    // Homologación de abreviaturas urbanas comunes
     .replace(/\bav\b|\bavenida\b/g, "av")
     .replace(/\bc\b|\bcalle\b/g, "")
     .replace(/\bpsje\b|\bpasaje\b/g, "psje")
-    // Reemplazo de puntuaciones y caracteres que rompen los selectores internos del DOM
     .replace(/['".,-]/g, " ")
-    // Eliminación de espacios múltiples redundantes
     .replace(/\s+/g, " ");
 }
 
-/**
- * REPARACIÓN DEFINITIVA: CONTROLADOR DE PESTAÑAS DE BÚSQUEDA (Dirección / Territorio)
- * Sincroniza las clases 'active' y alterna la visibilidad de los contenedores compactos.
- */
+/** * REPARACIÓN DEFINITIVA: CONTROLADOR DE PESTAÑAS DE BÚSQUEDA (Dirección / Territorio)
+ * Sincroniza las clases 'active' y alterna la visibilidad de los contenedores compactos. */
 function cambiarTabFiltro(tabTipo) {
   const btnDireccion = document.getElementById("btnTabDireccion");
   const btnTerritorio = document.getElementById("btnTabTerritorio");
@@ -2782,12 +2838,10 @@ function cambiarTabFiltro(tabTipo) {
     console.log("🔍 Modo de búsqueda establecido en: Territorio");
   }
 }
-/**
- * 🌟 SISTEMA DE NOTIFICACIONES VISUALES (TOAST)
+/** * 🌟 SISTEMA DE NOTIFICACIONES VISUALES (TOAST)
  * Reemplaza los alerts nativos por carteles flotantes elegantes y no bloqueantes.
  * @param {string} mensaje - El texto a mostrar.
- * @param {string} tipo - 'success', 'warning', 'error' (por defecto 'success')
- */
+ * @param {string} tipo - 'success', 'warning', 'error' (por defecto 'success') */
 function mostrarAviso(mensaje, tipo = "success") {
   const container = document.getElementById("toast-container");
   if (!container) {
