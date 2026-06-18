@@ -1088,6 +1088,9 @@ function tratarEdificioNoEncontrado() {
   if (document.getElementById("infoEdificio")) document.getElementById("infoEdificio").style.display = "none";
 }
 
+// 🔔 VARIABLE DE MEMORIA: Guarda la última vista activa antes de entrar al editor
+let vistaOrigenEdicion = "dashboardView";
+
 /** * 2. APERTURA Y RENDERIZADO DEL EDITOR * Prepara e inyecta la pantalla de edición ocultando la interfaz del predi. (Desactiva el mapa automáticamente si está offline). */
 function abrirEditorEdificio(objetoEdificio = null) {
   if (typeof objetoEdificio === "string") {
@@ -1095,6 +1098,21 @@ function abrirEditorEdificio(objetoEdificio = null) {
     objetoEdificio = (window.todosLosEdificiosDB || window.baseDatosEdificiosMemoria || []).find(e => (e.id === idBuscado || e._id === idBuscado)) || null;
   }
   
+  // 📸 CAPTURA DE MEMORIA: Detectamos dinámicamente dónde estaba parado el Admin antes de abrir el editor
+  const problemasVisibles = document.getElementById("problemasView")?.style.display === "block" || document.getElementById("problemasView")?.classList.contains("active");
+  const territorioVisible = document.getElementById("territorioView")?.style.display === "block" || document.getElementById("territorioView")?.classList.contains("active");
+  const superAdminVisible = document.getElementById("superAdminView")?.style.display === "block" || document.getElementById("superAdminView")?.classList.contains("active");
+
+  if (problemasVisibles) {
+    vistaOrigenEdicion = "problemasView";
+  } else if (territorioVisible) {
+    vistaOrigenEdicion = "territorioView";
+  } else if (superAdminVisible) {
+    vistaOrigenEdicion = "superAdminView";
+  } else {
+    vistaOrigenEdicion = "dashboardView"; // Resguardo por defecto
+  }
+
   const appContainer = document.getElementById("appContainer");
   const dashboardView = document.getElementById("dashboardView");
   
@@ -1104,7 +1122,9 @@ function abrirEditorEdificio(objetoEdificio = null) {
   abrirVista("editarView");
   
   const userRole = localStorage.getItem("role") || "predi";
-  const funcionCancelar = (userRole === "predi") ? "cancelarEdificioMovil()" : "abrirVista('dashboardView')";
+  
+  // 🔄 CORRECCIÓN QUIRÚRGICA: Si es admin, ejecuta la función dinámica en lugar del texto fijo anterior
+  const funcionCancelar = (userRole === "predi") ? "cancelarEdificioMovil()" : "cancelarEdicionAdminDinamico()";
   const esNuevo = !objetoEdificio || !(objetoEdificio.id || objetoEdificio._id);
   const direccionSugerida = esNuevo ? (document.getElementById('buildingId')?.value || '') : '';
   
@@ -1170,7 +1190,6 @@ function abrirEditorEdificio(objetoEdificio = null) {
   
   document.getElementById("editarView").innerHTML = htmlContenido;
   
-  // Renderizado coordinado del mapa (Solo si estamos online)
   if (navigator.onLine) {
     setTimeout(() => {
       const mapaContenedor = document.getElementById("mapaEditor");
@@ -1207,6 +1226,17 @@ function abrirEditorEdificio(objetoEdificio = null) {
       });
       setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); }, 150);
     }, 250);
+  }
+}
+
+/** * 🆕 NUEVA FUNCIÓN: Retorno inteligente y adaptativo para la administración*/
+function cancelarEdicionAdminDinamico() {
+  console.log("🔄 Regresando con memoria operativa a:", vistaOrigenEdicion);
+    // Volvemos a la sección exacta guardada antes del click
+  abrirVista(vistaOrigenEdicion);
+  // Si volvimos de incidentes, relanzamos el renderizado para que la pantalla no quede en blanco
+  if (vistaOrigenEdicion === "problemasView") {
+    if (typeof verProblemas === "function") verProblemas();
   }
 }
 
