@@ -2752,13 +2752,19 @@ function actualizarContadoresInformativos() {
   edificios.forEach(e => {
     // 🔹 Visitados Hoy (Chequea flag booleano o si la fecha de última visita coincide con el día de hoy)
     const hoyStr = new Date().toISOString().split('T')[0];
-    const ultimaVisitaStr = e.lastVisitDate || e.ultimaVisita || "";
+    const ultimaVisitaStr = String(e.lastVisitDate || e.ultimaVisita || "").trim();
     if (e.visitedToday === true || e.visitadoHoy === true || (ultimaVisitaStr && ultimaVisitaStr.startsWith(hoyStr))) {
       visitadosHoy++;
     }
 
-    // 🔹 Nunca Visitados (No tiene historial ni fecha de visitas previas)
-    if (!e.lastVisitDate && !e.ultimaVisita && !e.history && e.visitsCount === 0) {
+    // 🔹 🛠️ CORRECCIÓN CRÍTICA: Nunca Visitados (Formatos vacíos, nulos o marcados como "nunca")
+    // Evaluamos de forma segura si las propiedades no existen, están vacías o contienen texto de descarte
+    const vStr = String(e.lastVisitDate || e.ultimaVisita || "").trim().toLowerCase();
+    const noTieneFecha = !vStr || vStr === "" || vStr === "never" || vStr === "nunca";
+    const noTieneHistorial = !e.history || (Array.isArray(e.history) && e.history.length === 0);
+    const conteoCero = !e.visitsCount || e.visitsCount === 0 || e.visitsCount === "0";
+
+    if (noTieneFecha && (noTieneHistorial || conteoCero)) {
       nuncaVisitados++;
     }
 
@@ -2774,8 +2780,9 @@ function actualizarContadoresInformativos() {
     }
 
     // 🔹 Nuevos (Creados en los últimos 30 días)
-    const fechaCreacion = e.createdAt || e.fechaCreacion ? new Date(e.createdAt || e.fechaCreacion) : null;
-    if (fechaCreacion && fechaCreacion >= hace30Dias) {
+    const fechaCreacionRaw = e.createdAt || e.fechaCreacion;
+    const fechaCreacion = fechaCreacionRaw ? new Date(fechaCreacionRaw) : null;
+    if (fechaCreacion && !isNaN(fechaCreacion.getTime()) && fechaCreacion >= hace30Dias) {
       nuevos30Dias++;
     }
   });
