@@ -350,10 +350,12 @@ function abrirVista(vistaId) {
     }
   });
 
-  // Disparadores automáticos de mapas y filtros
+ // Disparadores automáticos de mapas y filtros
   if (vistaId === "territorioView") {
     setTimeout(() => {
       if (typeof ejecutarFiltrosAdmin === "function") ejecutarFiltrosAdmin();
+      // 🔥 REFUERZO: Fuerza el cálculo de los contadores apenas se monta la pantalla
+      if (typeof actualizarContadoresInformativos === "function") actualizarContadoresInformativos(); 
     }, 100);
   }
 
