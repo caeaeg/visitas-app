@@ -569,39 +569,63 @@
     }
     .btn-salir-sutil:hover { background: #7f1d1d; color: #fca5a5; }
 
+    /* 💎 SECCIÓN OPTIMIZADA: Grilla simétrica de microestadísticas */
     .mini-stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 15px;
-    }
-
-    .mini-stat-card {
-        background: #111113;
-        border: 1px solid #27272a;
-        border-radius: 10px;
-        padding: 14px;
-        display: flex;
-        align-items: center;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         gap: 12px;
     }
 
+    /* 💎 TARJETAS PREMIUM: Fondo oscuro integrado con micro-bordes y efectos táctiles */
+    .mini-stat-card {
+        background: #1c1c1e !important;
+        border: 1px solid #27272a !important;
+        border-radius: 12px !important;
+        padding: 12px 14px !important;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .mini-stat-card:hover {
+        transform: translateY(-2px);
+        border-color: #3f3f46 !important;
+    }
+
+    /* 💎 ICONOS MODERNOS: Burbujas estilizadas con opacidad (Efecto Glass) */
     .stat-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 6px;
+        width: 38px;
+        height: 38px;
+        border-radius: 10px !important;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 20px;
+        font-size: 18px !important;
         flex-shrink: 0;
     }
-    .b-blue { background: rgba(37, 99, 235, 0.15); }
-    .b-green { background: rgba(22, 163, 74, 0.15); }
-    .b-orange { background: rgba(217, 119, 6, 0.15); }
-    .b-red { background: rgba(220, 38, 38, 0.15); }
     
-    .stat-data h3 { margin: 0; font-size: 20px; font-weight: 700; color: #ffffff; }
-    .stat-data p { margin: 0; font-size: 14px; color: #a1a1aa; font-weight: 400; }
+    /* Variaciones cromáticas de alta fidelidad basadas en tu paleta actual */
+    .b-blue { background: rgba(59, 130, 246, 0.15) !important; color: #3b82f6 !important; }
+    .b-green { background: rgba(34, 197, 94, 0.15) !important; color: #22c55e !important; }
+    .b-orange { background: rgba(245, 158, 11, 0.15) !important; color: #f59e0b !important; }
+    .b-red { background: rgba(239, 68, 68, 0.15) !important; color: #ef4444 !important; }
+    
+    /* 💎 DATOS NUMÉRICOS: Tipografía nítida y alineada */
+    .stat-data h3 { 
+        margin: 0 !important; 
+        font-size: 18px !important; 
+        font-weight: 700 !important; 
+        color: #ffffff !important; 
+        line-height: 1.2;
+    }
+    .stat-data p { 
+        margin: 2px 0 0 0 !important; 
+        font-size: 11px !important; 
+        color: #a1a1aa !important; 
+        font-weight: 500 !important; 
+        white-space: nowrap;
+    }
 
     .workspace-grid {
         display: grid;
@@ -1034,13 +1058,13 @@
   </div>
 
   <div class="mini-stats-grid" style="margin-top: 15px;">
-    <div class="mini-stat-card"><div class="stat-icon b-blue">🏢</div><div class="stat-data"><h3 id="totalEdificios">-</h3><p>Edificios Totales</p></div></div>
-    <div class="mini-stat-card"><div class="stat-icon b-green">✅</div><div class="stat-data"><h3 id="visitados">-</h3><p>Visitados Hoy</p></div></div>
-    <div class="mini-stat-card"><div class="stat-icon b-orange">⏳</div><div class="stat-data"><h3 id="nuncaVisitados">-</h3><p>Nunca Visitados</p></div></div>
-    <div class="mini-stat-card"><div class="stat-icon b-red">⚠️</div><div class="stat-data"><h3 id="problemasActivos">-</h3><p>Alertas Activas</p></div></div>
-    <div class="mini-stat-card"><div class="stat-icon" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">🚫</div><div class="stat-data"><h3 id="edificiosBloqueados">-</h3><p>Bloqueados por Admin</p></div></div>
-    <div class="mini-stat-card"><div class="stat-icon" style="background: rgba(59, 130, 246, 0.2); color: #3b82f6;">✨</div><div class="stat-data"><h3 id="edificiosNuevos">-</h3><p>Nuevos (Últimos 30 días)</p></div></div>
-  </div>
+  <div class="mini-stat-card"><div class="stat-icon b-blue">🏢</div><div class="stat-data"><h3 id="totalEdificios">-</h3><p>Edificios Totales</p></div></div>
+  <div class="mini-stat-card"><div class="stat-icon b-green">✅</div><div class="stat-data"><h3 id="visitados">-</h3><p>Visitados Hoy</p></div></div>
+  <div class="mini-stat-card"><div class="stat-icon b-orange">⏳</div><div class="stat-data"><h3 id="nuncaVisitados">-</h3><p>Nunca Visitados</p></div></div>
+  <div class="mini-stat-card"><div class="stat-icon b-red">⚠️</div><div class="stat-data"><h3 id="problemasActivos">-</h3><p>Alertas Activas</p></div></div>
+  <div class="mini-stat-card"><div class="stat-icon b-red">🚫</div><div class="stat-data"><h3 id="edificiosBloqueados">-</h3><p>Bloqueados por Admin</p></div></div>
+  <div class="mini-stat-card"><div class="stat-icon b-blue">✨</div><div class="stat-data"><h3 id="edificiosNuevos">-</h3><p>Nuevos (Últimos 30 días)</p></div></div>
+</div>
 
   <div class="workspace-grid" style="margin-top: 20px;">
     <div class="workspace-col col-lista">
