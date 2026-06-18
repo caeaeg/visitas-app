@@ -2443,12 +2443,44 @@ async function cambiarEstadoIncidente(id, nuevoEstado) {
   }
 }
 
-/**
- * 💻 Admin: Elimina o marca como RESUELTO el problema liberando al edificio
- * MODIFICADO: Removido el confirm nativo gris del navegador para un flujo premium y directo.
- */
+// Variable temporal para el seguro del botón de resolución
+let idIncidenteConfirmando = null;
+
+/** * 💻 Admin: Elimina o marca como RESUELTO el problema liberando al edificio
+ * SISTEMA: Doble click de confirmación estética (Evita clicks accidentales sin alertas grises) */
 async function resolverIncidenteCompleto(id) {
-  // ❌ CHAU CONFIRM NATIVO: Se eliminó la alerta gris invasiva del navegador.
+  const botonResolver = document.querySelector(`button[onclick="resolverIncidenteCompleto('${id}')"]`);
+
+  // 🛡️ PASO 1: Si es el primer click, activamos el estado de alerta en el propio botón
+  if (idIncidenteConfirmando !== id) {
+    idIncidenteConfirmando = id;
+    
+    if (botonResolver) {
+      botonResolver.style.background = "#b91c1c"; // Rojo alerta
+      botonResolver.innerHTML = "⚠️ ¿Seguro? Click para Confirmar";
+    }
+
+    // Si pasan 4 segundos y no confirma, restauramos el botón automáticamente
+    setTimeout(() => {
+      if (idIncidenteConfirmando === id) {
+        idIncidenteConfirmando = null;
+        if (botonResolver) {
+          botonResolver.style.background = "#16a34a"; // Vuelve al verde original
+          botonResolver.innerHTML = "✔ Resolver";
+        }
+      }
+    }, 4000);
+    
+    return; // Frenamos acá hasta el segundo click
+  }
+
+  // 🚀 PASO 2: Si hace el segundo click, procesamos la resolución real
+  idIncidenteConfirmando = null; // Reseteamos el seguro
+  
+  if (botonResolver) {
+    botonResolver.innerHTML = "⏳ Procesando...";
+    botonResolver.disabled = true;
+  }
 
   try {
     const res = await apiFetch(`/issues/${id}`, { method: "DELETE" });
@@ -2474,11 +2506,22 @@ async function resolverIncidenteCompleto(id) {
         }
       } else {
         mostrarAviso("No se pudo procesar la baja del incidente en el servidor.", "error");
+        // Si falla, restauramos el botón
+        if (botonResolver) {
+          botonResolver.disabled = false;
+          botonResolver.style.background = "#16a34a";
+          botonResolver.innerHTML = "✔ Resolver";
+        }
       }
     }
   } catch (error) {
     console.error("Error en resolverIncidenteCompleto:", error);
     mostrarAviso("Error de conexión al procesar la resolución.", "error");
+    if (botonResolver) {
+      botonResolver.disabled = false;
+      botonResolver.style.background = "#16a34a";
+      botonResolver.innerHTML = "✔ Resolver";
+    }
   }
 }
 
