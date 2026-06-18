@@ -2443,10 +2443,13 @@ async function cambiarEstadoIncidente(id, nuevoEstado) {
   }
 }
 
-/** * 💻 Admin: Elimina o marca como RESUELTO el problema liberando al edificio */
-
+/**
+ * 💻 Admin: Elimina o marca como RESUELTO el problema liberando al edificio
+ * MODIFICADO: Removido el confirm nativo gris del navegador para un flujo premium y directo.
+ */
 async function resolverIncidenteCompleto(id) {
-  if (!confirm("¿Confirmas que el problema ha sido solucionado por completo? Se removerá la alerta activa del edificio.")) return;
+  // ❌ CHAU CONFIRM NATIVO: Se eliminó la alerta gris invasiva del navegador.
+
   try {
     const res = await apiFetch(`/issues/${id}`, { method: "DELETE" });
     if (res && res.ok) {
@@ -2465,6 +2468,10 @@ async function resolverIncidenteCompleto(id) {
       if (intentoPut && intentoPut.ok) {
         mostrarAviso("¡Incidente marcado como RESUELTO!", "success");
         await verProblemas();
+        const panel = document.getElementById("panelDetalleProblemaAdmin");
+        if (panel) {
+          panel.innerHTML = `<div style="text-align:center; color:#71717a; margin-top:100px;"><span style="font-size:48px; display:block; margin-bottom:10px;">🔍</span>Selecciona un reporte de la lista para auditar el edificio.</div>`;
+        }
       } else {
         mostrarAviso("No se pudo procesar la baja del incidente en el servidor.", "error");
       }
