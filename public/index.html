@@ -569,62 +569,125 @@
     }
     .btn-salir-sutil:hover { background: #7f1d1d; color: #fca5a5; }
 
-    /* 💎 SECCIÓN OPTIMIZADA: Grilla simétrica de microestadísticas */
+   /* ==========================================================================
+       🍱 BENTO GRID DESIGN SYSTEM (ESTADÍSTICAS MODERNIZADAS)
+       ========================================================================== */
     .mini-stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
         gap: 12px;
+        margin-top: 15px;
+        width: 100%;
     }
 
-    /* 💎 TARJETAS PREMIUM: Fondo oscuro integrado con micro-bordes y efectos táctiles */
+    /* Base Premium de Tarjeta Bento */
     .mini-stat-card {
-        background: #1c1c1e !important;
+        background: #161618 !important;
         border: 1px solid #27272a !important;
-        border-radius: 12px !important;
-        padding: 12px 14px !important;
+        border-radius: 14px !important;
+        padding: 14px 16px !important;
         display: flex;
         align-items: center;
-        gap: 12px;
-        transition: transform 0.2s ease, border-color 0.2s ease;
+        gap: 14px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .mini-stat-card:hover {
         transform: translateY(-2px);
         border-color: #3f3f46 !important;
+        background: #1c1c1e !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
 
-    /* 💎 ICONOS MODERNOS: Burbujas estilizadas con opacidad (Efecto Glass) */
+    /* 👑 Tarjeta Héroe (Métrica Principal) */
+    .mini-stat-card.card-hero {
+        background: linear-gradient(135deg, #161618 0%, #101424 100%) !important;
+        border: 1px solid rgba(59, 130, 246, 0.3) !important;
+    }
+    .mini-stat-card.card-hero:hover {
+        border-color: rgba(59, 130, 246, 0.6) !important;
+    }
+
+    /* Estilos para burbujas de iconos limpias sin fondos pesados */
     .stat-icon {
-        width: 38px;
-        height: 38px;
-        border-radius: 10px !important;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 18px !important;
+        font-size: 18px;
         flex-shrink: 0;
+        transition: transform 0.2s ease;
     }
+    .mini-stat-card:hover .stat-icon {
+        transform: scale(1.05);
+    }
+
+    /* Paleta cromática translúcida premium */
+    .b-blue   { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+    .b-green  { background: rgba(34, 197, 94, 0.12); color: #22c55e; }
+    .b-orange { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+    .b-red    { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
+    .b-purple { background: rgba(168, 85, 247, 0.12); color: #a855f7; }
+    .b-cyan   { background: rgba(6, 182, 212, 0.12); color: #06b6d4; }
     
-    /* Variaciones cromáticas de alta fidelidad basadas en tu paleta actual */
-    .b-blue { background: rgba(59, 130, 246, 0.15) !important; color: #3b82f6 !important; }
-    .b-green { background: rgba(34, 197, 94, 0.15) !important; color: #22c55e !important; }
-    .b-orange { background: rgba(245, 158, 11, 0.15) !important; color: #f59e0b !important; }
-    .b-red { background: rgba(239, 68, 68, 0.15) !important; color: #ef4444 !important; }
-    
-    /* 💎 DATOS NUMÉRICOS: Tipografía nítida y alineada */
+    /* Tipografía nítida y alineación de datos */
+    .stat-data { display: flex; flex-direction: column; min-width: 0; }
     .stat-data h3 { 
         margin: 0 !important; 
-        font-size: 18px !important; 
-        font-weight: 700 !important; 
-        color: #ffffff !important; 
-        line-height: 1.2;
+        font-size: 22px !important; 
+        font-weight: 800 !important; 
+        color: #ffffff !important;
+        line-height: 1.1;
+        letter-spacing: -0.5px;
     }
     .stat-data p { 
-        margin: 2px 0 0 0 !important; 
+        margin: 3px 0 0 0 !important; 
         font-size: 11px !important; 
-        color: #a1a1aa !important; 
-        font-weight: 500 !important; 
+        color: #71717a !important; 
+        font-weight: 600 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
         white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* ⚡ Reglas de Comportamiento del Bento Grid (Pantallas Medianas y Grandes) */
+    @media (min-width: 640px) {
+        .mini-stats-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+        .card-hero {
+            grid-column: span 2; /* Ocupa el doble en pantallas grandes */
+        }
+    }
+    @media (min-width: 1024px) {
+        .mini-stats-grid {
+            grid-template-columns: repeat(6, 1fr);
+        }
+        .card-hero { grid-column: span 2; }
+        .card-wide { grid-column: span 2; } /* Le da aire al bloque de "Nuevos" */
+    }
+
+    /* 🚨 Modificadores dinámicos para estados críticos activos */
+    .mini-stat-card.danger-active {
+        border-color: rgba(239, 68, 68, 0.45) !important;
+        background: linear-gradient(135deg, #161618 0%, #221010 100%) !important;
+        animation: pulsoCritico 2s infinite ease-in-out;
+    }
+    .mini-stat-card.warning-active {
+        border-color: rgba(168, 85, 247, 0.45) !important;
+        background: linear-gradient(135deg, #161618 0%, #191024 100%) !important;
+    }
+
+    @keyframes pulsoCritico {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.1); }
+        50% { box-shadow: 0 0 12px 2px rgba(239, 68, 68, 0.2); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.1); }
     }
 
     .workspace-grid {
@@ -1057,13 +1120,54 @@
     </button>
   </div>
 
-  <div class="mini-stats-grid" style="margin-top: 15px;">
-  <div class="mini-stat-card"><div class="stat-icon b-blue">🏢</div><div class="stat-data"><h3 id="totalEdificios">-</h3><p>Edificios Totales</p></div></div>
-  <div class="mini-stat-card"><div class="stat-icon b-green">✅</div><div class="stat-data"><h3 id="visitados">-</h3><p>Visitados Hoy</p></div></div>
-  <div class="mini-stat-card"><div class="stat-icon b-orange">⏳</div><div class="stat-data"><h3 id="nuncaVisitados">-</h3><p>Nunca Visitados</p></div></div>
-  <div class="mini-stat-card"><div class="stat-icon b-red">⚠️</div><div class="stat-data"><h3 id="problemasActivos">-</h3><p>Alertas Activas</p></div></div>
-  <div class="mini-stat-card"><div class="stat-icon b-red">🚫</div><div class="stat-data"><h3 id="edificiosBloqueados">-</h3><p>Bloqueados por Admin</p></div></div>
-  <div class="mini-stat-card"><div class="stat-icon b-blue">✨</div><div class="stat-data"><h3 id="edificiosNuevos">-</h3><p>Nuevos (Últimos 30 días)</p></div></div>
+  <div class="mini-stats-grid">
+  <div class="mini-stat-card card-hero">
+    <div class="stat-icon b-blue">🏢</div>
+    <div class="stat-data">
+      <h3 id="totalEdificios">-</h3>
+      <p>Edificios Registrados</p>
+    </div>
+  </div>
+
+  <div class="mini-stat-card">
+    <div class="stat-icon b-green">✅</div>
+    <div class="stat-data">
+      <h3 id="visitados">-</h3>
+      <p>Visitados Hoy</p>
+    </div>
+  </div>
+
+  <div class="mini-stat-card">
+    <div class="stat-icon b-orange">⏳</div>
+    <div class="stat-data">
+      <h3 id="nuncaVisitados">-</h3>
+      <p>Nunca Visitados</p>
+    </div>
+  </div>
+
+  <div class="mini-stat-card card-alerta" id="alertaCardContainer">
+    <div class="stat-icon b-red">⚠️</div>
+    <div class="stat-data">
+      <h3 id="problemasActivos">-</h3>
+      <p>Alertas Activas</p>
+    </div>
+  </div>
+
+  <div class="mini-stat-card card-bloqueado" id="bloqueadoCardContainer">
+    <div class="stat-icon b-purple">🚫</div>
+    <div class="stat-data">
+      <h3 id="edificiosBloqueados">-</h3>
+      <p>Bloqueados por Admin</p>
+    </div>
+  </div>
+
+  <div class="mini-stat-card card-wide">
+    <div class="stat-icon b-cyan">✨</div>
+    <div class="stat-data">
+      <h3 id="edificiosNuevos">-</h3>
+      <p>Nuevos (Últimos 30 días)</p>
+    </div>
+  </div>
 </div>
 
   <div class="workspace-grid" style="margin-top: 20px;">
