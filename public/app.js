@@ -158,7 +158,7 @@ async function login() {
   const pass = passField?.value.trim();
 
   if (!user || !pass) {
-    // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+    
     mostrarAviso("Por favor complete todos los campos obligatorios.", "warning");
     if (msgLabel) msgLabel.innerText = "Campos incompletos.";
     return;
@@ -207,7 +207,7 @@ async function login() {
         ? "❌ Sin conexión con el servidor." 
         : `❌ ${error.message}`;
     } else {
-      // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
+     
       mostrarAviso(`Error: ${error.message}`, "error");
     }
   } finally {
@@ -215,11 +215,31 @@ async function login() {
   }
 }
 
+/** * 🔒 FUNCIÓN DE SEGURIDAD AUXILIAR (Filtra elementos críticos en el Dashboard) */
+function aplicarFiltrosVisualesPorRol() {
+  const userRole = localStorage.getItem("role") || currentRole;
+  
+  // 🔍 Intentamos buscar la tarjeta por sus posibles selectores (ID o atributo onclick)
+  const botonSuperAdmin = document.getElementById("btnSuperAdminMenu") 
+    || document.getElementById("escudoSuperAdmin")
+    || document.querySelector('[onclick*="superAdminView"]');
+
+  if (botonSuperAdmin) {
+    if (userRole === "admin" || userRole === "superadmin") {
+      // Si es Admin total, se muestra impecable
+      botonSuperAdmin.style.display = "flex"; 
+    } else {
+      // 🛡️ Si es Conductor o Predi, se extirpa físicamente de la pantalla
+      botonSuperAdmin.style.display = "none"; 
+    }
+  }
+}
+
 /** * 5. ORQUESTADOR DE ENTORNO SEGÚN PERMISOS Y ROLES DE TRABAJO */
 async function iniciarAppConPermisos() {
   const elLogin = document.getElementById("loginScreen");
   const badge = document.getElementById("badge-rol-usuario");
-  const escudoAdmin = document.getElementById("escudoSuperAdmin"); // Selector del nuevo escudo
+  const escudoAdmin = document.getElementById("escudoSuperAdmin"); 
   const btnSalirPredi = document.getElementById("btnSalirPredi");
   const navbar = document.getElementById("navbarGlobal");
 
@@ -241,22 +261,30 @@ async function iniciarAppConPermisos() {
 
   } else if (currentRole === "conductor") {
     if (badge) badge.innerText = "Conductor de Grupo";
-    if (escudoAdmin) escudoAdmin.style.display = "none"; // Oculto para conductores
+    if (escudoAdmin) escudoAdmin.style.display = "none"; 
     if (btnSalirPredi) btnSalirPredi.style.display = "none";
     if (navbar) navbar.style.display = "flex";
     
     console.log("🗺️ Entorno CONDUCTOR configurado.");
     await descargarBaseAdministrativa();
+    
+    // 🔥 FILTRADO CRÍTICO: barremos el botón de súper admin para el conductor
+    aplicarFiltrosVisualesPorRol();
+    
     abrirVista("dashboardView");
 
   } else if (currentRole === "admin") {
     if (badge) badge.innerText = "Administrador";
-    if (escudoAdmin) escudoAdmin.style.display = "inline-block"; // 🔥 Visible SÓLO para el Admin
+    if (escudoAdmin) escudoAdmin.style.display = "inline-block"; 
     if (btnSalirPredi) btnSalirPredi.style.display = "none";
     if (navbar) navbar.style.display = "flex";
     
     console.log("👑 Entorno ADMINISTRADOR TOTAL activo.");
     await descargarBaseAdministrativa();
+    
+    // 🔥 FILTRADO CRÍTICO: mostramos el botón de súper admin
+    aplicarFiltrosVisualesPorRol();
+    
     abrirVista("dashboardView");
   }
 }
@@ -350,9 +378,7 @@ function abrirVista(vistaId) {
   }
 }
 
-/**
- * 8. CIERRE DE SESIÓN
- */
+/** * 8. CIERRE DE SESIÓN */
 function logout() {
   const buscador = document.getElementById("buildingId");
   if (buscador) buscador.value = "";
@@ -444,21 +470,21 @@ window.addEventListener("load", async () => {
 
     const navbar = document.getElementById("navbarGlobal");
     const badge = document.getElementById("badge-rol-usuario");
-    const btnSuperAdmin = document.getElementById("btnSuperAdminMenu");
 
     if (navbar) navbar.style.display = "flex";
 
+    // 🛡️ REFUERZO DE SEGURIDAD OPERATIVA
     if (currentRole === "admin") {
       if (badge) badge.innerText = "Administrador";
-      if (btnSuperAdmin) btnSuperAdmin.style.display = "flex";
+      aplicarFiltrosVisualesPorRol(); // 🔥 Controlamos visuales al iniciar
       abrirVista("dashboardView");
     } else if (currentRole === "conductor") {
       if (badge) badge.innerText = "Conductor de Grupo";
-      if (btnSuperAdmin) btnSuperAdmin.style.display = "none";
+      aplicarFiltrosVisualesPorRol(); // 🔥 Oculta de raíz la tarjeta crítica si carga directo por URL
       abrirVista("dashboardView");
     } else if (currentRole === "predi") {
       if (badge) badge.innerText = "Publicador (Predi)";
-      if (btnSuperAdmin) btnSuperAdmin.style.display = "none";
+      aplicarFiltrosVisualesPorRol();
       abrirVista("appContainer");
     }
   };
