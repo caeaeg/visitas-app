@@ -2780,7 +2780,7 @@ function actualizarContadoresInformativos() {
     }
   });
 
-  // 3. Inyección segura en el DOM de la aplicación
+ // 3. Inyección segura en el DOM de la aplicación
   const safeSet = (id, value) => {
     const el = document.getElementById(id);
     if (el) el.innerText = value;
@@ -2792,6 +2792,27 @@ function actualizarContadoresInformativos() {
   safeSet("problemasActivos", alertasActivas);
   safeSet("edificiosBloqueados", bloqueados);
   safeSet("edificiosNuevos", nuevos30Dias);
+
+  // 🔥 REACTIVIDAD DINÁMICA DEL BENTO GRID
+  // Si hay problemas reales, la tarjeta se enciende con un degradado rojo y animación de pulso
+  const alertaCard = document.getElementById("alertaCardContainer");
+  if (alertaCard) {
+    if (alertasActivas > 0) {
+      alertaCard.classList.add("danger-active");
+    } else {
+      alertaCard.classList.remove("danger-active");
+    }
+  }
+
+  // Si hay edificios bloqueados, la tarjeta adopta el aura púrpura administrativa
+  const bloqueadoCard = document.getElementById("bloqueadoCardContainer");
+  if (bloqueadoCard) {
+    if (bloqueados > 0) {
+      bloqueadoCard.classList.add("warning-active");
+    } else {
+      bloqueadoCard.classList.remove("warning-active");
+    }
+  }
 }
 
 // =========================================================================
