@@ -570,197 +570,111 @@
     .btn-salir-sutil:hover { background: #7f1d1d; color: #fca5a5; }
 
    /* ==========================================================================
-       🍱 BENTO GRID DESIGN SYSTEM (ESTADÍSTICAS MODERNIZADAS)
+       🗺️ WORKSPACE DESIGN SYSTEM (GESTIÓN DE TERRITORIOS Y EDIFICIOS)
        ========================================================================== */
-    .mini-stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 12px;
-        margin-top: 15px;
-        width: 100%;
-    }
-
-    /* Base Premium de Tarjeta Bento */
-    .mini-stat-card {
-        background: #161618 !important;
-        border: 1px solid #27272a !important;
-        border-radius: 14px !important;
-        padding: 14px 16px !important;
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        position: relative;
-        overflow: hidden;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .mini-stat-card:hover {
-        transform: translateY(-2px);
-        border-color: #3f3f46 !important;
-        background: #1c1c1e !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    }
-
-    /* 👑 Tarjeta Héroe (Métrica Principal) */
-    .mini-stat-card.card-hero {
-        background: linear-gradient(135deg, #161618 0%, #101424 100%) !important;
-        border: 1px solid rgba(59, 130, 246, 0.3) !important;
-    }
-    .mini-stat-card.card-hero:hover {
-        border-color: rgba(59, 130, 246, 0.6) !important;
-    }
-
-    /* Estilos para burbujas de iconos limpias sin fondos pesados */
-    .stat-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        flex-shrink: 0;
-        transition: transform 0.2s ease;
-    }
-    .mini-stat-card:hover .stat-icon {
-        transform: scale(1.05);
-    }
-
-    /* Paleta cromática translúcida premium */
-    .b-blue   { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
-    .b-green  { background: rgba(34, 197, 94, 0.12); color: #22c55e; }
-    .b-orange { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
-    .b-red    { background: rgba(239, 68, 68, 0.12); color: #ef4444; }
-    .b-purple { background: rgba(168, 85, 247, 0.12); color: #a855f7; }
-    .b-cyan   { background: rgba(6, 182, 212, 0.12); color: #06b6d4; }
-    
-    /* Tipografía nítida y alineación de datos */
-    .stat-data { display: flex; flex-direction: column; min-width: 0; }
-    .stat-data h3 { 
-        margin: 0 !important; 
-        font-size: 22px !important; 
-        font-weight: 800 !important; 
-        color: #ffffff !important;
-        line-height: 1.1;
-        letter-spacing: -0.5px;
-    }
-    .stat-data p { 
-        margin: 3px 0 0 0 !important; 
-        font-size: 10px !important; /* 🔥 Micro-ajuste para evitar que se recorten los textos */
-        color: #71717a !important; 
-        font-weight: 600 !important;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* ⚡ Reglas de Comportamiento del Bento Grid (Pantallas Medianas y Grandes) */
-    @media (min-width: 640px) {
-        .mini-stats-grid {
-            grid-template-columns: repeat(4, 1fr);
-        }
-        .card-hero {
-            grid-column: span 2; /* Ocupa el doble en pantallas grandes */
-        }
-    }
-    @media (min-width: 1024px) {
-        .mini-stats-grid {
-            grid-template-columns: repeat(6, 1fr);
-        }
-        .card-hero { grid-column: span 2; }
-        .card-wide { grid-column: span 2; } /* Le da aire al bloque de "Nuevos" */
-    }
-
-    /* 🚨 Modificadores dinámicos para estados críticos activos */
-    .mini-stat-card.danger-active {
-        border-color: rgba(239, 68, 68, 0.45) !important;
-        background: linear-gradient(135deg, #161618 0%, #221010 100%) !important;
-        animation: pulsoCritico 2s infinite ease-in-out;
-    }
-    .mini-stat-card.warning-active {
-        border-color: rgba(168, 85, 247, 0.45) !important;
-        background: linear-gradient(135deg, #161618 0%, #191024 100%) !important;
-    }
-
-    @keyframes pulsoCritico {
-        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.1); }
-        50% { box-shadow: 0 0 12px 2px rgba(239, 68, 68, 0.2); }
-        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.1); }
-    }
-
     .workspace-grid {
         display: grid;
         grid-template-columns: 1fr;
         gap: 16px;
+        width: 100%;
     }
     @media (min-width: 1024px) {
         .workspace-grid {
-            grid-template-columns: 300px 1fr 350px;
+            grid-template-columns: 340px 1fr; /* Optimizado para dos columnas fluidas sin bloques huérfanos */
             align-items: start;
         }
     }
 
+    /* Contenedores de componentes (Buscador, Tablas) */
     .component-card {
-        background: #111113;
-        border: 1px solid #27272a;
-        border-radius: 12px;
-        padding: 16px;
+        background: #111113 !important;
+        border: 1px solid #27272a !important;
+        border-radius: 12px !important;
+        padding: 16px !important;
         margin-bottom: 12px;
     }
-    .card-header-sm h3 { margin: 0 0 10px 0; font-size: 14px; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    .card-header-sm h3 { 
+        margin: 0 0 12px 0 !important; 
+        font-size: 12px !important; 
+        color: #a1a1aa !important; 
+        text-transform: uppercase; 
+        letter-spacing: 0.8px;
+        font-weight: 700;
+    }
+
+    /* Inputs y Selectores Integrados al Modo Oscuro */
     .filtros-compactos { display: flex; flex-direction: column; gap: 6px; }
-    .filtros-compactos input, .filtros-compactos select {
-        background: #09090b;
-        padding: 12px 14px;
-        font-size: 17px;
+    .filtros-compactos input, 
+    .filtros-compactos select {
+        background: #09090b !important;
+        border: 1px solid #27272a !important;
+        color: #ffffff !important;
+        padding: 10px 12px !important;
+        font-size: 14px !important; /* Ajustado para que no rompa la estructura compacta */
+        border-radius: 8px !important;
         margin: 4px 0;
+        width: 100%;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .filtros-compactos input:focus, 
+    .filtros-compactos select:focus {
+        border-color: #3f3f46 !important;
     }
     .filtro-doble-fila { display: flex; gap: 6px; }
 
+    /* Contenedor de Lista Scrolleable Eficiente */
     .lista-scroll-limpia {
-        max-height: 380px;
+        max-height: 420px; /* Un poco más de aire ahora que no hay estadísticas */
         overflow-y: auto;
         padding-right: 4px;
     }
     .lista-scroll-limpia::-webkit-scrollbar { width: 5px; }
     .lista-scroll-limpia::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
-    .paginador-sutil { display: flex; gap: 6px; margin-top: 10px; }
     
+    /* Paginador sutil inferior */
+    .paginador-sutil { display: flex; gap: 6px; margin-top: 12px; align-items: center; }
     .btn-pag {
         flex: 1;
-        background: #18181b;
-        border: 1px solid #27272a;
-        padding: 12px;
-        font-size: 16px;
-        margin: 0;
+        background: #18181b !important;
+        border: 1px solid #27272a !important;
+        color: white !important;
+        padding: 10px !important;
+        font-size: 14px !important;
+        border-radius: 8px !important;
+        cursor: pointer;
+        transition: background 0.2s;
     }
-    .btn-pag:hover { background: #27272a; }
+    .btn-pag:hover { background: #27272a !important; }
 
+    /* Envoltura del Mapa Maestro */
     .mapa-card-wrapper { padding: 0; overflow: hidden; border-radius: 12px; border: 1px solid #27272a; }
     .mapa-principal-moderno { height: 520px; width: 100%; background: #09090b; }
 
+    /* Items individuales de la lista de Direcciones */
     .edificio-item-lista {
-        background: #18181b;
-        border: 1px solid #27272a;
+        background: #18181b !important;
+        border: 1px solid #27272a !important;
         border-radius: 8px;
-        padding: 14px;
+        padding: 12px 14px;
         margin-bottom: 8px;
         display: flex;
         justify-content: space-between;
         align-items: center;
         cursor: pointer;
-        transition: background 0.2s, border-color 0.2s;
+        transition: all 0.2s ease;
     }
     .edificio-item-lista:hover {
-        background: #202024;
-        border-color: #3f3f46;
+        background: #202024 !important;
+        border-color: #3f3f46 !important;
+        transform: translateX(2px);
     }
-    .edificio-info-txt { display: flex; flex-direction: column; gap: 4px; }
-    .edif-dir { font-size: 18px; font-weight: 600; color: #ffffff; }
-    .edif-sub { font-size: 15px; color: #a1a1aa; }
-    .btn-ver-flecha { font-size: 18px; color: #71717a; }
+    .edificio-info-txt { display: flex; flex-direction: column; gap: 2px; }
+    .edif-dir { font-size: 15px; font-weight: 600; color: #ffffff; }
+    .edif-sub { font-size: 12px; color: #71717a; }
+    
+    .btn-ver-flecha { font-size: 16px; color: #71717a; transition: color 0.2s; }
     .edificio-item-lista:hover .btn-ver-flecha { color: #3b82f6; }
 
     /* ==========================================================================
@@ -1102,7 +1016,7 @@
     </div> </div>
 </div>
   
-  <div id="territorioView" class="view" style="display: none;">
+ <div id="territorioView" class="view" style="display: none;">
   <div class="admin-nav-bar" style="display: flex; margin-bottom: 15px; align-items: center; justify-content: space-between;">
     <div class="nav-left" style="display: flex; align-items: center; gap: 12px;">
       <button onclick="abrirVista('dashboardView')" style="background: #27272a; border: 1px solid #3f3f46; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; transition: background 0.2s; padding: 0;">
@@ -1120,58 +1034,9 @@
     </button>
   </div>
 
-  <div class="mini-stats-grid">
-  <div class="mini-stat-card card-hero">
-    <div class="stat-icon b-blue">🏢</div>
-    <div class="stat-data">
-      <h3 id="totalEdificios">-</h3>
-      <p>Edificios Registrados</p>
-    </div>
-  </div>
-
-  <div class="mini-stat-card">
-    <div class="stat-icon b-green">✅</div>
-    <div class="stat-data">
-      <h3 id="visitados">-</h3>
-      <p>Visitados Hoy</p>
-    </div>
-  </div>
-
-  <div class="mini-stat-card">
-    <div class="stat-icon b-orange">⏳</div>
-    <div class="stat-data">
-      <h3 id="nuncaVisitados">-</h3>
-      <p>Nunca Visitados</p>
-    </div>
-  </div>
-
-  <div class="mini-stat-card card-alerta" id="alertaCardContainer">
-    <div class="stat-icon b-red">⚠️</div>
-    <div class="stat-data">
-      <h3 id="problemasActivos">-</h3>
-      <p>Alertas Activas</p>
-    </div>
-  </div>
-
-  <div class="mini-stat-card card-bloqueado" id="bloqueadoCardContainer">
-    <div class="stat-icon b-purple">🚫</div>
-    <div class="stat-data">
-      <h3 id="edificiosBloqueados">-</h3>
-      <p>Bloqueados por Admin</p>
-    </div>
-  </div>
-
-  <div class="mini-stat-card card-wide">
-    <div class="stat-icon b-cyan">✨</div>
-    <div class="stat-data">
-      <h3 id="edificiosNuevos">-</h3>
-      <p>Nuevos (Últimos 30 días)</p>
-    </div>
-  </div>
-</div>
-
   <div class="workspace-grid" style="margin-top: 20px;">
     <div class="workspace-col col-lista">
+      
       <div class="component-card">
         <div class="tabs-filtros">
           <button id="btnTabDireccion" class="tab-btn active" onclick="cambiarTabFiltro('direccion')">📍 Dirección</button>
