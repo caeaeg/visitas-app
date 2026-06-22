@@ -1074,6 +1074,7 @@ window.addEventListener('online', async () => {
     console.warn("⚠️ Sincronización parcial: Quedan elementos pendientes en zonas de baja cobertura.");
   }
 });
+
 // =========================================================================
 // 🛠️ MÓDULO ADICIONAL: EDITOR EXPANDIDO DINÁMICO (CREACIÓN / EDICIÓN)
 // =========================================================================
@@ -1574,53 +1575,86 @@ function limpiarVista() {
   console.log("🧼 Interfaz del visor móvil restablecida de forma segura (Limpieza completa).");
 }
 
-/** * =========================================================================
+/** =========================================================================
  * 💼 SECCIÓN 6: PANEL DE ADMINISTRACIÓN, PAGINACIÓN, MODALES Y SUPERADMIN
  * =========================================================================
  * Este módulo unifica el renderizado de la grilla operativa del Administrador,
  * los controles de paginación optimizados en memoria, el control de modales de
- * detalle técnico, auditorías de visitas y la consola avanzada con clave maestra. */
+ * detalle técnico, auditorías de visitas y la consola avanzada con clave maestra.
+ */
 
+/**
+ * -------------------------------------------------------------------------
+ * 📦 SUB-SECCIÓN 6.1: CONTROLES DE FLUJO DE PAGINACIÓN ADMIN
+ * -------------------------------------------------------------------------
+ * Actualiza dinámicamente las etiquetas de estado y procesa el desplazamiento 
+ * incremental de la grilla operativa principal en memoria.
+ */
 
-/** * 6.2 CONTROLES DE FLUJO DE PAGINACIÓN ADMIN * Actualiza dinámicamente las etiquetas de estado y procesa el desplazamiento incremental de la grilla. */
 function actualizarControlesPaginacion(totalElementos) {
-  const totalPaginas = Math.ceil(totalElementos / ELEMENTOS_POR_PAGINA) || 1;
+  const limite = typeof ELEMENTOS_POR_PAGINA !== 'undefined' ? ELEMENTOS_POR_PAGINA : 7;
+  const totalPaginas = Math.ceil(totalElementos / limite) || 1;
   const infoPagina = document.getElementById("infoPaginacion");
-  if (infoPagina) infoPagina.innerText = `Página ${paginaActual} de ${totalPaginas}`;
+  
+  if (infoPagina) {
+    infoPagina.innerText = `Página ${paginaActual} de ${totalPaginas}`;
+  }
+  
   const btnAnt = document.getElementById("btnFiltroAnterior");
   const btnSig = document.getElementById("btnFiltroSiguiente");
+  
   if (btnAnt) btnAnt.disabled = (paginaActual === 1);
   if (btnSig) btnSig.disabled = (paginaActual >= totalPaginas);
 }
+
 function cambiarPaginaAdmin(direccion) {
   const totalElementos = window.todosLosEdificiosDB ? window.todosLosEdificiosDB.length : 0;
-  const totalPaginas = Math.ceil(totalElementos / ELEMENTOS_POR_PAGINA) || 1;
+  const limite = typeof ELEMENTOS_POR_PAGINA !== 'undefined' ? ELEMENTOS_POR_PAGINA : 7;
+  const totalPaginas = Math.ceil(totalElementos / limite) || 1;
+  
   if (direccion === -1 && paginaActual > 1) {
     paginaActual--;
   } else if (direccion === 1 && paginaActual < totalPaginas) {
     paginaActual++;
   }
-  cargarEdificios();
+  
+  if (typeof cargarEdificios === "function") cargarEdificios();
 }
-/** * 6.3 INTERRUPTOR GENERAL DE MODALES DE AUDITORÍA E HISTORIAL de VISITAS * Controla el despliegue del modal de visitas, limpia sus tarjetas y cierra el panel lateral analítico. */
+
+/**
+ * -------------------------------------------------------------------------
+ * 📦 SUB-SECCIÓN 6.2: INTERRUPTOR GENERAL DE MODALES DE AUDITORÍA E HISTORIAL
+ * -------------------------------------------------------------------------
+ * Controla el despliegue del modal de visitas, procesa e inyecta de forma 
+ * estética las tarjetas cronológicas y gestiona el cierre de paneles analíticos.
+ */
+
 async function abrirHistorialEdificio(idEdificioOpcional = null) {
   const idEdificio = idEdificioOpcional || (typeof currentBuildingId !== 'undefined' ? currentBuildingId : null);
   const contenedorHistorial = document.getElementById("historialContenido");
   const modal = document.getElementById("modalHistorial");
+  
   if (!idEdificio) {
-    // 🌟 CAMBIO: Se usa mostrarAviso en lugar de alert
-    mostrarAviso("Primero selecciona un edificio de la lista.", "warning");
+    if (typeof mostrarAviso === "function") {
+      mostrarAviso("Primero selecciona un edificio de la lista.", "warning");
+    } else {
+      alert("Primero selecciona un edificio de la lista.");
+    }
     return;
   }
-    if (modal) modal.style.display = "flex";
+  
+  if (modal) modal.style.display = "flex";
   if (contenedorHistorial) {
     contenedorHistorial.innerHTML = `<p style="color:#71717a; text-align:center; padding:20px; font-size:13px;">Buscando registros...</p>`;
   }
+  
   try {
     const res = await apiFetch(`/building-info/${idEdificio}`);
     if (!res.ok) throw new Error("No se pudo obtener el historial");
+    
     const resData = await res.json();
     const visitas = resData.history || resData.visits || resData.visitas || (resData.lastVisit ? [resData.lastVisit] : []); 
+    
     if (visitas.length === 0) {
       if (contenedorHistorial) {
         contenedorHistorial.innerHTML = `
@@ -1631,27 +1665,35 @@ async function abrirHistorialEdificio(idEdificioOpcional = null) {
       }
       return;
     }
+    
+    // Clasificación cronológica descendente (Visitas más recientes primero)
     visitas.sort((a, b) => new Date(b.date || b.fecha || b.createdAt) - new Date(a.date || a.fecha || a.createdAt));
+    
     if (contenedorHistorial) contenedorHistorial.innerHTML = "";
+    
     visitas.forEach(vis => {
       const fechaRaw = vis.date || vis.fecha || vis.createdAt;
       const fechaFormateada = fechaRaw ? new Date(fechaRaw).toLocaleDateString('es-AR', {
-        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit'
+        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
       }) : "Fecha desconocida";
+      
       const depto = vis.department || vis.depto || vis.departamento || "-";
       const estado = vis.status || vis.resultado || "REGISTRADO";
       const nota = vis.notes || vis.nota || "";
       const tieneProblema = vis.hasIssue || vis.issue || vis.problema;
+      
       let badgeColor = "#71717a"; 
       let badgeText = estado;
-     if (estado === "ATENDIO" || estado === "ATENDIÓ") {
+      
+      if (estado === "ATENDIO" || estado === "ATENDIÓ") {
         badgeColor = "#16a34a"; 
         badgeText = "✔ ATENDIÓ";
       } else if (estado === "NO_EN_CASA" || estado === "NO EN CASA") {
         badgeColor = "#ca8a04"; 
         badgeText = "✕ NO EN CASA";
       }
-     const tarjetaVisita = `
+      
+      const tarjetaVisita = `
         <div style="background: #2c2c2e; border: 1px solid #3a3a3c; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; text-align: left;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-weight: bold; color: #f4f4f5; font-size: 14px;">🚪 Depto / Unidad: <span style="color:#3b82f6;">${depto}</span></span>
@@ -1678,50 +1720,40 @@ async function abrirHistorialEdificio(idEdificioOpcional = null) {
     }
   }
 }
+
 function cerrarHistorial() {
   const modal = document.getElementById("modalHistorial");
   if (modal) modal.style.display = "none";
 }
+
 function cerrarDetalleAdmin() {
   const panel = document.getElementById("panelDetalleEdificio") || document.getElementById("panelDetalleAdmin");
   if (panel) panel.style.display = "none";
+  
   if (window.miniMapaAdminInstance) {
     try {
       window.miniMapaAdminInstance.off();
       window.miniMapaAdminInstance.remove();
-    } catch (e) { console.warn("Error apagando miniMapaAdminInstance:", e); }
+    } catch (e) { 
+      console.warn("Error apagando miniMapaAdminInstance:", e); 
+    }
     window.miniMapaAdminInstance = null;
   }
 }
 
 /**
- * =========================================================================
- * 🔐 SECCIÓN 6.4 & 6.5: GESTIÓN DE ACCESO, CONSOLA Y ENTORNO SUPERADMIN
- * =========================================================================
+ * -------------------------------------------------------------------------
+ * 📦 SUB-SECCIÓN 6.3: GESTIÓN DE ACCESO Y AUTENTICACIÓN SUPERADMIN
+ * -------------------------------------------------------------------------
+ * Maneja los disparadores y validaciones de la clave maestra de control.
  */
 
-function verificarAccesoSuperAdmin() {
-  const claveInput = document.getElementById("superAdminKey")?.value.trim();
-  if (claveInput === "2414") {
-    window.superAdminAutenticado = true;
-    mostrarAviso("Acceso de SuperAdmin Autorizado. Abriendo panel avanzado...", "success");
-    if (document.getElementById("superAdminKey")) document.getElementById("superAdminKey").value = "";
-    abrirVista("superAdminView");
-    window.superAdminPaginaActual = 1;
-    ejecutarFiltroSuperAdmin();
-  } else {
-    mostrarAviso("Clave maestra incorrecta. Intento denegado.", "error");
-  }
-}
-
 function abrirAccesoSuperAdmin() {
-  const inputClave = document.getElementById('inputClaveMaestra');
+  const inputClave = document.getElementById('inputClaveMaestra') || document.getElementById('superAdminKey');
   if (inputClave) inputClave.value = '';
   
   const modal = document.getElementById('modalClaveSuperAdmin');
-  if (modal) {
-    modal.style.display = 'flex';
-  }
+  if (modal) modal.style.display = 'flex';
   
   setTimeout(() => {
     if (inputClave) inputClave.focus();
@@ -1730,47 +1762,66 @@ function abrirAccesoSuperAdmin() {
 
 function cerrarModalClave() {
   const modal = document.getElementById('modalClaveSuperAdmin');
-  if (modal) {
-    modal.style.display = 'none';
-  }
+  if (modal) modal.style.display = 'none';
+}
+
+function verificarAccesoSuperAdmin() {
+  // Soporte cruzado seguro si se invoca desde la UI antigua
+  procesarClaveSuperAdmin();
 }
 
 function procesarClaveSuperAdmin() {
-    const inputClave = document.getElementById('inputClaveMaestra');
-    if (!inputClave) return;
-    
-    const clave = inputClave.value;
-    
-    if (clave) {
-        if (clave === "2414") {
-            cerrarModalClave();
-            window.superAdminAutenticado = true;
-            
-            mostrarAviso("Acceso de SuperAdmin Autorizado. Abriendo panel avanzado...", "success");
-            abrirVista("superAdminView");
-            
-            window.superAdminPaginaActual = 1;
-            
-            // Forzar inicialización de datos para evitar grillas vacías al arrancar
-            if (!window.todosLosEdificiosDB || window.todosLosEdificiosDB.length === 0) {
-                window.superAdminFiltrados = [];
-            } else {
-                window.superAdminFiltrados = [...window.todosLosEdificiosDB];
-            }
-            
-            ejecutarFiltroSuperAdmin();
-        } else {
-            mostrarAviso("Clave maestra incorrecta. Intento denegado.", "error");
-            inputClave.value = '';
-            inputClave.focus();
-        }
+  const inputClave = document.getElementById('inputClaveMaestra') || document.getElementById('superAdminKey');
+  if (!inputClave) return;
+  
+  const clave = inputClave.value.trim();
+  
+  if (clave) {
+    if (clave === "2414") {
+      cerrarModalClave();
+      window.superAdminAutenticado = true;
+      
+      if (typeof mostrarAviso === "function") {
+        mostrarAviso("Acceso de SuperAdmin Autorizado. Abriendo panel avanzado...", "success");
+      }
+      
+      if (document.getElementById("superAdminKey")) document.getElementById("superAdminKey").value = "";
+      if (document.getElementById("inputClaveMaestra")) document.getElementById("inputClaveMaestra").value = "";
+      
+      if (typeof abrirVista === "function") abrirVista("superAdminView");
+      
+      window.superAdminPaginaActual = 1;
+      
+      // Inicialización segura del stack de datos
+      if (!window.todosLosEdificiosDB || window.todosLosEdificiosDB.length === 0) {
+        window.superAdminFiltrados = [];
+      } else {
+        window.superAdminFiltrados = [...window.todosLosEdificiosDB];
+      }
+      
+      ejecutarFiltroSuperAdmin();
+    } else {
+      if (typeof mostrarAviso === "function") {
+        mostrarAviso("Clave maestra incorrecta. Intento denegado.", "error");
+      } else {
+        alert("Clave maestra incorrecta. Intento denegado.");
+      }
+      inputClave.value = '';
+      inputClave.focus();
     }
+  }
 }
+
+/**
+ * -------------------------------------------------------------------------
+ * 📦 SUB-SECCIÓN 6.4: CONSOLA DE BÚSQUEDA Y FILTRADO AVANZADO (SUPERADMIN)
+ * -------------------------------------------------------------------------
+ * Filtra de manera estricta y en tiempo real el universo total de inmuebles.
+ */
 
 function ejecutarBusquedaSuperAdmin() {
   const input = document.getElementById("buscadorSuperAdmin");
-  const valor = input ? input.value : "";
-  const query = valor.toLowerCase().trim();
+  const query = input ? input.value.toLowerCase().trim() : "";
   
   if (query === "") {
     window.superAdminFiltrados = window.todosLosEdificiosDB ? [...window.todosLosEdificiosDB] : [];
@@ -1802,6 +1853,13 @@ function ejecutarFiltroSuperAdmin() {
   renderizarTablaSuperAdmin();
 }
 
+/**
+ * -------------------------------------------------------------------------
+ * 📦 SUB-SECCIÓN 6.5: MOTOR DE RENDERIZADO Y PAGINACIÓN DE LA CONSOLA
+ * -------------------------------------------------------------------------
+ * Dibuja la grilla tabular extendida con las herramientas operativas críticas.
+ */
+
 function renderizarTablaSuperAdmin() {
   const tabla = document.getElementById("tablaSuperAdminCuerpo");
   if (!tabla) return;
@@ -1809,6 +1867,7 @@ function renderizarTablaSuperAdmin() {
   tabla.innerHTML = "";
   const datosSuper = window.superAdminFiltrados || [];
   const totalEdificios = window.todosLosEdificiosDB ? window.todosLosEdificiosDB.length : 0;
+  const limite = typeof ELEMENTOS_POR_PAGINA !== 'undefined' ? ELEMENTOS_POR_PAGINA : 7;
 
   const contadorLabel = document.getElementById("contadorSuperAdmin");
   if (contadorLabel) {
@@ -1821,8 +1880,8 @@ function renderizarTablaSuperAdmin() {
     return;
   }
 
-  const inicio = (window.superAdminPaginaActual - 1) * ELEMENTOS_POR_PAGINA;
-  const fin = inicio + ELEMENTOS_POR_PAGINA;
+  const inicio = (window.superAdminPaginaActual - 1) * limite;
+  const fin = inicio + limite;
   const segmento = datosSuper.slice(inicio, fin);
 
   segmento.forEach(e => {
@@ -1834,8 +1893,8 @@ function renderizarTablaSuperAdmin() {
     const estadoTexto = (e.status || e.estado || 'Pendiente').toUpperCase();
     
     let badgeColor = "#e2e8f0";
-    if(estadoTexto === "PROBLEMA") badgeColor = "#fca5a5";
-    if(estadoTexto === "ATENDIO" || estadoTexto === "ATENDIÓ") badgeColor = "#86efac";
+    if (estadoTexto === "PROBLEMA") badgeColor = "#fca5a5";
+    if (estadoTexto === "ATENDIO" || estadoTexto === "ATENDIÓ") badgeColor = "#86efac";
 
     fila.innerHTML = `
       <td style="padding: 14px 16px; color: #ffffff; font-weight: 600;">
@@ -1861,7 +1920,8 @@ function renderizarTablaSuperAdmin() {
 }
 
 function actualizarPaginacionSuperAdmin(total) {
-  const paginas = Math.ceil(total / ELEMENTOS_POR_PAGINA) || 1;
+  const limite = typeof ELEMENTOS_POR_PAGINA !== 'undefined' ? ELEMENTOS_POR_PAGINA : 7;
+  const paginas = Math.ceil(total / limite) || 1;
   const label = document.getElementById("infoPaginacionSuper");
   if (label) label.innerText = `Página ${window.superAdminPaginaActual} de ${paginas}`;
   
@@ -1880,46 +1940,44 @@ function actualizarPaginacionSuperAdmin(total) {
 
 function cambiarPaginaSuper(dir) {
   const datosSuper = window.superAdminFiltrados || [];
-  const totalPaginas = Math.ceil(datosSuper.length / ELEMENTOS_POR_PAGINA) || 1;
+  const limite = typeof ELEMENTOS_POR_PAGINA !== 'undefined' ? ELEMENTOS_POR_PAGINA : 7;
+  const totalPaginas = Math.ceil(datosSuper.length / limite) || 1;
+  
   if (dir === -1 && window.superAdminPaginaActual > 1) window.superAdminPaginaActual--;
   if (dir === 1 && window.superAdminPaginaActual < totalPaginas) window.superAdminPaginaActual++;
   renderizarTablaSuperAdmin();
 }
 
-// Escuchador global para la tecla Enter en el input de la clave
-document.addEventListener('DOMContentLoaded', () => {
-  const inputClave = document.getElementById('inputClaveMaestra');
-  if (inputClave) {
-    inputClave.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        procesarClaveSuperAdmin();
-      }
-    });
-  }
-});
-/** * 6.6 ACCIONES CRÍTICAS EN CASCADA Y HISTÓRICOS DE LOGS
- * Ejecuta la eliminación física irreversible en el backend y parsea las trazas de auditoría profunda. */
+/**
+ * -------------------------------------------------------------------------
+ * 📦 SUB-SECCIÓN 6.6: ACCIONES CRÍTICAS EN CASCADA Y HISTÓRICOS DE LOGS
+ * -------------------------------------------------------------------------
+ * Ejecuta la eliminación física irreversible en el backend y parsea las trazas.
+ */
+
 async function eliminarEdificioDestructivo(id) {
-  // Se mantiene el confirm nativo como freno de mano de seguridad extrema antes de borrar
   const confirmacion = confirm("⚠️ ADVERTENCIA CRÍTICA ⚠️\n\n¿Está absolutamente seguro de eliminar permanentemente este edificio? Esta acción borrará de forma irreversible el historial de visitas, coordenadas y reportes asociados.");
   if (!confirmacion) return;
 
   try {
     const res = await apiFetch(`/admin/buildings/${id}`, { method: "DELETE" });
     if (res.ok) {
-      // 🌟 CAMBIO: Aviso estético en rojo/borrado con icono de tacho
-      mostrarAviso("El registro ha sido eliminado físicamente de la base de datos.", "error");
+      if (typeof mostrarAviso === "function") {
+        mostrarAviso("El registro ha sido eliminado físicamente de la base de datos.", "error");
+      }
       if (typeof preCargarBaseDatosEnMemoria === 'function') await preCargarBaseDatosEnMemoria();
       ejecutarFiltroSuperAdmin();
       if (typeof cargarEdificios === "function") cargarEdificios();
     } else {
-      // 🌟 CAMBIO: Aviso estético de error
-      mostrarAviso("Error: El servidor denegó la solicitud de borrado.", "error");
+      if (typeof mostrarAviso === "function") {
+        mostrarAviso("Error: El servidor denegó la solicitud de borrado.", "error");
+      }
     }
   } catch (err) {
     console.error("Error crítico en cascada de borrado:", err);
-    // 🌟 CAMBIO: Aviso estético de error
-    mostrarAviso("Falló la comunicación destructiva con el backend.", "error");
+    if (typeof mostrarAviso === "function") {
+      mostrarAviso("Falló la comunicación destructiva con el backend.", "error");
+    }
   }
 }
 
@@ -1932,20 +1990,30 @@ async function verHistorialLogs(id) {
         ? logs.map(l => `• [${l.fecha || 'Fecha ausente'}] - ${l.usuario || 'Sistema'}: ${l.accion || 'Modificación'}`).join("\n")
         : "• No se registran logs históricos previos para este elemento.";
       
-      mostrarAviso(`📜 AUDITORÍA (ID: ${id}):\n${formatLogs}`, "success");
+      if (typeof mostrarAviso === "function") {
+        mostrarAviso(`📜 AUDITORÍA (ID: ${id}):\n${formatLogs}`, "success");
+      }
     } else {
-    mostrarAviso("No se pudo recuperar el historial de auditoría.", "error");
+      if (typeof mostrarAviso === "function") {
+        mostrarAviso("No se pudo recuperar el historial de auditoría.", "error");
+      }
     }
   } catch (err) {
     console.error("Falla en petición de logs:", err);
-   
-    mostrarAviso("Error de red al solicitar los logs.", "error");
+    if (typeof mostrarAviso === "function") {
+      mostrarAviso("Error de red al solicitar los logs.", "error");
+    }
   }
 }
-/** * 6.7 VISUALIZADOR DE DETALLES, ALERTAS HISTORIAL Y MINI-MAPA INDEPENDIENTE (ADMIN)
- * Consume la información extendida desde el backend y despliega el panel técnico. */
+
+/**
+ * -------------------------------------------------------------------------
+ * 📦 SUB-SECCIÓN 6.7: VISUALIZADOR TÉCNICO DE DETALLES Y AUDITORÍA EN CALIENTE
+ * -------------------------------------------------------------------------
+ * Renderiza dinámicamente la información asíncrona del backend en el panel.
+ */
+
 async function verDetalleEdificioAdmin(buildingId) {
-  // Guardamos el ID en la variable global para que la app sepa qué edificio está en pantalla
   currentBuildingId = buildingId; 
   const panel = document.getElementById("panelDetalleEdificio");
   if (!panel) {
@@ -1963,7 +2031,6 @@ async function verDetalleEdificioAdmin(buildingId) {
     const b = data.building;
     if (!b) throw new Error("No se recibieron datos válidos del edificio.");
     
-    // Identificador único real del edificio
     const idRealEdificio = b._id || b.id || buildingId;
 
     let cartelNuevoAdminHtml = "";
@@ -1990,7 +2057,6 @@ async function verDetalleEdificioAdmin(buildingId) {
       `;
     }
 
-    // 🛠️ COMPONENTE DINÁMICO DE AUDITORÍA: Si está en la pestaña "Por Auditar", preparamos los botones ejecutivos
     let botonesAuditoriaHtml = "";
     if (typeof modoListaAdmin !== 'undefined' && modoListaAdmin === "auditoria") {
       botonesAuditoriaHtml = `
@@ -2005,7 +2071,6 @@ async function verDetalleEdificioAdmin(buildingId) {
       `;
     }
 
-    // Inyección atómica de la estructura limpia en el panel de detalles
     panel.innerHTML = `
       ${cartelNuevoAdminHtml}
       ${alertaHtml}
@@ -2041,6 +2106,100 @@ async function verDetalleEdificioAdmin(buildingId) {
 
       ${botonesAuditoriaHtml}
     `;
+
+    // Disparador diferido de Leaflet e invalidación de tamaño (Conserva tu lógica técnica intacta)
+    if (typeof miTemporizadorMapa !== 'undefined' && miTemporizadorMapa) {
+      clearTimeout(miTemporizadorMapa);
+    }
+    
+    miTemporizadorMapa = setTimeout(() => {
+      const miMapaReal = (typeof mapaMaestroFullscreenInstance !== 'undefined' && mapaMaestroFullscreenInstance !== null) ? mapaMaestroFullscreenInstance :
+                         (typeof mapaGeneral !== 'undefined' && mapaGeneral !== null) ? mapaGeneral : 
+                         (typeof leafletMap !== 'undefined' && leafletMap !== null) ? leafletMap : 
+                         (typeof map !== 'undefined' && map !== null) ? map : null;
+      const latValida = parseFloat(b.latitude);
+      const lngValida = parseFloat(b.longitude);
+      const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
+
+      if (typeof miniMapaAdminInstance !== 'undefined' && miniMapaAdminInstance !== null) {
+        try { miniMapaAdminInstance.remove(); } catch (e) { console.warn("Error limpiando mini-mapa anterior:", e); }
+        miniMapaAdminInstance = null;
+      }
+      
+      if (tieneCoordenadas) {
+        setTimeout(() => {
+          try {
+            miniMapaAdminInstance = L.map('miniMapaDetalle', {
+              center: [latValida, lngValida],
+              zoom: 16,
+              zoomControl: false,
+              attributionControl: false,
+              dragging: false,
+              touchZoom: false,
+              doubleClickZoom: false,
+              scrollWheelZoom: false,
+              boxZoom: false,
+              keyboard: false
+            });
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMapaAdminInstance);
+            L.marker([latValida, lngValida]).addTo(miniMapaAdminInstance);
+            miniMapaAdminInstance.invalidateSize();
+          } catch (mErr) {
+            console.error("Error creando el mini-mapa independiente:", mErr);
+          }
+        }, 50);
+      } else {
+        const minMapDiv = document.getElementById("miniMapaDetalle");
+        if (minMapDiv) minMapDiv.innerHTML = `<p style="color:#71717a; font-size:11px; text-align:center; padding-top:55px; margin:0;">Falta geolocalización</p>`;
+      }
+
+      if (miMapaReal) {
+        try { miMapaReal.invalidateSize({ animate: false }); } catch(e){}
+        if (tieneCoordenadas) {
+          try { miMapaReal.setView([latValida, lngValida], 16); } catch(e){}
+        } else if ((b.territory || b.territorio) && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
+          try {
+            const numTerritorio = b.territory || b.territorio;
+            let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
+              filter: function(feature) {
+                const numeroTerritorio = feature.properties && (feature.properties.name || feature.properties.Territorio_N);
+                return String(numeroTerritorio) === String(numTerritorio);
+              }
+            });
+
+            if (capaGeoJSONAdmin.getLayers().length > 0) {
+              miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { padding: [25, 25], maxZoom: 16 });
+            }
+          } catch (gErr) {
+            console.warn("Fallo al encuadrar territorio en el mapa principal:", gErr);
+          }
+        }
+      }
+    }, 100);
+
+  } catch (error) {
+    console.error("Error al cargar detalles del edificio:", error);
+    panel.innerHTML = `<p style="color:#f87171; text-align:center; padding: 20px;">⚠️ Error al conectar con los detalles del edificio.</p>`;
+  }
+}
+
+/**
+ * -------------------------------------------------------------------------
+ * 📦 SUB-SECCIÓN 6.8: ESCUCHADORES GLOBALES DE INTERFAZ
+ * -------------------------------------------------------------------------
+ */
+document.addEventListener('DOMContentLoaded', () => {
+  // Escuchador dinámico seguro para el envío ágil de clave con la tecla 'Enter'
+  const inputClave = document.getElementById('inputClaveMaestra') || document.getElementById('superAdminKey');
+  if (inputClave) {
+    inputClave.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        procesarClaveSuperAdmin();
+      }
+    });
+  }
+});
     
     // =========================================================================
     // RENDERIZADO DEL MINI-MAPA DE LEAFLET
