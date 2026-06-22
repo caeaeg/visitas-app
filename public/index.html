@@ -1144,28 +1144,30 @@
           </div>
 
           <div id="buscarTerritorioContainer" class="tab-content" style="display: none;">
-            <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 8px;">
+            <div style="display: flex; gap: 6px; align-items: center;">
               <input type="number" id="busquedaTerritorio" placeholder="Número de territorio..." onkeypress="if(event.key==='Enter') ejecutarFiltrosAdmin()" style="margin: 0; flex: 1; padding: 10px 12px; font-size: 14px;">
               <button class="buscar" onclick="ejecutarFiltrosAdmin()" style="width: 42px; height: 38px; margin: 0; padding: 0; border-radius: 8px; flex-shrink: 0; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer;">🔍</button>
-            </div>
-            <div class="filtro-doble-fila" style="margin: 0;">
-              <select id="filtroOrden" onchange="ejecutarFiltrosAdmin()" style="margin: 0; width: 100%; padding: 8px; font-size: 13px;">
-                <option value="address">🔤 Orden Alfabético</option>
-                <option value="recent">🆕 Agregados Recientemente</option> 
-                <option value="territory">📍 Agrupar por Territorio</option>
-              </select>
             </div>
           </div>
         </div>
       </div>
 
       <div class="component-card list-container-card" style="margin-top: 15px;">
-        <div class="card-header-sm"><h3>📋 Edificios Registrados</h3></div>
+        
+        <div class="tabs-filtros" style="margin-bottom: 14px; border-bottom: 1px solid #27272a; padding-bottom: 8px;">
+          <button id="btnListaOficial" class="tab-btn active" onclick="cambiarModoListaAdmin('oficial')" style="font-size: 12px; padding: 6px 12px;">
+            📋 Oficiales
+          </button>
+          <button id="btnListaAuditoria" class="tab-btn" onclick="cambiarModoListaAdmin('auditoria')" style="font-size: 12px; padding: 6px 12px; display: flex; align-items: center; gap: 6px;">
+            🔍 Por Auditar <span id="badgeAuditoriaContador" style="background: #ef4444; color: white; font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: bold; display: none;">0</span>
+          </button>
+        </div>
+
         <div class="lista-scroll-limpia" style="overflow-x: auto;">
           <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
             <thead>
               <tr style="border-bottom: 1px solid #27272a; color: #a1a1aa;">
-                <th style="padding: 10px 7px;">Dirección</th>
+                <th id="columnaTablaTitulo" style="padding: 10px 7px;">Dirección</th>
               </tr>
             </thead>
             <tbody id="tablaEdificiosCuerpo">
