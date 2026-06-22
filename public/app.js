@@ -1952,14 +1952,20 @@ async function verDetalleEdificioAdmin(buildingId) {
     console.warn("⚠️ No se encontró el contenedor 'panelDetalleEdificio' en el HTML.");
     return;
   }
-    panel.style.display = "block";
+  
+  panel.style.display = "block";
   panel.innerHTML = `<p style="text-align:center; color:gray; padding:20px;">Cargando historial y detalles...</p>`;
+  
   try {
     const res = await apiFetch(`/building-info/${buildingId}`);
     if (!res.ok) throw new Error(`Status ${res.status}`);
     const data = await res.json();
     const b = data.building;
     if (!b) throw new Error("No se recibieron datos válidos del edificio.");
+    
+    // Identificador único real del edificio
+    const idRealEdificio = b._id || b.id || buildingId;
+
     let cartelNuevoAdminHtml = "";
     if (b.createdAt || b.fechaCreacion) {
       const fechaCreacion = new Date(b.createdAt || b.fechaCreacion);
@@ -1974,29 +1980,48 @@ async function verDetalleEdificioAdmin(buildingId) {
         `;
       }
     }
+    
     let alertaHtml = "";
     if (data.issue) {
-  issueHtml = `
-    <div style="position: absolute; bottom: 12px; right: 16px; font-size: 20px; filter: drop-shadow(0 0 4px rgba(239,68,68,0.5));" title="Problema detectado por el Admin">
-      ⚠️
-    </div>
-  `;
-}
+      alertaHtml = `
+        <div style="position: absolute; bottom: 12px; right: 16px; font-size: 20px; filter: drop-shadow(0 0 4px rgba(239,68,68,0.5));" title="Problema detectado por el Admin">
+          ⚠️
+        </div>
+      `;
+    }
+
+    // 🛠️ COMPONENTE DINÁMICO DE AUDITORÍA: Si está en la pestaña "Por Auditar", preparamos los botones ejecutivos
+    let botonesAuditoriaHtml = "";
+    if (typeof modoListaAdmin !== 'undefined' && modoListaAdmin === "auditoria") {
+      botonesAuditoriaHtml = `
+        <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #27272a; padding-top: 15px;">
+          <button onclick="procesarVerificacionEdificio('${idRealEdificio}', true)" style="background: #22c55e; color: white; border: none; padding: 12px; font-weight: bold; border-radius: 8px; cursor: pointer; font-size:13px; width: 100%; transition: background 0.2s;">
+            🟢 Aprobar e Integrar al Sistema
+          </button>
+          <button onclick="procesarVerificacionEdificio('${idRealEdificio}', false)" style="background: #18181b; color: #ef4444; border: 1px solid #ef4444; padding: 10px; font-weight: bold; border-radius: 8px; cursor: pointer; font-size:13px; width: 100%; transition: background 0.2s;">
+            ✕ Rechazar Registro
+          </button>
+        </div>
+      `;
+    }
+
+    // Inyección atómica de la estructura limpia en el panel de detalles
     panel.innerHTML = `
       ${cartelNuevoAdminHtml}
       ${alertaHtml}
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px; gap: 10px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px; gap: 10px;">
         <div>
           <h3 style="margin:0; color:white; font-size:22px;">${b.address || "Sin Dirección"}</h3>
           <p style="color:gray; margin:2px 0;">${b.address2 || ""}</p>
         </div>
         <div style="display:flex; gap:6px; flex-shrink:0;">
           <button class="secondary" style="width:auto; min-height:38px; padding:6px 12px; font-size:13px; border-radius:8px; white-space:nowrap; background:#1e293b; color:#3b82f6; border-color:#1e3a8a;" onclick="abrirHistorialEdificio()">📜 Historial</button>
-          <button class="secondary" style="width:auto; min-height:38px; padding:6px 12px; font-size:13px; border-radius:8px; white-space:nowrap;" onclick="abrirEditorEdificio('${b._id || b.id}')">✏️ Editar</button>
+          <button class="secondary" style="width:auto; min-height:38px; padding:6px 12px; font-size:13px; border-radius:8px; white-space:nowrap;" onclick="abrirEditorEdificio('${idRealEdificio}')">✏️ Editar</button>
         </div>
       </div>
+      
       <div style="display: flex; gap: 14px; align-items: stretch; margin-bottom: 15px;">
-                <div style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 13px; background:#252525; padding:12px; border-radius:12px; color: #e4e4e7;">
+        <div style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 6px; font-size: 13px; background:#252525; padding:12px; border-radius:12px; color: #e4e4e7;">
           <div>🏢 <b>Nombre:</b> ${b.name || "-"}</div>
           <div>🗺️ <b>Territorio:</b> ${b.territory || b.territorio || "-"}</div>
           <div>🔢 <b>Pisos:</b> ${b.floors || 0}</div>
@@ -2007,18 +2032,24 @@ async function verDetalleEdificioAdmin(buildingId) {
           <div id="miniMapaDetalle" style="width: 140px; height: 140px; border-radius: 12px; background:#181818; border: none;"></div>
         </div>
       </div>
+      
       <h4 style="margin:10px 0 5px; color:#2196F3; font-size:16px;">🕒 Historial de Visitas e Información</h4>
       <div style="font-size:14px; background:#181818; padding:10px; border-radius:10px; max-height:180px; overflow-y:auto; border:1px solid #2b2b2b;">
         <p style="margin:0; color:#bdbdbd;">Última visita registrada: ${data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca"}</p>
         ${b.description ? `<p style="margin-top:8px; color:gray; font-style: italic;"><b>Descripción interna:</b> ${b.description}</p>` : ""}
       </div>
+
+      ${botonesAuditoriaHtml}
     `;
-   
+    
+    // =========================================================================
+    // RENDERIZADO DEL MINI-MAPA DE LEAFLET
+    // =========================================================================
     if (typeof miTemporizadorMapa !== 'undefined' && miTemporizadorMapa) {
       clearTimeout(miTemporizadorMapa);
     }
+    
     miTemporizadorMapa = setTimeout(() => {
-      // Intentamos enlazar primero con la instancia dedicada al mapa de pantalla completa
       const miMapaReal = (typeof mapaMaestroFullscreenInstance !== 'undefined' && mapaMaestroFullscreenInstance !== null) ? mapaMaestroFullscreenInstance :
                          (typeof mapaGeneral !== 'undefined' && mapaGeneral !== null) ? mapaGeneral : 
                          (typeof leafletMap !== 'undefined' && leafletMap !== null) ? leafletMap : 
@@ -2027,11 +2058,11 @@ async function verDetalleEdificioAdmin(buildingId) {
       const lngValida = parseFloat(b.longitude);
       const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
 
-      // 1. INICIALIZAR SIEMPRE EL MINI-MAPA CUADRADO DEL DETALLE INTERNO
       if (typeof miniMapaAdminInstance !== 'undefined' && miniMapaAdminInstance !== null) {
         try { miniMapaAdminInstance.remove(); } catch (e) { console.warn("Error limpiando mini-mapa anterior:", e); }
         miniMapaAdminInstance = null;
       }
+      
       if (tieneCoordenadas) {
         setTimeout(() => {
           try {
@@ -2060,10 +2091,8 @@ async function verDetalleEdificioAdmin(buildingId) {
         if (minMapDiv) minMapDiv.innerHTML = `<p style="color:#71717a; font-size:11px; text-align:center; padding-top:55px; margin:0;">Falta geolocalización</p>`;
       }
 
-      // 2. OPERACIONES DE ENFOQUE EN EL MAPA GENERAL DE CONSULTA (SI ESTÁ DISPONIBLE)
       if (miMapaReal) {
         try { miMapaReal.invalidateSize({ animate: false }); } catch(e){}
-
         if (tieneCoordenadas) {
           try { miMapaReal.setView([latValida, lngValida], 16); } catch(e){}
         } else if ((b.territory || b.territorio) && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
@@ -2091,7 +2120,6 @@ async function verDetalleEdificioAdmin(buildingId) {
     panel.innerHTML = `<p style="color:#f87171; text-align:center; padding: 20px;">⚠️ Error al conectar con los detalles del edificio.</p>`;
   }
 }
-
 /**  * ⚠️ SECCIÓN 6.8: PANEL PREMIUM DE GESTIÓN DE INCIDENCIAS (DOS COLUMNAS ASÍNCRONAS) 
  * Módulo unificado para la auditoría de reportes críticos de campo. Divide la
  * interfaz en un panel izquierdo de tarjetas reactivas y un visor analítico derecho. */
@@ -2802,6 +2830,31 @@ function cambiarModoListaAdmin(nuevoModo) {
   ejecutarFiltrosAdmin();
 }
 
+/** * ⚡ RESOLUTOR EJECUTIVO DE VERIFICACIÓN
+ * Cambia el estado del edificio, impacta los datos y limpia la bandeja. */
+function procesarVerificacionEdificio(idEdificio, aprobado) {
+  const edificio = window.baseDatosEdificiosMemoria.find(e => (e.id || e._id) === idEdificio);
+  if (!edificio) return;
+
+  if (aprobado) {
+    edificio.auditado = true;
+    if (edificio.status === "pendiente_auditoria") edificio.status = "pendiente";
+    alert(`🏢 Edificio "${edificio.address || 'seleccionado'}" aprobado con éxito.`);
+  } else {
+    // Si se rechaza, lo removemos de la memoria para limpiar la cola
+    window.baseDatosEdificiosMemoria = window.baseDatosEdificiosMemoria.filter(e => (e.id || e._id) !== idEdificio);
+    alert(`⚠️ Registro rechazado y removido de la cola de auditoría.`);
+  }
+
+  // Ocultar panel, guardar caché y actualizar pantallas
+  document.getElementById("panelDetalleEdificio").style.display = "none";
+  if (window.localStorage) {
+    localStorage.setItem("edificios_cache_local", JSON.stringify(window.baseDatosEdificiosMemoria));
+  }
+  
+  ejecutarFiltrosAdmin();
+  if (typeof inicializarMapaGeneralAdministrador === "function") inicializarMapaGeneralAdministrador();
+}
 // =========================================================================
 // 🔤 SECTOR: NORMALIZADOR ALFANUMÉRICO DE DIRECCIONES Y NOMENCLATURA VIAL
 // =========================================================================
