@@ -569,90 +569,149 @@
     }
     .btn-salir-sutil:hover { background: #7f1d1d; color: #fca5a5; }
 
-   /* ==========================================================================
-       🗺️ WORKSPACE DESIGN SYSTEM (GESTIÓN DE TERRITORIOS Y EDIFICIOS)
+  /* ==========================================================================
+       🗺️ WORKSPACE DESIGN SYSTEM - NIVEL 3 (PC & TABLET ULTRA OPTIMIZADO)
        ========================================================================== */
     .workspace-grid {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 16px;
+        gap: 20px;
         width: 100%;
+        box-sizing: border-box;
     }
-    @media (min-width: 1024px) {
+    
+    /* 🔥 Despliegue Premium a partir de Tablets y PCs (Evita roturas de layout) */
+    @media (min-width: 768px) {
         .workspace-grid {
-            grid-template-columns: 340px 1fr; /* Optimizado para dos columnas fluidas sin bloques huérfanos */
+            grid-template-columns: 360px 1fr; /* Estructura lateral fija para control y derecha fluida para auditorías */
             align-items: start;
         }
     }
 
-    /* Contenedores de componentes (Buscador, Tablas) */
+    /* Contenedores de Componentes (Buscadores, Listas y Tarjetas) */
     .component-card {
         background: #111113 !important;
         border: 1px solid #27272a !important;
         border-radius: 12px !important;
         padding: 16px !important;
-        margin-bottom: 12px;
+        margin-bottom: 14px;
+        box-sizing: border-box;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
     
     .card-header-sm h3 { 
         margin: 0 0 12px 0 !important; 
-        font-size: 12px !important; 
+        font-size: 11px !important; 
         color: #a1a1aa !important; 
         text-transform: uppercase; 
-        letter-spacing: 0.8px;
+        letter-spacing: 1px;
         font-weight: 700;
     }
 
-    /* Inputs y Selectores Integrados al Modo Oscuro */
-    .filtros-compactos { display: flex; flex-direction: column; gap: 6px; }
+    /* Inputs, Formulario y Selectores Integrados al Modo Oscuro */
+    .filtros-compactos { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 8px; 
+    }
+    
     .filtros-compactos input, 
     .filtros-compactos select {
         background: #09090b !important;
         border: 1px solid #27272a !important;
         color: #ffffff !important;
-        padding: 10px 12px !important;
-        font-size: 14px !important; /* Ajustado para que no rompa la estructura compacta */
+        padding: 11px 14px !important;
+        font-size: 14px !important;
         border-radius: 8px !important;
-        margin: 4px 0;
+        margin: 2px 0;
         width: 100%;
         outline: none;
-        transition: border-color 0.2s;
+        box-sizing: border-box;
+        transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s;
     }
+    
     .filtros-compactos input:focus, 
     .filtros-compactos select:focus {
         border-color: #3f3f46 !important;
+        background: #121214 !important;
     }
-    .filtro-doble-fila { display: flex; gap: 6px; }
-
-    /* Contenedor de Lista Scrolleable Eficiente */
-    .lista-scroll-limpia {
-        max-height: 420px; /* Un poco más de aire ahora que no hay estadísticas */
-        overflow-y: auto;
-        padding-right: 4px;
-    }
-    .lista-scroll-limpia::-webkit-scrollbar { width: 5px; }
-    .lista-scroll-limpia::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
     
-    /* Paginador sutil inferior */
-    .paginador-sutil { display: flex; gap: 6px; margin-top: 12px; align-items: center; }
+    .filtro-doble-fila { 
+        display: flex; 
+        gap: 8px; 
+        width: 100%;
+    }
+
+    /* Contenedor de Lista Scrolleable Altamente Eficiente */
+    .lista-scroll-limpia {
+        max-height: 480px; /* Expandido para aprovechar el espacio liberado por las estadísticas */
+        overflow-y: auto;
+        padding-right: 6px;
+        box-sizing: border-box;
+    }
+    
+    /* Custom Scrollbar Premium e Integrada */
+    .lista-scroll-limpia::-webkit-scrollbar { 
+        width: 6px; 
+    }
+    .lista-scroll-limpia::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .lista-scroll-limpia::-webkit-scrollbar-thumb { 
+        background: #27272a; 
+        border-radius: 20px; 
+    }
+    .lista-scroll-limpia::-webkit-scrollbar-thumb:hover {
+        background: #3f3f46;
+    }
+    
+    /* Paginador Sutil Inferior */
+    .paginador-sutil { 
+        display: flex; 
+        gap: 8px; 
+        margin-top: 16px; 
+        align-items: center; 
+    }
+    
     .btn-pag {
         flex: 1;
         background: #18181b !important;
         border: 1px solid #27272a !important;
-        color: white !important;
-        padding: 10px !important;
-        font-size: 14px !important;
+        color: #e4e4e7 !important;
+        padding: 10px 14px !important;
+        font-size: 13px !important;
+        font-weight: 600;
         border-radius: 8px !important;
         cursor: pointer;
-        transition: background 0.2s;
+        user-select: none;
+        transition: all 0.2s ease;
     }
-    .btn-pag:hover { background: #27272a !important; }
+    
+    .btn-pag:hover:not(:disabled) { 
+        background: #27272a !important; 
+        color: #ffffff !important;
+        border-color: #3f3f46 !important;
+    }
+    
+    .btn-pag:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
 
-    /* Envoltura del Mapa Maestro */
-    .mapa-card-wrapper { padding: 0; overflow: hidden; border-radius: 12px; border: 1px solid #27272a; }
-    .mapa-principal-moderno { height: 520px; width: 100%; background: #09090b; }
+    /* Envoltura Estanca del Mapa Maestro */
+    .mapa-card-wrapper { 
+        padding: 0; 
+        overflow: hidden; 
+        border-radius: 12px; 
+        border: 1px solid #27272a; 
+    }
+    .mapa-principal-moderno { 
+        height: 540px; 
+        width: 100%; 
+        background: #09090b; 
+    }
 
-    /* Items individuales de la lista de Direcciones */
+    /* Filas Individuales de la lista de Edificios (Items Operativos) */
     .edificio-item-lista {
         background: #18181b !important;
         border: 1px solid #27272a !important;
@@ -663,19 +722,52 @@
         justify-content: space-between;
         align-items: center;
         cursor: pointer;
-        transition: all 0.2s ease;
+        box-sizing: border-box;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
+    
     .edificio-item-lista:hover {
-        background: #202024 !important;
+        background: #1e1e22 !important;
         border-color: #3f3f46 !important;
+        transform: translateX(4px); /* Sutil desplazamiento interactivo hacia la derecha */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .edificio-info-txt { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 3px; 
+        min-width: 0; /* Previene desbordamientos de texto largo */
+    }
+    
+    .edif-dir { 
+        font-size: 15px; 
+        font-weight: 600; 
+        color: #ffffff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .edif-sub { 
+        font-size: 12px; 
+        color: #71717a; 
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .btn-ver-flecha { 
+        font-size: 15px; 
+        color: #52525b; 
+        padding-left: 8px;
+        transition: color 0.2s, transform 0.2s; 
+    }
+    
+    .edificio-item-lista:hover .btn-ver-flecha { 
+        color: #3b82f6; 
         transform: translateX(2px);
     }
-    .edificio-info-txt { display: flex; flex-direction: column; gap: 2px; }
-    .edif-dir { font-size: 15px; font-weight: 600; color: #ffffff; }
-    .edif-sub { font-size: 12px; color: #71717a; }
-    
-    .btn-ver-flecha { font-size: 16px; color: #71717a; transition: color 0.2s; }
-    .edificio-item-lista:hover .btn-ver-flecha { color: #3b82f6; }
 
     /* ==========================================================================
        10. ELEMENTOS COMPLEMENTARIOS Y MODALES GENERALES
