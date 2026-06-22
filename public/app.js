@@ -327,7 +327,7 @@ async function descargarBaseAdministrativa() {
 }
 
 /** * 7. ENRUTADOR DINÁMICO DE PANTALLAS (PROTECCIÓN ESTRICTA POR ROL) 
- * MODIFICADO: Agregada protección estricta para evitar que el 'predi' acceda a 'mapaView' de admin. */
+ * MODIFICADO: Removidos los contadores analíticos para maximizar espacio útil en la UI. */
 function abrirVista(vistaId) {
   // Seguro para que el predi no acceda a paneles administrativos
   if (currentRole === "predi" && vistaId !== "editarView" && vistaId !== "appContainer") {
@@ -350,12 +350,11 @@ function abrirVista(vistaId) {
     }
   });
 
- // Disparadores automáticos de mapas y filtros
+  // Disparadores automáticos de mapas y filtros
   if (vistaId === "territorioView") {
     setTimeout(() => {
       if (typeof ejecutarFiltrosAdmin === "function") ejecutarFiltrosAdmin();
-      // 🔥 REFUERZO: Fuerza el cálculo de los contadores apenas se monta la pantalla
-      if (typeof actualizarContadoresInformativos === "function") actualizarContadoresInformativos(); 
+      // 🧼 LIMPIEZA: Se eliminó el refuerzo de los contadores informativos obsoletos
     }, 100);
   }
 
@@ -2710,7 +2709,7 @@ function inicializarMapaGeneralAdministrador() {
 
 /** * 7.2 INTERCONEXIÓN DE FILTROS ADMINISTRATIVOS
  * Procesa en tiempo real las búsquedas por dirección o territorio cruzando los
- * datos contra la caché global para actualizar la grilla operativa y las estadísticas. */
+ * datos contra la caché global para actualizar exclusivamente la grilla operativa. */
 function ejecutarFiltrosAdmin() {
   const filtroDir = document.getElementById("busquedaDireccionAdmin")?.value.toLowerCase().trim() || "";
   const filtroTerr = document.getElementById("busquedaTerritorio")?.value.toLowerCase().trim() || "";
@@ -2722,104 +2721,11 @@ function ejecutarFiltrosAdmin() {
     return cumpleDir && cumpleTerr;
   });
 
-  // 🔥 2. EJECUTAMOS EL MOTOR DE CÁLCULO EN TIEMPO REAL
-  actualizarContadoresInformativos();
+ 
 
   // Reseteamos a la página 1 para evitar desbordamientos de índice y redibujamos
   paginaActual = 1;
   if (typeof cargarEdificios === "function") cargarEdificios();
-}
-
-/** * 📊 MOTOR DE CÁLCULO DE ESTADÍSTICAS OPERATIVAS
-* Procesa analíticamente la base de datos local en memoria y actualiza la UI. */
-function actualizarContadoresInformativos() {
-  // Usamos la base de datos total en memoria para que las estadísticas reflejen el estado global
-  const edificios = window.baseDatosEdificiosMemoria || [];
-  
-  // 🕒 Obtener fecha de referencia para los últimos 30 días
-  const hace30Dias = new Date();
-  hace30Dias.setDate(hace30Dias.getDate() - 30);
-
-  // 1. Inicializamos los acumuladores analíticos
-  let total = edificios.length;
-  let visitadosHoy = 0;
-  let nuncaVisitados = 0;
-  let alertasActivas = 0;
-  let bloqueados = 0;
-  let nuevos30Dias = 0;
-
-  // 2. Procesamos cada edificio analizando sus banderas y metadatos del backend
-  edificios.forEach(e => {
-    // 🔹 Visitados Hoy (Chequea flag booleano o si la fecha de última visita coincide con el día de hoy)
-    const hoyStr = new Date().toISOString().split('T')[0];
-    const ultimaVisitaStr = String(e.lastVisitDate || e.ultimaVisita || "").trim();
-    if (e.visitedToday === true || e.visitadoHoy === true || (ultimaVisitaStr && ultimaVisitaStr.startsWith(hoyStr))) {
-      visitadosHoy++;
-    }
-
-    // 🔹 🛠️ CORRECCIÓN CRÍTICA: Nunca Visitados (Formatos vacíos, nulos o marcados como "nunca")
-    // Evaluamos de forma segura si las propiedades no existen, están vacías o contienen texto de descarte
-    const vStr = String(e.lastVisitDate || e.ultimaVisita || "").trim().toLowerCase();
-    const noTieneFecha = !vStr || vStr === "" || vStr === "never" || vStr === "nunca";
-    const noTieneHistorial = !e.history || (Array.isArray(e.history) && e.history.length === 0);
-    const conteoCero = !e.visitsCount || e.visitsCount === 0 || e.visitsCount === "0";
-
-    if (noTieneFecha && (noTieneHistorial || conteoCero)) {
-      nuncaVisitados++;
-    }
-
-    // 🔹 Alertas Activas / Problemas (Si su estado operativo es de riesgo o tiene incidencias)
-    const estado = String(e.status || e.estado || "").toLowerCase();
-    if (estado === "problema" || estado === "alerta" || e.hasIncident === true || e.incidencia === true) {
-      alertasActivas++;
-    }
-
-    // 🔹 Bloqueados por Admin
-    if (e.isBlocked === true || e.bloqueado === true || estado === "bloqueado") {
-      bloqueados++;
-    }
-
-    // 🔹 Nuevos (Creados en los últimos 30 días)
-    const fechaCreacionRaw = e.createdAt || e.fechaCreacion;
-    const fechaCreacion = fechaCreacionRaw ? new Date(fechaCreacionRaw) : null;
-    if (fechaCreacion && !isNaN(fechaCreacion.getTime()) && fechaCreacion >= hace30Dias) {
-      nuevos30Dias++;
-    }
-  });
-
- // 3. Inyección segura en el DOM de la aplicación
-  const safeSet = (id, value) => {
-    const el = document.getElementById(id);
-    if (el) el.innerText = value;
-  };
-
-  safeSet("totalEdificios", total);
-  safeSet("visitados", visitadosHoy);
-  safeSet("nuncaVisitados", nuncaVisitados);
-  safeSet("problemasActivos", alertasActivas);
-  safeSet("edificiosBloqueados", bloqueados);
-  safeSet("edificiosNuevos", nuevos30Dias);
-
-  // 🔥 REACTIVIDAD DINÁMICA DEL BENTO GRID
-  // Si hay problemas reales, la tarjeta se enciende con un degradado rojo y animación de pulso
-  const alertaCard = document.getElementById("alertaCardContainer");
-  if (alertaCard) {
-    if (alertasActivas > 0) {
-      alertaCard.classList.add("danger-active");
-    } else {
-      alertaCard.classList.remove("danger-active");
-    }
-  }
-
-  // Si hay edificios bloqueados, la tarjeta adopta el aura púrpura administrativa
-  const bloqueadoCard = document.getElementById("bloqueadoCardContainer");
-  if (bloqueadoCard) {
-    if (bloqueados > 0) {
-      bloqueadoCard.classList.add("warning-active");
-    } else {
-      bloqueadoCard.classList.remove("warning-active");
-    }
-  }
 }
 
 // =========================================================================
