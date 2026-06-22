@@ -2583,7 +2583,7 @@ async function resolverIncidenteCompleto(id) {
   }
 }
 
-// =========================================================================
+//=========================================================================
 // 🗺️ SECCIÓN 7: MOTOR CARTOGRÁFICO MAESTRO CENTRAL (ADMIN APP - FULLSCREEN)
 // =========================================================================
 /** * 7.1 INICIALIZACIÓN DE LA ARQUITECTURA DEL MAPA MAESTRO GENERAL FULLSCREEN
@@ -2598,11 +2598,21 @@ function inicializarMapaGeneralAdministrador() {
   if (mapaGeneral) {
     try {
       mapaGeneral.eachLayer(layer => {
-        if (layer instanceof L.GeoJSON || layer instanceof L.Marker || layer instanceof L.MarkerCluster) {
+        // 🔥 VALIDACIÓN SEGURA NIVEL 3: Evita evaluar objetos undefined usando métodos nativos de Leaflet
+        const esCapaRemovible = 
+          (layer.argumentedGeoJSON || layer.feature) || // Detecta polígonos GeoJSON
+          (layer instanceof L.Marker) ||                 // Detecta marcadores simples comunes
+          (layer.options && layer.options.icon) ||       // Alternativa para detectar pines visuales
+          (typeof L.MarkerCluster !== 'undefined' && layer instanceof L.MarkerCluster); // Solo evalúa cluster si existe
+
+        // Si es una capa de datos (y no el mapa base de OpenStreetMap), la removemos
+        if (esCapaRemovible && typeof layer.toGeoJSON !== 'undefined' || layer instanceof L.Marker) {
           mapaGeneral.removeLayer(layer);
         }
       });
-    } catch(e) { console.warn("Aviso al limpiar capas anteriores:", e); }
+    } catch(e) { 
+      console.warn("Aviso al limpiar capas anteriores:", e); 
+    }
   } else {
     // Si no existe, creamos la instancia enfocada en Posadas, Misiones
     try {
