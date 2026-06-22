@@ -1580,63 +1580,7 @@ function limpiarVista() {
  * Este módulo unifica el renderizado de la grilla operativa del Administrador,
  * los controles de paginación optimizados en memoria, el control de modales de
  * detalle técnico, auditorías de visitas y la consola avanzada con clave maestra. */
-/** * 6.1 RENDERIZADO DE LA GRILLA OPERATIVA DEL ADMINISTRADOR * Optimizado: Fila completa cliqueable para ver detalles, eliminando botones redundantes. */
-async function cargarEdificios() {
-  const tablaCuerpo = document.getElementById("tablaEdificiosCuerpo");
-  if (!tablaCuerpo) return;
-  // RESTRICCIÓN: Validamos si el usuario escribió algo en los campos de búsqueda
-  const TXT_DIR = document.getElementById("busquedaDireccionAdmin")?.value.trim() || "";
-  const TXT_TERR = document.getElementById("busquedaTerritorio")?.value.trim() || "";
-  // Si ambos campos están vacíos, forzamos que permanezca el mensaje instructivo y salimos
-  if (TXT_DIR === "" && TXT_TERR === "") {
-    tablaCuerpo.innerHTML = `
-      <tr>
-        <td style="text-align: center; color: #71717a; padding: 20px;">
-          🔍 Introduzca un término en el buscador superior para desplegar resultados.
-        </td>
-      </tr>
-    `;
-    actualizarControlesPaginacion(0);
-    return;
-  }
-  tablaCuerpo.innerHTML = "";
-  // Si no hay datos cargados, intentamos una sincronización rápida
-  if (!window.todosLosEdificiosDB || window.todosLosEdificiosDB.length === 0) {
-    if (typeof preCargarBaseDatosEnMemoria === 'function') {
-      await preCargarBaseDatosEnMemoria();
-    }
-  }
-  const datosAIterar = window.todosLosEdificiosDB || [];
-  if (datosAIterar.length === 0) {
-    tablaCuerpo.innerHTML = `<tr><td style="text-align:center; color:#a1a1aa; padding:20px;">📭 No hay edificios registrados en el sistema.</td></tr>`;
-    actualizarControlesPaginacion(0);
-    return;
-  }
-  // Cálculo de índices para la segmentación por página
-  const indiceInicio = (paginaActual - 1) * ELEMENTOS_POR_PAGINA;
-  const indiceFin = indiceInicio + ELEMENTOS_POR_PAGINA;
-  const paginaSegmentada = datosAIterar.slice(indiceInicio, indiceFin);
-  paginaSegmentada.forEach(e => {
-    const fila = document.createElement("tr");
-    const idEdificio = e.id || e._id;
-    // Configuración de la fila como un botón interactivo completo
-    fila.style.cursor = "pointer";
-    fila.style.transition = "background-color 0.2s ease";
-    fila.setAttribute("onclick", `verDetalleEdificioAdmin('${idEdificio}')`);
-    // Efecto visual hover sencillo (puedes complementarlo en tu CSS si querés)
-    fila.onmouseover = () => fila.style.backgroundColor = "#27272a";
-    fila.onmouseout = () => fila.style.backgroundColor = "transparent";
-    // Inyección limpia: Solo la Dirección. Al hacer click en cualquier lado de la fila abre el detalle.
-    fila.innerHTML = `
-      <td style="font-weight: 600; color: #ffffff; padding: 14px 12px; border-bottom: 1px solid #27272a;">
-        ${e.address || "Sin Dirección"}
-        ${e.name ? `<br><small style="color:#a1a1aa; font-weight:normal; display:inline-block; margin-top:2px;">${e.name}</small>` : ''}
-      </td>
-    `;
-    tablaCuerpo.appendChild(fila);
-  });
-  actualizarControlesPaginacion(datosAIterar.length);
-}
+
 
 /** * 6.2 CONTROLES DE FLUJO DE PAGINACIÓN ADMIN * Actualiza dinámicamente las etiquetas de estado y procesa el desplazamiento incremental de la grilla. */
 function actualizarControlesPaginacion(totalElementos) {
@@ -2717,25 +2661,145 @@ function inicializarMapaGeneralAdministrador() {
   }
 }
 
-/** * 7.2 INTERCONEXIÓN DE FILTROS ADMINISTRATIVOS
+// Variable global para controlar la pestaña activa de la bandeja (oficial / auditoria)
+let modoListaAdmin = "oficial"; 
+
+/** * 7.2 INTERCONEXIÓN DE FILTROS ADMINISTRATIVOS + MOTOR DE AUDITORÍA
  * Procesa en tiempo real las búsquedas por dirección o territorio cruzando los
  * datos contra la caché global para actualizar exclusivamente la grilla operativa. */
 function ejecutarFiltrosAdmin() {
   const filtroDir = document.getElementById("busquedaDireccionAdmin")?.value.toLowerCase().trim() || "";
   const filtroTerr = document.getElementById("busquedaTerritorio")?.value.toLowerCase().trim() || "";
 
-  // 1. Filtramos la base de datos completa basándonos en los inputs activos
+  // 1. Calculamos el badge rojo en tiempo real contando los pendientes en la base en memoria
+  const totalPorAuditar = window.baseDatosEdificiosMemoria.filter(e => e.auditado === false || e.status === "pendiente_auditoria").length;
+  const badge = document.getElementById("badgeAuditoriaContador");
+  if (badge) {
+    if (totalPorAuditar > 0) {
+      badge.innerText = totalPorAuditar;
+      badge.style.display = "inline-block";
+    } else {
+      badge.style.display = "none";
+    }
+  }
+
+  // 2. Filtramos la base de datos basándonos en los inputs Y en la pestaña seleccionada
   window.todosLosEdificiosDB = window.baseDatosEdificiosMemoria.filter(e => {
     const cumpleDir = !filtroDir || (e.address && e.address.toLowerCase().includes(filtroDir));
     const cumpleTerr = !filtroTerr || (e.territory && String(e.territory).toLowerCase().includes(filtroTerr)) || (e.territorio && String(e.territorio).toLowerCase().includes(filtroTerr));
-    return cumpleDir && cumpleTerr;
-  });
+    
+    // Separación lógica: si está en modo auditoría busca los no auditados; si no, los oficiales
+    const esPendienteAuditoria = (e.auditado === false || e.status === "pendiente_auditoria");
+    const cumpleModo = (modoListaAdmin === "auditoria") ? esPendienteAuditoria : !esPendienteAuditoria;
 
- 
+    return cumpleDir && cumpleTerr && cumpleModo;
+  });
 
   // Reseteamos a la página 1 para evitar desbordamientos de índice y redibujamos
   paginaActual = 1;
   if (typeof cargarEdificios === "function") cargarEdificios();
+}
+
+/** * 6.1 RENDERIZADO DE LA GRILLA OPERATIVA DEL ADMINISTRADOR
+ * Optimizado Nivel 3: Soporta pestañas dinámicas de Auditoría y libera restricciones de búsqueda. */
+async function cargarEdificios() {
+  const tablaCuerpo = document.getElementById("tablaEdificiosCuerpo");
+  if (!tablaCuerpo) return;
+
+  const TXT_DIR = document.getElementById("busquedaDireccionAdmin")?.value.trim() || "";
+  const TXT_TERR = document.getElementById("busquedaTerritorio")?.value.trim() || "";
+
+  // RESTRICCIÓN MODIFICADA: Solo forzamos el mensaje instructivo si estamos en modo "oficial".
+  // En modo "auditoría" permitimos listar todo de entrada para revisar los ingresos nuevos.
+  if (modoListaAdmin === "oficial" && TXT_DIR === "" && TXT_TERR === "") {
+    tablaCuerpo.innerHTML = `
+      <tr>
+        <td style="text-align: center; color: #71717a; padding: 20px;">
+          🔍 Introduzca un término en el buscador superior para desplegar resultados.
+        </td>
+      </tr>
+    `;
+    if (typeof actualizarControlesPaginacion === "function") actualizarControlesPaginacion(0);
+    return;
+  }
+
+  tablaCuerpo.innerHTML = "";
+
+  // Si no hay datos cargados en el puntero de filtrado, intentamos sincronizar
+  if (!window.todosLosEdificiosDB || window.todosLosEdificiosDB.length === 0) {
+    if (typeof preCargarBaseDatosEnMemoria === 'function') {
+      await preCargarBaseDatosEnMemoria();
+    }
+  }
+
+  const datosAIterar = window.todosLosEdificiosDB || [];
+  
+  if (datosAIterar.length === 0) {
+    const mensajeVacio = (modoListaAdmin === "auditoria") 
+      ? "🎉 ¡Felicidades! No hay nuevos edificios pendientes de auditoría."
+      : "📭 No se encontraron edificios registrados.";
+    
+    tablaCuerpo.innerHTML = `<tr><td style="text-align:center; color:#a1a1aa; padding:20px;">${mensajeVacio}</td></tr>`;
+    if (typeof actualizarControlesPaginacion === "function") actualizarControlesPaginacion(0);
+    return;
+  }
+
+  // Cálculo de índices para la segmentación por página (Usa tus constantes nativas)
+  const limiteElementos = typeof ELEMENTOS_POR_PAGINA !== 'undefined' ? ELEMENTOS_POR_PAGINA : 7;
+  const indiceInicio = (paginaActual - 1) * limiteElementos;
+  const indiceFin = indiceInicio + limiteElementos;
+  const paginaSegmentada = datosAIterar.slice(indiceInicio, indiceFin);
+
+  paginaSegmentada.forEach(e => {
+    const fila = document.createElement("tr");
+    const idEdificio = e.id || e._id;
+    
+    fila.style.cursor = "pointer";
+    fila.style.transition = "background-color 0.2s ease";
+    
+    // Si es auditoría, interceptamos el click para mostrar los botones de aprobar/rechazar
+    fila.setAttribute("onclick", `verDetalleEdificioAdmin('${idEdificio}')`);
+    
+    fila.onmouseover = () => fila.style.backgroundColor = "#27272a";
+    fila.onmouseout = () => fila.style.backgroundColor = "transparent";
+    
+    fila.innerHTML = `
+      <td style="font-weight: 600; color: #ffffff; padding: 14px 12px; border-bottom: 1px solid #27272a;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span>🏢 ${e.address || "Sin Dirección"}</span>
+          ${modoListaAdmin === 'auditoria' ? '<span style="background:#ea580c; color:white; font-size:10px; padding:2px 6px; border-radius:4px; font-weight:bold;">NUEVO</span>' : ''}
+        </div>
+        ${e.name ? `<small style="color:#a1a1aa; font-weight:normal; display:inline-block; margin-top:2px;">${e.name}</small>` : ''}
+        <br><small style="color:#71717a; font-size:11px;">Territorio: ${e.territory || e.territorio || '-'}</small>
+      </td>
+    `;
+    tablaCuerpo.appendChild(fila);
+  });
+
+  if (typeof actualizarControlesPaginacion === "function") {
+    actualizarControlesPaginacion(datosAIterar.length);
+  }
+}
+
+/** * 🔄 CONMUTADOR INTERNO DE PESTAÑAS (OFICIALES / POR AUDITAR)
+ * Cambia el estado de visualización y refresca la grilla al instante. */
+function cambiarModoListaAdmin(nuevoModo) {
+  modoListaAdmin = nuevoModo;
+  
+  // Modificar clases visuales activas
+  document.getElementById("btnListaOficial")?.classList.toggle("active", nuevoModo === "oficial");
+  document.getElementById("btnListaAuditoria")?.classList.toggle("active", nuevoModo === "auditoria");
+  
+  const tituloTabla = document.getElementById("columnaTablaTitulo");
+  if (tituloTabla) {
+    tituloTabla.innerText = (nuevoModo === "auditoria") ? "Dirección (Ingresos Recientes)" : "Dirección";
+  }
+
+  // Cerrar el panel de detalles derecho para evitar confusiones
+  const panelDetalle = document.getElementById("panelDetalleEdificio");
+  if (panelDetalle) panelDetalle.style.display = "none";
+
+  ejecutarFiltrosAdmin();
 }
 
 // =========================================================================
