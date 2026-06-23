@@ -2201,87 +2201,90 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
     
-    // =========================================================================
-    // RENDERIZADO DEL MINI-MAPA DE LEAFLET
-    // =========================================================================
-    if (typeof miTemporizadorMapa !== 'undefined' && miTemporizadorMapa) {
-      clearTimeout(miTemporizadorMapa);
-    }
-    
-    miTemporizadorMapa = setTimeout(() => {
-      const miMapaReal = (typeof mapaMaestroFullscreenInstance !== 'undefined' && mapaMaestroFullscreenInstance !== null) ? mapaMaestroFullscreenInstance :
-                         (typeof mapaGeneral !== 'undefined' && mapaGeneral !== null) ? mapaGeneral : 
-                         (typeof leafletMap !== 'undefined' && leafletMap !== null) ? leafletMap : 
-                         (typeof map !== 'undefined' && map !== null) ? map : null;
-      const latValida = parseFloat(b.latitude);
-      const lngValida = parseFloat(b.longitude);
-      const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
+   // =========================================================================
+// RENDERIZADO DEL MINI-MAPA DE LEAFLET
+// =========================================================================
+if (typeof miTemporizadorMapa !== 'undefined' && miTemporizadorMapa) {
+  clearTimeout(miTemporizadorMapa);
+}
 
-      if (typeof miniMapaAdminInstance !== 'undefined' && miniMapaAdminInstance !== null) {
-        try { miniMapaAdminInstance.remove(); } catch (e) { console.warn("Error limpiando mini-mapa anterior:", e); }
-        miniMapaAdminInstance = null;
+miTemporizadorMapa = setTimeout(() => {
+  const miMapaReal = (typeof mapaMaestroFullscreenInstance !== 'undefined' && mapaMaestroFullscreenInstance !== null) ? mapaMaestroFullscreenInstance :
+                     (typeof mapaGeneral !== 'undefined' && mapaGeneral !== null) ? mapaGeneral : 
+                     (typeof leafletMap !== 'undefined' && leafletMap !== null) ? leafletMap : 
+                     (typeof map !== 'undefined' && map !== null) ? map : null;
+  const latValida = parseFloat(b.latitude);
+  const lngValida = parseFloat(b.longitude);
+  const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
+
+  if (typeof miniMapaAdminInstance !== 'undefined' && miniMapaAdminInstance !== null) {
+    try { miniMapaAdminInstance.remove(); } catch (e) { console.warn("Error limpiando mini-mapa anterior:", e); }
+    miniMapaAdminInstance = null;
+  }
+  
+  if (tieneCoordenadas) {
+    setTimeout(() => {
+      try {
+        miniMapaAdminInstance = L.map('miniMapaDetalle', {
+          center: [latValida, lngValida],
+          zoom: 16,
+          zoomControl: false,
+          attributionControl: false,
+          dragging: false,
+          touchZoom: false,
+          doubleClickZoom: false,
+          scrollWheelZoom: false,
+          boxZoom: false,
+          keyboard: false
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMapaAdminInstance);
+        L.marker([latValida, lngValida]).addTo(miniMapaAdminInstance);
+        miniMapaAdminInstance.invalidateSize();
+      } catch (miniMapError) {
+        console.error("Error creando el mini-mapa independiente:", miniMapError);
       }
-      
-      if (tieneCoordenadas) {
-        setTimeout(() => {
-          try {
-            miniMapaAdminInstance = L.map('miniMapaDetalle', {
-              center: [latValida, lngValida],
-              zoom: 16,
-              zoomControl: false,
-              attributionControl: false,
-              dragging: false,
-              touchZoom: false,
-              doubleClickZoom: false,
-              scrollWheelZoom: false,
-              boxZoom: false,
-              keyboard: false
-            });
+    }, 50);
+  } else {
+    const minMapDiv = document.getElementById("miniMapaDetalle");
+    if (minMapDiv) minMapDiv.innerHTML = `<p style="color:#71717a; font-size:11px; text-align:center; padding-top:55px; margin:0;">Falta geolocalización</p>`;
+  }
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMapaAdminInstance);
-            L.marker([latValida, lngValida]).addTo(miniMapaAdminInstance);
-            miniMapaAdminInstance.invalidateSize();
-          } catch (miniMapError) {
-            console.error("Error creando el mini-mapa independiente:", miniMapError);
+  if (miMapaReal) {
+    try { miMapaReal.invalidateSize({ animate: false }); } catch(e){}
+    if (tieneCoordenadas) {
+      try { miMapaReal.setView([latValida, lngValida], 16); } catch(e){}
+    } else if ((b.territory || b.territorio) && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
+      try {
+        const numTerritorio = b.territory || b.territorio;
+        let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
+          filter: function(feature) {
+            const numeroTerritorio = feature.properties && (feature.properties.name || feature.properties.Territorio_N);
+            return String(numeroTerritorio) === String(numTerritorio);
           }
-        }, 50);
-      } else {
-        const minMapDiv = document.getElementById("miniMapaDetalle");
-        if (minMapDiv) minMapDiv.innerHTML = `<p style="color:#71717a; font-size:11px; text-align:center; padding-top:55px; margin:0;">Falta geolocalización</p>`;
-      }
+        });
 
-      if (miMapaReal) {
-        try { miMapaReal.invalidateSize({ animate: false }); } catch(e){}
-        if (tieneCoordenadas) {
-          try { miMapaReal.setView([latValida, lngValida], 16); } catch(e){}
-        } else if ((b.territory || b.territorio) && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
-          try {
-            const numTerritorio = b.territory || b.territorio;
-            let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
-              filter: function(feature) {
-                const numeroTerritorio = feature.properties && (feature.properties.name || feature.properties.Territorio_N);
-                return String(numeroTerritorio) === String(numTerritorio);
-              }
-            });
-
-            if (capaGeoJSONAdmin.getLayers().length > 0) {
-              miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { padding: [25, 25], maxZoom: 16 });
-            }
-          } catch (geoError) {
-            console.warn("Fallo al encuadrar territorio en el mapa principal:", geoError);
-          }
+        if (capaGeoJSONAdmin.getLayers().length > 0) {
+          miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { padding: [25, 25], maxZoom: 16 });
         }
+      } catch (geoError) {
+        console.warn("Fallo al encuadrar territorio en el mapa principal:", geoError);
       }
-    }, 100);
+    }
+  }
+}, 100);
 
   } catch (error) {
     console.error("Error al cargar detalles del edificio:", error);
     panel.innerHTML = `<p style="color:#f87171; text-align:center; padding: 20px;">⚠️ Error al conectar con los detalles del edificio.</p>`;
   }
 }
-/**  * ⚠️ SECCIÓN 6.8: PANEL PREMIUM DE GESTIÓN DE INCIDENCIAS (DOS COLUMNAS ASÍNCRONAS) 
+
+/**
+ * ⚠️ SECCIÓN 6.8: PANEL PREMIUM DE GESTIÓN DE INCIDENCIAS (DOS COLUMNAS ASÍNCRONAS) 
  * Módulo unificado para la auditoría de reportes críticos de campo. Divide la
- * interfaz en un panel izquierdo de tarjetas reactivas y un visor analítico derecho. */
+ * interfaz en un panel izquierdo de tarjetas reactivas y un visor analítico derecho.
+ */
 
 // Variable global para almacenar los problemas descargados
 let listaProblemasGlobal = [];
@@ -2310,11 +2313,9 @@ async function verProblemas() {
       </div>
 
       <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 20px; min-height: 70vh;" class="admin-grid-layout">
-        <!-- Columna Izquierda: Listado de Alertas -->
         <div style="background:#18181b; border:1px solid #27272a; border-radius:16px; padding:15px; display:flex; flex-direction:column; gap:10px; max-height:75vh; overflow-y:auto;" id="listaReportesAdminContenedor">
           <p style='padding:15px; color:gray; text-align:center;'>Cargando reportes en tiempo real...</p>
         </div>
-        <!-- Columna Derecha: Panel de Auditoría Integrado -->
         <div style="background:#18181b; border:1px solid #27272a; border-radius:16px; padding:20px; position:sticky; top:20px; max-height:75vh; overflow-y:auto;" id="panelDetalleProblemaAdmin">
           <div style="text-align:center; color:#71717a; margin-top:150px;">
             <span style="font-size:48px; display:block; margin-bottom:10px;">🔍</span>
@@ -2407,7 +2408,6 @@ async function verDetalleIncidenteAdmin(incidente, index) {
   
   panel.innerHTML = `<p style="text-align:center; color:gray; padding:20px;">Vinculando base de datos estructural del edificio...</p>`;
 
-  // Variables por defecto por si el fetch falla o no hay datos extendidos
   let b = { address: "Dirección de prueba", floors: 0, unitsPerFloor: 0 };
   let lastVisitDate = "Nunca";
 
@@ -2426,7 +2426,6 @@ async function verDetalleIncidenteAdmin(incidente, index) {
   const deptoNum = incidente.departmentNumber || incidente.depto || "-";
   const informante = incidente.reportedBy || "Operador de campo";
 
-  // 2. DISEÑO DE PARTE SUPERIOR COMPACTO: FICHA INTEGRADA + MINI MAPA ESTÁTICO
   panel.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:16px;">
       
@@ -2443,13 +2442,11 @@ async function verDetalleIncidenteAdmin(incidente, index) {
             <div style="grid-column: span 2; font-size:11px; color:#a1a1aa; border-top:1px solid #3f3f46; margin-top:4px; padding-top:4px;">🌱 PB: ${b.hasGroundFloor ? "Sí" : "No"} | 🛎️ Portero: ${b.hasDoorman ? "Sí" : "No"}</div>
           </div>
         </div>
-        <!-- Contenedor del Mini-Mapa Estático Dedicado -->
         <div style="width: 120px; height: 120px; flex-shrink: 0; position: relative; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); background:#141416;">
           <div id="miniMapaIncidenteAdmin" style="width: 120px; height: 120px; border-radius: 12px;"></div>
         </div>
       </div>
 
-      <!-- Información del Incidente Activo -->
       <div style="background:#1e1e22; border: 1px solid #27272a; padding:12px; border-radius:12px; display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; color:#e4e4e7;">
         <div>🚪 <b>Unidad/Depto Afectado:</b> <span style="color:#fcd34d;">${deptoNum}</span></div>
         <div>👤 <b>Reportado por:</b> ${informante}</div>
@@ -2463,7 +2460,6 @@ async function verDetalleIncidenteAdmin(incidente, index) {
         </div>
       </div>
 
-      <!-- Selector de Estados Intermedios -->
       <div style="display:flex; align-items:center; gap:10px; background:#141416; padding:8px 12px; border-radius:10px; border:1px solid #27272a;">
         <label style="font-size:12px; color:#a1a1aa; font-weight:600;">Estado Operativo:</label>
         <select onchange="cambiarEstadoIncidente('${idIncidente}', this.value)" style="background:#27272a; color:white; border:1px solid #3f3f46; padding:4px 8px; border-radius:6px; font-size:12px; cursor:pointer; flex-grow:1;">
@@ -2472,17 +2468,13 @@ async function verDetalleIncidenteAdmin(incidente, index) {
         </select>
       </div>
 
-      <!-- 3 y 5. BARRA INFERIOR RE-ESTRUCTURADA (TRILOGÍA DE ACCIONES ALINEADAS) -->
       <div style="display: flex; gap: 8px; margin-top: auto; border-top: 1px solid #27272a; padding-top:14px;">
-        <!-- Botón 1: Texto corto y limpio -->
         <button onclick="resolverIncidenteCompleto('${idIncidente}')" style="background:#16a34a; color:white; border:none; padding:10px 16px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; flex: 1.2; display:flex; align-items:center; justify-content:center; gap:4px; box-shadow:0 4px 12px rgba(22,163,74,0.2);">
           ✔ Resolver
         </button>
-        <!-- Botón 2: Acceso directo al Historial de visitas -->
         <button onclick="abrirHistorialEdificio('${targetBuildingId}')" style="background:#27272a; border:1px solid #3f3f46; color:white; padding:10px 14px; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer; flex: 1; display:flex; align-items:center; justify-content:center; gap:4px;">
           📜 Historial
         </button>
-        <!-- Botón 3: NUEVO - Acceso directo a edición estructural del Edificio -->
         <button onclick="abrirEditorEdificio('${targetBuildingId}')" style="background:#1e293b; border:1px solid #3b82f6; color:#3b82f6; padding:10px 14px; border-radius:10px; font-size:12px; font-weight:600; cursor:pointer; flex: 1; display:flex; align-items:center; justify-content:center; gap:4px;">
           ✏️ Editar Edif.
         </button>
@@ -2491,7 +2483,6 @@ async function verDetalleIncidenteAdmin(incidente, index) {
     </div>
   `;
 
-  // Renderizado Automático del Mini-Mapa Estático del Incidente
   setTimeout(() => {
     const latValida = parseFloat(b.latitude || b.lat);
     const lngValida = parseFloat(b.longitude || b.lng);
@@ -2528,45 +2519,39 @@ async function verDetalleIncidenteAdmin(incidente, index) {
 let idReporteRotoBorrando = null;
 
 /** * 🛑 ACCIÓN DE SEGURO: Eliminación permanente física de reportes dañados o viejos
- * SISTEMA: Doble click estético integrado con detención de propagación (Chau cartel gris) */
+ * SISTEMA: Doble click estético integrado con detención de propagación */
 async function eliminarReporteRotoDirecto(event, id) {
-  // OBLIGATORIO: Frenamos el click para que no se active la tarjeta de la lista izquierda
   if (event && typeof event.stopPropagation === "function") {
     event.stopPropagation();
   }
 
-  // 🔍 Buscamos dinámicamente el botón rojo de la tarjeta usando su atributo onclick
   const botonEliminar = document.querySelector(`button[onclick*="eliminarReporteRotoDirecto"][onclick*="${id}"]`);
 
-  // 🛡️ PASO 1: Primer click - Activamos el modo confirmación en el botón
   if (idReporteRotoBorrando !== id) {
     idReporteRotoBorrando = id;
     
     if (botonEliminar) {
-      // Guardamos el texto original por las dudas
       botonEliminar.dataset.originalText = botonEliminar.innerHTML;
-      botonEliminar.style.background = "#dc2626"; // Rojo vivo de alerta
+      botonEliminar.style.background = "#dc2626"; 
       botonEliminar.style.borderColor = "#f87171";
       botonEliminar.innerHTML = "⚠️ ¿Seguro? Eliminar";
     }
 
-    // Seguro de 4 segundos: Si no confirma, vuelve a la normalidad solo
     setTimeout(() => {
       if (idReporteRotoBorrando === id) {
         idReporteRotoBorrando = null;
         if (botonEliminar) {
-          botonEliminar.style.background = ""; // Reestablece el CSS original
+          botonEliminar.style.background = ""; 
           botonEliminar.style.borderColor = "";
           botonEliminar.innerHTML = botonEliminar.dataset.originalText || "🗑️ Eliminar Reporte";
         }
       }
     }, 4000);
     
-    return; // Detenemos la ejecución hasta el próximo click
+    return; 
   }
 
-  // 🚀 PASO 2: Segundo click - Confirmado el borrado definitivo
-  idReporteRotoBorrando = null; // Reseteamos el seguro
+  idReporteRotoBorrando = null; 
   
   if (botonEliminar) {
     botonEliminar.innerHTML = "⏳ Eliminando...";
@@ -2576,13 +2561,9 @@ async function eliminarReporteRotoDirecto(event, id) {
   try {
     const res = await apiFetch(`/issues/${id}`, { method: "DELETE" });
     if (res && res.ok) {
-      // Mensaje de éxito Premium estilizado abajo
       mostrarAviso("🗑️ Reporte destruido y eliminado completamente del sistema.", "success");
-      
-      // Actualizamos fluidamente la lista izquierda
       await verProblemas();
       
-      // Devolvemos la columna derecha al estado inicial instructivo
       const panel = document.getElementById("panelDetalleProblemaAdmin");
       if (panel) {
         panel.innerHTML = `
@@ -2612,8 +2593,8 @@ function restaurarBotonEliminar(boton) {
     boton.innerHTML = boton.dataset.originalText || "🗑️ Eliminar Reporte";
   }
 }
-/** * 💻 Admin: Cambia el estado intermedio a EN_PROCESO o PENDIENTE en el servidor */
 
+/** * 💻 Admin: Cambia el estado intermedio a EN_PROCESO o PENDIENTE en el servidor */
 async function cambiarEstadoIncidente(id, nuevoEstado) {
   try {
     const res = await apiFetch(`/issues/${id}`, {
@@ -2636,35 +2617,32 @@ async function cambiarEstadoIncidente(id, nuevoEstado) {
 let idIncidenteConfirmando = null;
 
 /** * 💻 Admin: Elimina o marca como RESUELTO el problema liberando al edificio
- * SISTEMA: Doble click de confirmación estética (Evita clicks accidentales sin alertas grises) */
+ * SISTEMA: Doble click de confirmación estética */
 async function resolverIncidenteCompleto(id) {
   const botonResolver = document.querySelector(`button[onclick="resolverIncidenteCompleto('${id}')"]`);
 
-  // 🛡️ PASO 1: Si es el primer click, activamos el estado de alerta en el propio botón
   if (idIncidenteConfirmando !== id) {
     idIncidenteConfirmando = id;
     
     if (botonResolver) {
-      botonResolver.style.background = "#b91c1c"; // Rojo alerta
+      botonResolver.style.background = "#b91c1c"; 
       botonResolver.innerHTML = "⚠️ ¿Seguro? Click para Confirmar";
     }
 
-    // Si pasan 4 segundos y no confirma, restauramos el botón automáticamente
     setTimeout(() => {
       if (idIncidenteConfirmando === id) {
         idIncidenteConfirmando = null;
         if (botonResolver) {
-          botonResolver.style.background = "#16a34a"; // Vuelve al verde original
+          botonResolver.style.background = "#16a34a"; 
           botonResolver.innerHTML = "✔ Resolver";
         }
       }
     }, 4000);
     
-    return; // Frenamos acá hasta el segundo click
+    return; 
   }
 
-  // 🚀 PASO 2: Si hace el segundo click, procesamos la resolución real
-  idIncidenteConfirmando = null; // Reseteamos el seguro
+  idIncidenteConfirmando = null; 
   
   if (botonResolver) {
     botonResolver.innerHTML = "⏳ Procesando...";
@@ -2681,7 +2659,6 @@ async function resolverIncidenteCompleto(id) {
         panel.innerHTML = `<div style="text-align:center; color:#71717a; margin-top:100px;"><span style="font-size:48px; display:block; margin-bottom:10px;">🔍</span>Selecciona un reporte de la lista para auditar el edificio.</div>`;
       }
     } else {
-      // Intento alternativo PUT de contingencia por si el backend está configurado con persistencia de históricos
       const intentoPut = await apiFetch(`/issues/${id}`, {
         method: "PUT",
         body: JSON.stringify({ status: "RESUELTO" })
@@ -2695,7 +2672,6 @@ async function resolverIncidenteCompleto(id) {
         }
       } else {
         mostrarAviso("No se pudo procesar la baja del incidente en el servidor.", "error");
-        // Si falla, restauramos el botón
         if (botonResolver) {
           botonResolver.disabled = false;
           botonResolver.style.background = "#16a34a";
@@ -2714,14 +2690,14 @@ async function resolverIncidenteCompleto(id) {
   }
 }
 
-//=========================================================================
+// =========================================================================
 // 🗺️ SECCIÓN 7: MOTOR CARTOGRÁFICO MAESTRO CENTRAL (ADMIN APP - FULLSCREEN)
 // =========================================================================
+
 /** * 7.1 INICIALIZACIÓN DE LA ARQUITECTURA DEL MAPA MAESTRO GENERAL FULLSCREEN
  * Levanta el mapa en pantalla completa, inyecta polígonos vectoriales y renderiza
  * automáticamente marcadores (pins) con detalles para los edificios geolocalizados. */
 function inicializarMapaGeneralAdministrador() {
-  // Apuntamos al nuevo div fullscreen dedicado exclusivamente al mapa maestro
   const mapaDiv = document.getElementById("mapaMaestroFullscreen");
   if (!mapaDiv) return;
 
@@ -2729,15 +2705,15 @@ function inicializarMapaGeneralAdministrador() {
   if (mapaGeneral) {
     try {
       mapaGeneral.eachLayer(layer => {
-        // 🔥 VALIDACIÓN SEGURA NIVEL 3: Evita evaluar objetos undefined usando métodos nativos de Leaflet
+        // 🔥 VALIDACIÓN SEGURA: Detecta polígonos GeoJSON, marcadores o elementos de cluster
         const esCapaRemovible = 
-          (layer.argumentedGeoJSON || layer.feature) || // Detecta polígonos GeoJSON
-          (layer instanceof L.Marker) ||                 // Detecta marcadores simples comunes
-          (layer.options && layer.options.icon) ||       // Alternativa para detectar pines visuales
-          (typeof L.MarkerCluster !== 'undefined' && layer instanceof L.MarkerCluster); // Solo evalúa cluster si existe
+          (layer.argumentedGeoJSON || layer.feature) || 
+          (layer instanceof L.Marker) ||                 
+          (layer.options && layer.options.icon) ||       
+          (typeof L.MarkerCluster !== 'undefined' && layer instanceof L.MarkerCluster);
 
-        // Si es una capa de datos (y no el mapa base de OpenStreetMap), la removemos
-        if (esCapaRemovible && typeof layer.toGeoJSON !== 'undefined' || layer instanceof L.Marker) {
+        // Agrupación lógica correcta mediante paréntesis para evitar fallas del operador OR
+        if (esCapaRemovible && (typeof layer.toGeoJSON !== 'undefined' || layer instanceof L.Marker)) {
           mapaGeneral.removeLayer(layer);
         }
       });
@@ -2806,7 +2782,6 @@ function inicializarMapaGeneralAdministrador() {
       if (!isNaN(lat) && !isNaN(lng) && isFinite(lat) && lat !== 0) {
         pinsContados++;
         
-        // Creamos un popup descriptivo estilizado para cuando toquen el pin
         const contenidoPopup = `
           <div style="color: #ffffff; background: #1f1f23; font-family: sans-serif; padding: 4px; border-radius: 4px;">
             <b style="font-size: 14px; color: #3b82f6; display:block; margin-bottom:2px;">🏢 ${e.address || 'Sin Dirección'}</b>
@@ -2882,7 +2857,6 @@ function ejecutarFiltrosAdmin() {
     return cumpleDir && cumpleTerr && cumpleModo;
   });
 
-  // Reseteamos a la página 1 para evitar desbordamientos de índice y redibujamos
   paginaActual = 1;
   if (typeof cargarEdificios === "function") cargarEdificios();
 }
@@ -2896,8 +2870,6 @@ async function cargarEdificios() {
   const TXT_DIR = document.getElementById("busquedaDireccionAdmin")?.value.trim() || "";
   const TXT_TERR = document.getElementById("busquedaTerritorio")?.value.trim() || "";
 
-  // RESTRICCIÓN MODIFICADA: Solo forzamos el mensaje instructivo si estamos en modo "oficial".
-  // En modo "auditoría" permitimos listar todo de entrada para revisar los ingresos nuevos.
   if (modoListaAdmin === "oficial" && TXT_DIR === "" && TXT_TERR === "") {
     tablaCuerpo.innerHTML = `
       <tr>
@@ -2912,7 +2884,6 @@ async function cargarEdificios() {
 
   tablaCuerpo.innerHTML = "";
 
-  // Si no hay datos cargados en el puntero de filtrado, intentamos sincronizar
   if (!window.todosLosEdificiosDB || window.todosLosEdificiosDB.length === 0) {
     if (typeof preCargarBaseDatosEnMemoria === 'function') {
       await preCargarBaseDatosEnMemoria();
@@ -2931,7 +2902,6 @@ async function cargarEdificios() {
     return;
   }
 
-  // Cálculo de índices para la segmentación por página (Usa tus constantes nativas)
   const limiteElementos = typeof ELEMENTOS_POR_PAGINA !== 'undefined' ? ELEMENTOS_POR_PAGINA : 7;
   const indiceInicio = (paginaActual - 1) * limiteElementos;
   const indiceFin = indiceInicio + limiteElementos;
@@ -2944,7 +2914,6 @@ async function cargarEdificios() {
     fila.style.cursor = "pointer";
     fila.style.transition = "background-color 0.2s ease";
     
-    // Si es auditoría, interceptamos el click para mostrar los botones de aprobar/rechazar
     fila.setAttribute("onclick", `verDetalleEdificioAdmin('${idEdificio}')`);
     
     fila.onmouseover = () => fila.style.backgroundColor = "#27272a";
@@ -2964,7 +2933,7 @@ async function cargarEdificios() {
   });
 
   if (typeof actualizarControlesPaginacion === "function") {
-    actualizarControlesPaginacion(datosAIterar.length);
+    actualicariControlesPaginacion = typeof actualizarControlesPaginacion === "function" ? actualizarControlesPaginacion(datosAIterar.length) : null;
   }
 }
 
@@ -2973,7 +2942,6 @@ async function cargarEdificios() {
 function cambiarModoListaAdmin(nuevoModo) {
   modoListaAdmin = nuevoModo;
   
-  // Modificar clases visuales activas
   document.getElementById("btnListaOficial")?.classList.toggle("active", nuevoModo === "oficial");
   document.getElementById("btnListaAuditoria")?.classList.toggle("active", nuevoModo === "auditoria");
   
@@ -2982,7 +2950,6 @@ function cambiarModoListaAdmin(nuevoModo) {
     tituloTabla.innerText = (nuevoModo === "auditoria") ? "Dirección (Ingresos Recientes)" : "Dirección";
   }
 
-  // Cerrar el panel de detalles derecho para evitar confusiones
   const panelDetalle = document.getElementById("panelDetalleEdificio");
   if (panelDetalle) panelDetalle.style.display = "none";
 
@@ -2998,30 +2965,34 @@ function procesarVerificacionEdificio(idEdificio, aprobado) {
   if (aprobado) {
     edificio.auditado = true;
     if (edificio.status === "pendiente_auditoria") edificio.status = "pendiente";
-    alert(`🏢 Edificio "${edificio.address || 'seleccionado'}" aprobado con éxito.`);
+    if (typeof mostrarAviso === "function") {
+      mostrarAviso(`🏢 Edificio "${edificio.address || 'seleccionado'}" aprobado con éxito.`, "success");
+    }
   } else {
-    // Si se rechaza, lo removemos de la memoria para limpiar la cola
     window.baseDatosEdificiosMemoria = window.baseDatosEdificiosMemoria.filter(e => (e.id || e._id) !== idEdificio);
-    alert(`⚠️ Registro rechazado y removido de la cola de auditoría.`);
+    if (typeof mostrarAviso === "function") {
+      mostrarAviso(`⚠️ Registro rechazado y removido de la cola de auditoría.`, "warning");
+    }
   }
 
-  // Ocultar panel, guardar caché y actualizar pantallas
   document.getElementById("panelDetalleEdificio").style.display = "none";
-  if (window.localStorage) {
-    localStorage.setItem("edificios_cache_local", JSON.stringify(window.baseDatosEdificiosMemoria));
+  try {
+    if (window.localStorage) {
+      localStorage.setItem("edificios_cache_local", JSON.stringify(window.baseDatosEdificiosMemoria));
+    }
+  } catch (storeErr) {
+    console.error("No se pudo escribir en el localStorage:", storeErr);
   }
   
   ejecutarFiltrosAdmin();
   if (typeof inicializarMapaGeneralAdministrador === "function") inicializarMapaGeneralAdministrador();
 }
+
 // =========================================================================
 // 🔤 SECTOR: NORMALIZADOR ALFANUMÉRICO DE DIRECCIONES Y NOMENCLATURA VIAL
 // =========================================================================
 
-/** Normaliza cadenas de texto borrando acentos, caracteres extraños y abreviaturas comunes.
- * Optimiza las búsquedas e impide fallas de inyección HTML o quiebres por comillas.
- * @param {string} texto - Dirección en bruto tipeada por el encuestador
- * @returns {string} Texto plano limpio listo para comparación indexada */
+/** Normaliza cadenas de texto borrando acentos, caracteres extraños y abreviaturas comunes. */
 function normalizarDireccion(texto) {
   if (!texto) return "";
   
@@ -3037,8 +3008,7 @@ function normalizarDireccion(texto) {
     .replace(/\s+/g, " ");
 }
 
-/** * REPARACIÓN DEFINITIVA: CONTROLADOR DE PESTAÑAS DE BÚSQUEDA (Dirección / Territorio)
- * Sincroniza las clases 'active' y alterna la visibilidad de los contenedores compactos. */
+/** * REPARACIÓN DEFINITIVA: CONTROLADOR DE PESTAÑAS DE BÚSQUEDA (Dirección / Territorio) */
 function cambiarTabFiltro(tabTipo) {
   const btnDireccion = document.getElementById("btnTabDireccion");
   const btnTerritorio = document.getElementById("btnTabTerritorio");
@@ -3060,30 +3030,25 @@ function cambiarTabFiltro(tabTipo) {
     console.log("🔍 Modo de búsqueda establecido en: Territorio");
   }
 }
-/** * 🌟 SISTEMA DE NOTIFICACIONES VISUALES (TOAST)
- * Reemplaza los alerts nativos por carteles flotantes elegantes y no bloqueantes.
- * @param {string} mensaje - El texto a mostrar.
- * @param {string} tipo - 'success', 'warning', 'error' (por defecto 'success') */
+
+/** * 🌟 SISTEMA DE NOTIFICACIONES VISUALES (TOAST) */
 function mostrarAviso(mensaje, tipo = "success") {
   const container = document.getElementById("toast-container");
   if (!container) {
-    // Salvavidas por si no agregaste el contenedor HTML todavía
     alert(mensaje);
     return;
   }
 
-  // Configuración de colores según el tipo de aviso
-  let bg = "#10b981"; // Verde success
+  let bg = "#10b981"; 
   let icon = "✅";
   if (tipo === "warning") {
-    bg = "#f59e0b"; // Amarillo/Naranja warning
+    bg = "#f59e0b"; 
     icon = "⚠️";
   } else if (tipo === "error") {
-    bg = "#ef4444"; // Rojo error
+    bg = "#ef4444"; 
     icon = "❌";
   }
 
-  // Crear el elemento del aviso
   const toast = document.createElement("div");
   toast.style.background = bg;
   toast.style.color = "#ffffff";
@@ -3102,17 +3067,13 @@ function mostrarAviso(mensaje, tipo = "success") {
   toast.style.gap = "8px";
 
   toast.innerHTML = `<span>${icon}</span> <span>${mensaje}</span>`;
-
-  // Insertar en el contenedor
   container.appendChild(toast);
 
-  // Efecto de entrada (Fade in + leve subida)
   setTimeout(() => {
     toast.style.opacity = "1";
     toast.style.transform = "translateY(0)";
   }, 50);
 
-  // Desvanecer y remover automáticamente a los 3.5 segundos
   setTimeout(() => {
     toast.style.opacity = "0";
     toast.style.transform = "translateY(10px)";
