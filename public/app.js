@@ -2201,81 +2201,85 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
     
-   // =========================================================================
+// =========================================================================
 // RENDERIZADO DEL MINI-MAPA DE LEAFLET
 // =========================================================================
-if (typeof miTemporizadorMapa !== 'undefined' && miTemporizadorMapa) {
-  clearTimeout(miTemporizadorMapa);
-}
-
-miTemporizadorMapa = setTimeout(() => {
-  const miMapaReal = (typeof mapaMaestroFullscreenInstance !== 'undefined' && mapaMaestroFullscreenInstance !== null) ? mapaMaestroFullscreenInstance :
-                     (typeof mapaGeneral !== 'undefined' && mapaGeneral !== null) ? mapaGeneral : 
-                     (typeof leafletMap !== 'undefined' && leafletMap !== null) ? leafletMap : 
-                     (typeof map !== 'undefined' && map !== null) ? map : null;
-  const latValida = parseFloat(b.latitude);
-  const lngValida = parseFloat(b.longitude);
-  const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
-
-  if (typeof miniMapaAdminInstance !== 'undefined' && miniMapaAdminInstance !== null) {
-    try { miniMapaAdminInstance.remove(); } catch (e) { console.warn("Error limpiando mini-mapa anterior:", e); }
-    miniMapaAdminInstance = null;
-  }
+try { // <-- Iniciamos el bloque try principal de la función contenedora
   
-  if (tieneCoordenadas) {
-    setTimeout(() => {
-      try {
-        miniMapaAdminInstance = L.map('miniMapaDetalle', {
-          center: [latValida, lngValida],
-          zoom: 16,
-          zoomControl: false,
-          attributionControl: false,
-          dragging: false,
-          touchZoom: false,
-          doubleClickZoom: false,
-          scrollWheelZoom: false,
-          boxZoom: false,
-          keyboard: false
-        });
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMapaAdminInstance);
-        L.marker([latValida, lngValida]).addTo(miniMapaAdminInstance);
-        miniMapaAdminInstance.invalidateSize();
-      } catch (miniMapError) {
-        console.error("Error creando el mini-mapa independiente:", miniMapError);
-      }
-    }, 50);
-  } else {
-    const minMapDiv = document.getElementById("miniMapaDetalle");
-    if (minMapDiv) minMapDiv.innerHTML = `<p style="color:#71717a; font-size:11px; text-align:center; padding-top:55px; margin:0;">Falta geolocalización</p>`;
+  if (typeof miTemporizadorMapa !== 'undefined' && miTemporizadorMapa) {
+    clearTimeout(miTemporizadorMapa);
   }
 
-  if (miMapaReal) {
-    try { miMapaReal.invalidateSize({ animate: false }); } catch(e){}
-    if (tieneCoordenadas) {
-      try { miMapaReal.setView([latValida, lngValida], 16); } catch(e){}
-    } else if ((b.territory || b.territorio) && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
-      try {
-        const numTerritorio = b.territory || b.territorio;
-        let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
-          filter: function(feature) {
-            const numeroTerritorio = feature.properties && (feature.properties.name || feature.properties.Territorio_N);
-            return String(numeroTerritorio) === String(numTerritorio);
-          }
-        });
+  miTemporizadorMapa = setTimeout(() => {
+    const miMapaReal = (typeof mapaMaestroFullscreenInstance !== 'undefined' && mapaMaestroFullscreenInstance !== null) ? mapaMaestroFullscreenInstance :
+                       (typeof mapaGeneral !== 'undefined' && mapaGeneral !== null) ? mapaGeneral : 
+                       (typeof leafletMap !== 'undefined' && leafletMap !== null) ? leafletMap : 
+                       (typeof map !== 'undefined' && map !== null) ? map : null;
+    const latValida = parseFloat(b.latitude);
+    const lngValida = parseFloat(b.longitude);
+    const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
 
-        if (capaGeoJSONAdmin.getLayers().length > 0) {
-          miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { padding: [25, 25], maxZoom: 16 });
+    if (typeof miniMapaAdminInstance !== 'undefined' && miniMapaAdminInstance !== null) {
+      try { miniMapaAdminInstance.remove(); } catch (e) { console.warn("Error limpiando mini-mapa anterior:", e); }
+      miniMapaAdminInstance = null;
+    }
+    
+    if (tieneCoordenadas) {
+      setTimeout(() => {
+        try {
+          miniMapaAdminInstance = L.map('miniMapaDetalle', {
+            center: [latValida, lngValida],
+            zoom: 16,
+            zoomControl: false,
+            attributionControl: false,
+            dragging: false,
+            touchZoom: false,
+            doubleClickZoom: false,
+            scrollWheelZoom: false,
+            boxZoom: false,
+            keyboard: false
+          });
+
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(miniMapaAdminInstance);
+          L.marker([latValida, lngValida]).addTo(miniMapaAdminInstance);
+          miniMapaAdminInstance.invalidateSize();
+        } catch (miniMapError) {
+          console.error("Error creando el mini-mapa independiente:", miniMapError);
         }
-      } catch (geoError) {
-        console.warn("Fallo al encuadrar territorio en el mapa principal:", geoError);
+      }, 50);
+    } else {
+      const minMapDiv = document.getElementById("miniMapaDetalle");
+      if (minMapDiv) minMapDiv.innerHTML = `<p style="color:#71717a; font-size:11px; text-align:center; padding-top:55px; margin:0;">Falta geolocalización</p>`;
+    }
+
+    if (miMapaReal) {
+      try { miMapaReal.invalidateSize({ animate: false }); } catch(e){}
+      if (tieneCoordenadas) {
+        try { miMapaReal.setView([latValida, lngValida], 16); } catch(e){}
+      } else if ((b.territory || b.territorio) && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
+        try {
+          const numTerritorio = b.territory || b.territorio;
+          let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
+            filter: function(feature) {
+              const numeroTerritorio = feature.properties && (feature.properties.name || feature.properties.Territorio_N);
+              return String(numeroTerritorio) === String(numTerritorio);
+            }
+          });
+
+          if (capaGeoJSONAdmin.getLayers().length > 0) {
+            miMapaReal.fitBounds(capaGeoJSONAdmin.getBounds(), { padding: [25, 25], maxZoom: 16 });
+          }
+        } catch (geoError) {
+          console.warn("Fallo al encuadrar territorio en el mapa principal:", geoError);
+        }
       }
     }
-  }
-}, 100);
+  }, 100);
 
-   catch (error) {
-    console.error("Error al cargar detalles del edificio:", error);
+} // <-- Cerramos el try ACÁ, envolviendo correctamente el flujo asíncrono anterior
+catch (error) {
+  console.error("Error al cargar detalles del edificio:", error);
+  if (typeof panel !== 'undefined' && panel) {
     panel.innerHTML = `<p style="color:#f87171; text-align:center; padding: 20px;">⚠️ Error al conectar con los detalles del edificio.</p>`;
   }
 }
