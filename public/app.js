@@ -2274,7 +2274,7 @@ miTemporizadorMapa = setTimeout(() => {
   }
 }, 100);
 
-  } catch (error) {
+   catch (error) {
     console.error("Error al cargar detalles del edificio:", error);
     panel.innerHTML = `<p style="color:#f87171; text-align:center; padding: 20px;">⚠️ Error al conectar con los detalles del edificio.</p>`;
   }
