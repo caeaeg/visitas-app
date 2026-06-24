@@ -2204,19 +2204,33 @@ document.addEventListener('DOMContentLoaded', () => {
 // =========================================================================
 // RENDERIZADO DEL MINI-MAPA DE LEAFLET
 // =========================================================================
-try { // <-- Iniciamos el bloque try principal de la función contenedora
+try {
   
   if (typeof miTemporizadorMapa !== 'undefined' && miTemporizadorMapa) {
     clearTimeout(miTemporizadorMapa);
   }
 
   miTemporizadorMapa = setTimeout(() => {
+    // 🔥 SALVAVIDAS DE DATOS: Mapea automáticamente el objeto correcto si 'b' no está definido
+    let datosEdificio = null;
+    if (typeof b !== 'undefined' && b) { datosEdificio = b; }
+    else if (typeof edificio !== 'undefined' && edificio) { datosEdificio = edificio; }
+    else if (typeof incidente !== 'undefined' && incidente) { datosEdificio = incidente.buildingId || incidente; }
+
+    // Si de plano no hay ningún objeto con datos, cancelamos para evitar que rompa
+    if (!datosEdificio) {
+      console.warn("No se encontraron datos del edificio para renderizar el mini-mapa.");
+      return;
+    }
+
     const miMapaReal = (typeof mapaMaestroFullscreenInstance !== 'undefined' && mapaMaestroFullscreenInstance !== null) ? mapaMaestroFullscreenInstance :
                        (typeof mapaGeneral !== 'undefined' && mapaGeneral !== null) ? mapaGeneral : 
                        (typeof leafletMap !== 'undefined' && leafletMap !== null) ? leafletMap : 
                        (typeof map !== 'undefined' && map !== null) ? map : null;
-    const latValida = parseFloat(b.latitude);
-    const lngValida = parseFloat(b.longitude);
+
+    // Usamos de forma segura el objeto unificado 'datosEdificio'
+    const latValida = parseFloat(datosEdificio.latitude);
+    const lngValida = parseFloat(datosEdificio.longitude);
     const tieneCoordenadas = !isNaN(latValida) && !isNaN(lngValida) && isFinite(latValida) && latValida !== 0;
 
     if (typeof miniMapaAdminInstance !== 'undefined' && miniMapaAdminInstance !== null) {
@@ -2256,9 +2270,9 @@ try { // <-- Iniciamos el bloque try principal de la función contenedora
       try { miMapaReal.invalidateSize({ animate: false }); } catch(e){}
       if (tieneCoordenadas) {
         try { miMapaReal.setView([latValida, lngValida], 16); } catch(e){}
-      } else if ((b.territory || b.territorio) && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
+      } else if ((datosEdificio.territory || datosEdificio.territorio) && typeof misTerritoriosGeoJSON !== 'undefined' && misTerritoriosGeoJSON !== null) {
         try {
-          const numTerritorio = b.territory || b.territorio;
+          const numTerritorio = datosEdificio.territory || datosEdificio.territorio;
           let capaGeoJSONAdmin = L.geoJSON(misTerritoriosGeoJSON, {
             filter: function(feature) {
               const numeroTerritorio = feature.properties && (feature.properties.name || feature.properties.Territorio_N);
@@ -2276,14 +2290,13 @@ try { // <-- Iniciamos el bloque try principal de la función contenedora
     }
   }, 100);
 
-} // <-- Cerramos el try ACÁ, envolviendo correctamente el flujo asíncrono anterior
+} 
 catch (error) {
   console.error("Error al cargar detalles del edificio:", error);
   if (typeof panel !== 'undefined' && panel) {
     panel.innerHTML = `<p style="color:#f87171; text-align:center; padding: 20px;">⚠️ Error al conectar con los detalles del edificio.</p>`;
   }
 }
-
 /**
  * ⚠️ SECCIÓN 6.8: PANEL PREMIUM DE GESTIÓN DE INCIDENCIAS (DOS COLUMNAS ASÍNCRONAS) 
  * Módulo unificado para la auditoría de reportes críticos de campo. Divide la
