@@ -1002,6 +1002,7 @@
     <p id="loginMsg"></p>
   </div>
 </div>
+
 <div id="superAdminView" class="vista-seccion" style="display: none; padding: 20px; color: white; max-width: 1200px; margin: 0 auto;">
     
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #27272a; padding-bottom: 15px;">
@@ -1011,7 +1012,7 @@
             </h2>
             <p id="contadorSuperAdmin" style="margin: 5px 0 0 0; color: #a1a1aa; font-size: 14px;">Cargando datos del sistema...</p>
         </div>
-        <button onclick="abrirVista('menuPrincipal')" style="background: #27272a; border: 1px solid #3f3f46; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+        <button onclick="abrirVista('dashboardView')" style="background: #27272a; border: 1px solid #3f3f46; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600;">
             ↩ Volver al Menú
         </button>
     </div>
@@ -1043,8 +1044,7 @@
                     <th style="padding: 12px 16px; text-align: right;">Acciones</th>
                 </tr>
             </thead>
-            <tbody id="tablaSuperAdminCuerpo">
-                </tbody>
+            <tbody id="tablaSuperAdminCuerpo"></tbody>
         </table>
     </div>
 
@@ -1055,8 +1055,8 @@
             <button id="btnSuperSig" onclick="cambiarPaginaSuper(1)" style="background: #27272a; border: 1px solid #3f3f46; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;">Sig ▶</button>
         </div>
     </div>
-
 </div>
+
 <div id="dashboardView" class="view" style="display: none;">
   <div class="dashboard-container-premium">
     
@@ -1074,10 +1074,18 @@
     <div class="dashboardGridModerna">
       
       <div class="dashboardCardModerna" onclick="abrirVista('territorioView')">
-        <div class="icon">🗺️</div>
+        <div class="icon">📋</div>
         <div>
           <h3>Territorios y Edificios</h3>
-          <p>Mapa, estadísticas, filtros e historial.</p>
+          <p>Mapeo operativo, listado estructurado y auditorías.</p>
+        </div>
+      </div>
+
+      <div class="dashboardCardModerna" onclick="abrirMapaTerritorioIndependiente()">
+        <div class="icon" style="background: rgba(37, 99, 235, 0.15); color: #3b82f6; border-color: rgba(37, 99, 235, 0.3);">🗺️</div>
+        <div>
+          <h3 style="color: #60a5fa;">Mapa de Territorio</h3>
+          <p>Polígonos vectoriales y visualización de pines en tiempo real.</p>
         </div>
       </div>
       
@@ -1105,10 +1113,11 @@
         </div>
       </div>
 
-    </div> </div>
+    </div> 
+  </div>
 </div>
   
- <div id="territorioView" class="view" style="display: none;">
+<div id="territorioView" class="view" style="display: none;">
   <div class="admin-nav-bar" style="display: flex; margin-bottom: 15px; align-items: center; justify-content: space-between;">
     <div class="nav-left" style="display: flex; align-items: center; gap: 12px;">
       <button onclick="abrirVista('dashboardView')" style="background: #27272a; border: 1px solid #3f3f46; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; transition: background 0.2s; padding: 0;">
@@ -1118,12 +1127,6 @@
         <span class="nav-title" style="font-weight: 700; color: white; font-size: 18px;">🗺️ Territorios y Edificios</span>
       </div>
     </div>
-  </div>
-
-  <div style="margin-top: 15px; width: 100%;">
-    <button class="buscar" onclick="abrirVista('mapaView')" style="margin: 0; width: 100%; padding: 14px 24px; font-size: 14px; font-weight: 700; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 10px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25); cursor: pointer; border: none;">
-      🗺️ Abrir Mapa Maestro de Edificios
-    </button>
   </div>
 
   <div class="workspace-grid" style="margin-top: 20px;">
@@ -1197,22 +1200,22 @@
   </div>
 </div>
   
-  <div id="mapaView" class="view" style="display: none; padding: 10px; box-sizing: border-box; height: 100dvh; max-height: 100vh; overflow: hidden; position: relative;">
+<div id="mapaView" class="view" style="display: none; padding: 10px; box-sizing: border-box; height: 100dvh; max-height: 100vh; overflow: hidden; position: relative;">
   <div class="component-card" style="padding: 12px; background: #1c1c1e; border: 1px solid #27272a; border-radius: 14px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px;">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
       <div>
         <h2 style="color: #ffffff; margin: 0; font-size: 18px; line-height: 1.2;">🗺️ Mapa Maestro de Coordenadas</h2>
         <p style="margin: 2px 0 0 0; font-size: 12px; color: #a1a1aa; display: block;">Territorios y edificios geolocalizados</p>
       </div>
-      <button class="secondary" onclick="abrirVista('territorioView')" style="margin: 0; width: auto; padding: 8px 14px; font-size: 12px; font-weight: 600; background: #27272a; border-color: #3f3f46; color: white; cursor: pointer; border-radius: 8px; white-space: nowrap;">
-        ⬅️ Volver
+      <button class="secondary" onclick="abrirVista('dashboardView')" style="margin: 0; width: auto; padding: 8px 14px; font-size: 12px; font-weight: 600; background: #27272a; border-color: #3f3f46; color: white; cursor: pointer; border-radius: 8px; white-space: nowrap;">
+        ⬅️ Volver al Menú
       </button>
     </div>
     <div id="mapaMaestroFullscreen" style="flex: 1; width: 100%; border-radius: 10px; border: 1px solid #27272a; background: #18181b;"></div>
   </div>
 </div> 
   
-  <div id="problemasView" class="view" style="display: none;">
+<div id="problemasView" class="view" style="display: none;">
   <div class="admin-nav-bar" style="display: flex; margin-bottom: 15px; align-items: center;">
     <div class="nav-left" style="display: flex; align-items: center; gap: 12px;">
       <button onclick="abrirVista('dashboardView')" style="background: #27272a; border: 1px solid #3f3f46; color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; transition: background 0.2s; padding: 0;">
@@ -1236,14 +1239,13 @@
             <th style="padding: 12px 8px; text-align: center;">Estado</th>
           </tr>
         </thead>
-        <tbody id="tablaProblemasCuerpo">
-          </tbody>
+        <tbody id="tablaProblemasCuerpo"></tbody>
       </table>
     </div>
   </div>
 </div>
   
-  <div id="appContainer" class="view" style="display: none;">
+<div id="appContainer" class="view" style="display: none;">
   <div class="card-container" style="max-width: 480px; margin: 0 auto; padding: 5px 15px 40px 15px;">
     
     <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px; margin-bottom: 12px;">
@@ -1286,9 +1288,10 @@
         ✕ Cerrar Sesión
       </button>
     </div>
-
   </div>
-</div> <div id="modalMapaExpandido" class="modal-mapa-completo">
+</div> 
+
+<div id="modalMapaExpandido" class="modal-mapa-completo">
   <div id="mapaPantallaCompleta"></div>
   <div class="barra-inferior-mapa">
     <button class="btn-volver-mapa" onclick="document.getElementById('modalMapaExpandido').style.display='none'">
@@ -1342,6 +1345,7 @@
 
 <div id="toast-container" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; width: 90%; max-width: 400px; pointer-events: none;"></div>
 <div id="editarView" class="view" style="display: none;"></div>
+
 <div id="modalClaveSuperAdmin" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); z-index: 9999; justify-content: center; align-items: center; padding: 20px;">
   <div style="background: #18181b; border: 1px solid #27272a; width: 100%; max-width: 360px; border-radius: 16px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4); text-align: center; animation: modalFadeIn 0.2s ease-out;">
     
