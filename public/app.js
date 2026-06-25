@@ -3005,36 +3005,49 @@ function procesarVerificacionEdificio(idEdificio, aprobado) {
   if (typeof inicializarMapaGeneralAdministrador === "function") inicializarMapaGeneralAdministrador();
 }
 /**
- * Lanza el mapa maestro directamente desde el menú de inicio 
- * adaptado tanto para la vista de Administrador como de Conductor.
+ * Lanza el mapa maestro directamente en pantalla completa desde el menú de inicio
+ * mitigando solapamientos de interfaz y forzando el renderizado de Leaflet.
  */
 function abrirMapaTerritorioIndependiente() {
   console.log("🗺️ Desplegando el Mapa de Territorio desde el menú de inicio...");
 
-  // 1. Ocultar todos los paneles o vistas que puedan estar abiertos de fondo
-  const panelesAocultar = [
-    "seccionTerritoriosEdificios", 
-    "seccionProblemasIncidencias",
-    "panelDetalleEdificio",
-    "menuInicioContenedor" // Asegúrate de cambiar esto por el ID real de tu pantalla de inicio si difiere
-  ];
-  
-  panelesAocultar.forEach(id => {
+  // 1. Forzar el ocultamiento absoluto de los menús e interfaces secundarias
+  const vistas ParaOcultar = ["loginScreen", "dashboardView", "territorioView", "problemasView", "superAdminView", "appContainer"];
+  vistasParaOcultar.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.style.display = "none";
+    if (el) {
+      el.style.setProperty("display", "none", "important");
+    }
   });
 
-  // 2. Hacer visible el contenedor del mapa maestro en pantalla completa
-  const contenedorMapaFullscreen = document.getElementById("mapaMaestroFullscreen") || document.getElementById("contenedorMapaCentral");
-  if (contenedorMapaFullscreen) {
-    contenedorMapaFullscreen.style.display = "block";
+  // 2. Localizar y encender el contenedor del Mapa Maestro
+  const vistaMapa = document.getElementById("mapaView");
+  if (!vistaMapa) {
+    console.error("❌ No se encontró el contenedor id='mapaView' en el HTML.");
+    return;
   }
+  
+  // Forzamos visibilidad total
+  vistaMapa.style.setProperty("display", "block", "important");
 
-  // 3. Disparar el motor cartográfico para renderizar polígonos vectoriales y pins de memoria
+  // 3. Ejecutar el motor cartográfico y recalcular dimensiones
   if (typeof inicializarMapaGeneralAdministrador === "function") {
     inicializarMapaGeneralAdministrador();
+    
+    // Le damos un pequeño delay (200ms) para que el DOM se acomode antes de centrar los pines
+    setTimeout(() => {
+      if (typeof mapaGeneral !== 'undefined' && mapaGeneral) {
+        console.log("🔄 Forzando reajuste de dimensiones en Leaflet (invalidateSize)...");
+        mapaGeneral.invalidateSize();
+        
+        // Opcional: Si los pines quedan descentrados, forzamos un reajuste de vista
+        if (typeof capaEdificiosGroup !== 'undefined' && capaEdificiosGroup && capaEdificiosGroup.getLayers().length > 0) {
+          mapaGeneral.fitBounds(capaEdificiosGroup.getBounds(), { padding: [30, 30] });
+        }
+      }
+    }, 200);
   } else {
-    console.warn("No se encontró la función inicializarMapaGeneralAdministrador para levantar el mapa.");
+    console.warn("⚠️ La función inicializarMapaGeneralAdministrador no está definida en app.js");
   }
 }
 
