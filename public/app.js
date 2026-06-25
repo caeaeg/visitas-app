@@ -2799,20 +2799,48 @@ function inicializarMapaGeneralAdministrador() {
       if (!isNaN(lat) && !isNaN(lng) && isFinite(lat) && lat !== 0) {
         pinsContados++;
         
+        // Mapeo adaptado de los nombres de tus propiedades para el Estado
+        const estadoTexto = (e.status || e.estado || 'PENDIENTE').toUpperCase();
+        const esPendiente = estadoTexto.includes('PEND');
+
+        // Renderizado del Contenedor Oscuro Premium alineado a tus otras secciones
         const contenidoPopup = `
-          <div style="color: #ffffff; background: #1f1f23; font-family: sans-serif; padding: 4px; border-radius: 4px;">
-            <b style="font-size: 14px; color: #3b82f6; display:block; margin-bottom:2px;">🏢 ${e.address || 'Sin Dirección'}</b>
-            ${e.name ? `<span style="font-size:12px; color:#a1a1aa; display:block; margin-bottom:4px;">${e.name}</span>` : ''}
-            <div style="font-size: 11px; border-top: 1px solid #333; padding-top: 4px; margin-top: 4px; display:grid; gap:2px;">
-              <div>🗺️ <b>Territorio:</b> ${e.territory || e.territorio || '-'}</div>
-              <div>🔢 <b>Pisos:</b> ${e.floors || 0} | 🚪 <b>U:</b> ${e.unitsPerFloor || 0}</div>
-              <div>📋 <b>Estado:</b> ${(e.status || e.estado || 'Pendiente').toUpperCase()}</div>
+          <div style="font-family: system-ui, -apple-system, sans-serif; padding: 4px; min-width: 190px;">
+            <h4 style="margin: 0 0 4px 0; color: #ffffff; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+               🏢 ${e.address || 'Sin Dirección'}
+            </h4>
+            ${e.name ? `<span style="font-size: 12px; color: #a1a1aa; display: block; margin-bottom: 8px; font-style: italic;">${e.name}</span>` : '<div style="margin-bottom: 8px;"></div>'}
+            
+            <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #d4d4d8; margin-bottom: 10px; border-top: 1px solid #27272a; padding-top: 8px;">
+              <div style="display: flex; justify-content: space-between;">
+                <span style="color: #71717a;">🗺️ Territorio:</span>
+                <span style="font-weight: 600; color: #3b82f6;">${e.territory || e.territorio || '-'}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span style="color: #71717a;">🔢 Pisos / U:</span>
+                <span style="font-weight: 600; color: #ffffff;">${e.floors || 0} p. | ${e.unitsPerFloor || 0} u.</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #71717a;">📋 Estado:</span>
+                <span style="font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; 
+                  background: ${esPendiente ? 'rgba(234, 179, 8, 0.15)' : 'rgba(34, 197, 94, 0.15)'}; 
+                  color: ${esPendiente ? '#f59e0b' : '#22c55e'}; letter-spacing: 0.5px;">
+                  ${estadoTexto}
+                </span>
+              </div>
             </div>
+
+            <button onclick="verDetalleDesdeMapa('${e.id || e.idEdificio}')" style="width: 100%; background: #27272a; border: 1px solid #3f3f46; color: #ffffff; padding: 6px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center;" onmouseover="this.style.background='#3f3f46'" onmouseout="this.style.background='#27272a'">
+              🔍 Ver Ficha Completa
+            </button>
           </div>
         `;
 
         L.marker([lat, lng])
-          .bindPopup(contenidoPopup, { maxWidth: 220 })
+          .bindPopup(contenidoPopup, { 
+            maxWidth: 240,
+            className: 'custom-dark-popup' // Para vincularlo con tus estilos
+          })
           .addTo(mapaGeneral);
       }
     });
@@ -2839,6 +2867,34 @@ function inicializarMapaGeneralAdministrador() {
     console.error("❌ Fallo crítico al poblar datos vectoriales en el mapa general:", err);
   }
 }
+/**
+ * Permite saltar del mapa directo al panel de control del edificio seleccionado
+ */
+function verDetalleDesdeMapa(edificioId) {
+  // Volvemos a la vista de territorios donde está el listado principal
+  if (typeof abrirVista === "function") {
+    abrirVista('territorioView');
+  } else {
+    // Si manejás el cambio de pantallas ocultando/mostrando elementos manualmente:
+    const vistaMapa = document.getElementById("mapaView");
+    const vistaTerritorio = document.getElementById("territorioView");
+    if (vistaMapa) vistaMapa.style.setProperty("display", "none", "important");
+    if (vistaTerritorio) vistaTerritorio.style.setProperty("display", "block", "important");
+  }
+  
+  // Intentamos preseleccionar o filtrar el edificio en tu panel de administración
+  if (typeof seleccionarEdificioEnAdmin === "function") {
+    seleccionarEdificioEnAdmin(edificioId);
+  } else {
+    // Alternativa: meter el ID o la dirección en tu buscador nativo y disparar el filtro
+    const buscador = document.getElementById("busquedaDireccionAdmin");
+    if (buscador) {
+      buscador.value = edificioId;
+      if (typeof ejecutarFiltrosAdmin === "function") ejecutarFiltrosAdmin();
+    }
+  }
+}
+
 
 // Variable global para controlar la pestaña activa de la bandeja (oficial / auditoria)
 let modoListaAdmin = "oficial"; 
