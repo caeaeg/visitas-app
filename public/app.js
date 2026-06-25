@@ -3004,6 +3004,39 @@ function procesarVerificacionEdificio(idEdificio, aprobado) {
   ejecutarFiltrosAdmin();
   if (typeof inicializarMapaGeneralAdministrador === "function") inicializarMapaGeneralAdministrador();
 }
+/**
+ * Lanza el mapa maestro directamente desde el menú de inicio 
+ * adaptado tanto para la vista de Administrador como de Conductor.
+ */
+function abrirMapaTerritorioIndependiente() {
+  console.log("🗺️ Desplegando el Mapa de Territorio desde el menú de inicio...");
+
+  // 1. Ocultar todos los paneles o vistas que puedan estar abiertos de fondo
+  const panelesAocultar = [
+    "seccionTerritoriosEdificios", 
+    "seccionProblemasIncidencias",
+    "panelDetalleEdificio",
+    "menuInicioContenedor" // Asegúrate de cambiar esto por el ID real de tu pantalla de inicio si difiere
+  ];
+  
+  panelesAocultar.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
+
+  // 2. Hacer visible el contenedor del mapa maestro en pantalla completa
+  const contenedorMapaFullscreen = document.getElementById("mapaMaestroFullscreen") || document.getElementById("contenedorMapaCentral");
+  if (contenedorMapaFullscreen) {
+    contenedorMapaFullscreen.style.display = "block";
+  }
+
+  // 3. Disparar el motor cartográfico para renderizar polígonos vectoriales y pins de memoria
+  if (typeof inicializarMapaGeneralAdministrador === "function") {
+    inicializarMapaGeneralAdministrador();
+  } else {
+    console.warn("No se encontró la función inicializarMapaGeneralAdministrador para levantar el mapa.");
+  }
+}
 
 // =========================================================================
 // 🔤 SECTOR: NORMALIZADOR ALFANUMÉRICO DE DIRECCIONES Y NOMENCLATURA VIAL
