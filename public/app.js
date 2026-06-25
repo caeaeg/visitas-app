@@ -3011,8 +3011,8 @@ function procesarVerificacionEdificio(idEdificio, aprobado) {
 function abrirMapaTerritorioIndependiente() {
   console.log("🗺️ Desplegando el Mapa de Territorio desde el menú de inicio...");
 
-  // 1. Forzar el ocultamiento absoluto de los menús e interfaces secundarias
-  const vistas ParaOcultar = ["loginScreen", "dashboardView", "territorioView", "problemasView", "superAdminView", "appContainer"];
+  // Corregido: Nombre de variable unificado sin espacios
+  const vistasParaOcultar = ["loginScreen", "dashboardView", "territorioView", "problemasView", "superAdminView", "appContainer"];
   vistasParaOcultar.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
@@ -3020,7 +3020,7 @@ function abrirMapaTerritorioIndependiente() {
     }
   });
 
-  // 2. Localizar y encender el contenedor del Mapa Maestro
+  // Localizar y encender el contenedor del Mapa Maestro
   const vistaMapa = document.getElementById("mapaView");
   if (!vistaMapa) {
     console.error("❌ No se encontró el contenedor id='mapaView' en el HTML.");
@@ -3030,7 +3030,7 @@ function abrirMapaTerritorioIndependiente() {
   // Forzamos visibilidad total
   vistaMapa.style.setProperty("display", "block", "important");
 
-  // 3. Ejecutar el motor cartográfico y recalcular dimensiones
+  // Ejecutar el motor cartográfico y recalcular dimensiones
   if (typeof inicializarMapaGeneralAdministrador === "function") {
     inicializarMapaGeneralAdministrador();
     
@@ -3040,7 +3040,6 @@ function abrirMapaTerritorioIndependiente() {
         console.log("🔄 Forzando reajuste de dimensiones en Leaflet (invalidateSize)...");
         mapaGeneral.invalidateSize();
         
-        // Opcional: Si los pines quedan descentrados, forzamos un reajuste de vista
         if (typeof capaEdificiosGroup !== 'undefined' && capaEdificiosGroup && capaEdificiosGroup.getLayers().length > 0) {
           mapaGeneral.fitBounds(capaEdificiosGroup.getBounds(), { padding: [30, 30] });
         }
