@@ -761,19 +761,20 @@ async function mostrarInfoEdificio() {
     try {
       const res = await apiFetch(`/building-info/${currentBuildingId}`);
       
-if (res) {
-  const data = res.json ? await res.json() : res;
-  edificioData = data.building;
-  ultimaVisitaTexto = data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca";
-  if (data.issue) {
-    
-    issueHtml = `
-      <div style="position: absolute; top: 14px; right: 14px; font-size: 20px; z-index: 10;" title="Alerta: ${data.issue.type}">
-        ⚠️
-      </div>
-    `;
-  }
-}
+      if (res) {
+        const data = res.json ? await res.json() : res;
+        edificioData = data.building;
+        ultimaVisitaTexto = data.lastVisit ? new Date(data.lastVisit.date).toLocaleDateString('es-AR') : "Nunca";
+        
+        if (data.issue) {
+          // Cambiado: Ahora es un banner estructurado que se inyecta debajo del título de forma segura
+          issueHtml = `
+            <div style="display: flex; align-items: center; gap: 6px; background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.25); padding: 5px 10px; border-radius: 8px; color: #f59e0b; font-size: 12px; font-weight: 700; width: fit-content; margin-top: 4px;" title="Alerta: ${data.issue.type}">
+              ⚠️ Alerta activa: ${data.issue.type || 'Incidencia informada'}
+            </div>
+          `;
+        }
+      }
     } catch (err) {
       console.warn("Error buscando info extendida en red, usando datos básicos locales:", err);
       edificioData = window.edificioActivo;
@@ -806,39 +807,61 @@ if (res) {
   // 🔥 CONDICIONAL DE MAPA: Si no hay internet, ocultamos por completo el bloque del mapa para optimizar espacio
   const mostrarMapaVisual = navigator.onLine ? "flex" : "none";
 
- infoEdificio.innerHTML = `
-  <div class="sectionCard" style="position: relative; background: #121214; border: 1px solid #27272a; padding: 16px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 14px;">
-        <div>
-          <div style="font-size:24px; font-weight:800; color:#ffffff; line-height:1.2; letter-spacing: -0.5px;">${b.address}</div>
-          <div style="color:#d4d4d8; font-size:14px; margin-top:4px; font-weight: 500;">${b.address2 || "Sin datos adicionales"}</div>
+  infoEdificio.innerHTML = `
+    <div class="sectionCard" style="background: #121214; border: 1px solid #27272a; padding: 14px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 10px;">
+        
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+            <div style="font-size: 22px; font-weight: 800; color: #ffffff; line-height: 1.2; letter-spacing: -0.5px; word-break: break-word;">
+              ${b.address}
+            </div>
+            <div style="background: #27272a; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; white-space: nowrap; color: #ffffff; border: 1px solid #3f3f46; align-self: flex-start;">
+              🏢 ${b.name || "Edificio"}
+            </div>
+          </div>
+          <div style="color: #a1a1aa; font-size: 13px; font-weight: 500;">
+            ${b.address2 || "Sin datos adicionales"}
+          </div>
+          
+          ${issueHtml}
         </div>
-        <div style="background:#27272a; padding:6px 10px; border-radius:8px; font-size:13px; font-weight:700; white-space:nowrap; color:#ffffff; border: 1px solid #3f3f46;">🏢 ${b.name || "Edificio"}</div>
-      </div>
-      <div style="display: flex; gap: 14px; align-items: center; justify-content: space-between;">
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px; font-size: 14px; color:#ffffff;">
-          <div>🗺️ <b>Territorio:</b> <span style="background: #27272a; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${b.territory || "-"}</span></div>
-          <div>🔢 <b>Pisos:</b> <span style="font-weight: 600; color: #3b82f6;">${b.floors || 0}</span></div>
-          <div style="color:#e4e4e7; font-size: 13px; line-height: 1.3;">📋 <b>Notas:</b> <span style="font-style: italic; color: #d4d4d8;">${b.description || "Sin anotaciones."}</span></div>
-        </div>
-        <div id="wrapperMapaYFecha" style="display: ${mostrarMapaVisual}; flex-direction: column; gap: 6px; align-items: center; flex-shrink: 0;">
-          <div id="miniMapaPredi" style="width: 115px; height: 95px; border-radius: 10px; border: 1px solid #4b5563; background:#1f1f22; pointer-events: none;"></div>
-          <div style="background: #27272a; border: 1px solid #3f3f46; border-radius: 6px; padding: 4px 6px; display: flex; align-items: center; gap: 4px; font-size: 11px; color: #e4e4e7; width: 115px; justify-content: center; box-sizing: border-box;">
-            <span>🗓️</span> <span>${ultimaVisitaTexto}</span>
+
+        <div style="display: flex; gap: 14px; align-items: flex-start; justify-content: space-between; border-top: 1px solid #27272a; padding-top: 10px;">
+          
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #ffffff;">
+            <div style="display: flex; justify-content: space-between; max-width: 160px;">
+              <span style="color: #71717a;">🗺️ Territorio:</span> 
+              <span style="background: #27272a; padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 12px;">${b.territory || "-"}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; max-width: 160px;">
+              <span style="color: #71717a;">🔢 Pisos:</span> 
+              <span style="font-weight: 600; color: #3b82f6;">${b.floors || 0}</span>
+            </div>
+            <div style="color: #e4e4e7; font-size: 12px; line-height: 1.3; margin-top: 2px;">
+              <span style="color: #71717a; display: block; font-weight: 500; margin-bottom: 1px;">📋 Notas:</span>
+              <span style="font-style: italic; color: #d4d4d8; display: block; max-height: 38px; overflow-y: auto;">${b.description || "Sin anotaciones."}</span>
+            </div>
+          </div>
+          
+          <div id="wrapperMapaYFecha" style="display: ${mostrarMapaVisual}; flex-direction: column; gap: 4px; align-items: center; flex-shrink: 0;">
+            <div id="miniMapaPredi" style="width: 100px; height: 80px; border-radius: 8px; border: 1px solid #3f3f46; background: #1f1f22; pointer-events: none;"></div>
+            <div style="background: #27272a; border: 1px solid #3f3f46; border-radius: 5px; padding: 3px 6px; display: flex; align-items: center; gap: 4px; font-size: 10px; color: #e4e4e7; width: 100px; justify-content: center; box-sizing: border-box; white-space: nowrap;">
+              <span>🗓️</span> <span>${ultimaVisitaTexto}</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid #27272a; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-        <div style="flex: 1; font-size: 12px; color:#a1a1aa; font-weight: 500; text-align: left;">
-          ${cartelNuevoHtml ? `🏢 ${cartelNuevoHtml}` : ""}
+
+        <div style="margin-top: 2px; padding-top: 8px; border-top: 1px solid #27272a; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+          <div style="flex: 1; font-size: 11px; color: #52525b; font-weight: 500; text-align: left; line-height: 1.2;">
+            ${cartelNuevoHtml ? `🏢 ${cartelNuevoHtml}` : ""}
+          </div>
+          <div style="flex: 1; display: flex; justify-content: flex-end;">
+            <button onclick="abrirReporte()" style="background: #451a1a; color: #f87171; border: 1px solid #ef4444; padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; white-space: nowrap; width: auto; margin: 0;">
+              ⚠️ Informar problema
+            </button>
+          </div>
         </div>
-        <div style="flex: 1; display: flex; justify-content: flex-end;">
-          <button onclick="abrirReporte()" style="background:#451a1a; color:#f87171; border:1px solid #ef4444; padding:6px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; white-space: nowrap; width: auto; margin: 0;">
-            ⚠️ Informar problema
-          </button>
-        </div>
-      </div>
-      ${issueHtml}
+
     </div>
   `;
 
